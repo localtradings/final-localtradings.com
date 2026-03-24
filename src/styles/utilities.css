@@ -1,0 +1,123 @@
+@utility shell-width {
+  max-width: 80rem;
+  margin-inline: auto;
+  width: min(100% - 2rem, 80rem);
+}
+
+@utility panel {
+  border: 1px solid color-mix(in srgb, var(--outline) 24%, transparent);
+  background: color-mix(in srgb, var(--surface-high) 84%, transparent);
+  backdrop-filter: blur(24px);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.28);
+}
+
+.btn-base {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem;
+  border-radius: var(--radius-lg);
+  padding: 0.85rem 1.2rem;
+  font-weight: 700;
+  transition:
+    transform 180ms ease,
+    background-color 180ms ease,
+    color 180ms ease,
+    border-color 180ms ease,
+    opacity 180ms ease;
+}
+
+.btn-base:hover {
+  transform: translateY(-1px);
+}
+
+.btn-base:active {
+  transform: translateY(0);
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem;
+  border-radius: var(--radius-lg);
+  padding: 0.85rem 1.2rem;
+  font-weight: 700;
+  transition:
+    transform 180ms ease,
+    background-color 180ms ease,
+    color 180ms ease,
+    border-color 180ms ease,
+    opacity 180ms ease;
+  background: linear-gradient(135deg, var(--primary), var(--primary-dim));
+  color: #140c05;
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem;
+  border-radius: var(--radius-lg);
+  padding: 0.85rem 1.2rem;
+  font-weight: 700;
+  transition:
+    transform 180ms ease,
+    background-color 180ms ease,
+    color 180ms ease,
+    border-color 180ms ease,
+    opacity 180ms ease;
+  border: 1px solid color-mix(in srgb, var(--outline) 28%, transparent);
+  background: color-mix(in srgb, var(--surface-high) 82%, transparent);
+  color: var(--foreground);
+}
+
+.btn-primary:hover,
+.btn-secondary:hover {
+  transform: translateY(-1px);
+}
+
+.btn-primary:active,
+.btn-secondary:active {
+  transform: translateY(0);
+}
+
+.card-surface {
+  border: 1px solid color-mix(in srgb, var(--outline-variant) 32%, transparent);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--surface-high) 92%, transparent), color-mix(in srgb, var(--surface-low) 96%, transparent));
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.22);
+}
+
+.hero-grid {
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--outline-variant) 26%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--outline-variant) 26%, transparent) 1px, transparent 1px);
+  background-size: 2.75rem 2.75rem;
+}
+
+.text-balance {
+  text-wrap: balance;
+}
+
+.prose-localtradings h1,
+.prose-localtradings h2,
+.prose-localtradings h3 {
+  font-family: var(--font-manrope);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.prose-localtradings {
+  color: var(--foreground);
+}
+
+.prose-localtradings p,
+.prose-localtradings li {
+  color: color-mix(in srgb, var(--foreground) 82%, var(--muted));
+  line-height: 1.85;
+}
+
+.prose-localtradings a {
+  color: var(--primary);
+}
