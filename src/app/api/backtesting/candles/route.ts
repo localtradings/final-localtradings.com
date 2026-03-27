@@ -17,15 +17,23 @@ const querySchema = z.object({
 });
 
 export async function GET(request: NextRequest) {
-  if (hasSupabaseEnv()) {
-    const supabase = await createSupabaseServerClient();
-    const {
-      data: { user },
-    } = (await supabase?.auth.getUser()) ?? { data: { user: null } };
+  if (!hasSupabaseEnv()) {
+    return NextResponse.json(
+      {
+        message:
+          "Signed-in backtesting requires Supabase configuration before historical data can load.",
+      },
+      { status: 503 },
+    );
+  }
 
-    if (!user) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = (await supabase?.auth.getUser()) ?? { data: { user: null } };
+
+  if (!user) {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
   const parsed = querySchema.safeParse({

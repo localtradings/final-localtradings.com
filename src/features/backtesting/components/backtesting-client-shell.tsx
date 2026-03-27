@@ -2,16 +2,20 @@
 
 import { useSyncExternalStore } from "react";
 
-import type { BacktestAccountRecord } from "../types";
+import type { BacktestAccountRecord, BacktestSessionRecord } from "../types";
 import { BacktestingClient } from "./backtesting-client";
 
 type BacktestingClientShellProps = {
   initialAccount?: BacktestAccountRecord | null;
+  initialSessions?: BacktestSessionRecord[];
+  shareDisplayName: string;
   userId?: string | null;
 };
 
 export function BacktestingClientShell({
   initialAccount,
+  initialSessions,
+  shareDisplayName,
   userId,
 }: BacktestingClientShellProps) {
   const mounted = useSyncExternalStore(
@@ -34,5 +38,12 @@ export function BacktestingClientShell({
     );
   }
 
-  return <BacktestingClient initialAccount={initialAccount} userId={userId} />;
+  return (
+    <BacktestingClient
+      initialAccount={initialAccount}
+      initialSessions={initialSessions}
+      shareDisplayName={shareDisplayName}
+      userId={userId}
+    />
+  );
 }

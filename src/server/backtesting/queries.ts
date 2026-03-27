@@ -13,6 +13,20 @@ import {
 import { sanitizeSnapshot } from "@/features/backtesting/utils/session-state";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
+const MAX_BACKTEST_SESSIONS_PER_USER = 25;
+const COMPLETED_HISTORY_STATUSES = [
+  "target_hit",
+  "stop_hit",
+  "manual_close",
+  "breakeven",
+] as const;
+const INCOMPLETE_SESSION_STATUSES = [
+  "draft",
+  "armed",
+  "active",
+  "unfinished",
+] as const;
+
 type BacktestSessionRow = {
   id: string;
   symbol: string;
@@ -91,7 +105,9 @@ export async function getBacktestSessions(userId: string) {
       "id, symbol, timeframe, window_start_at, bars_requested, direction, entry, stop, target, status, result_r, started_at, finished_at, thesis, review_notes, session_state_json",
     )
     .eq("user_id", userId)
-    .order("started_at", { ascending: false });
+    .in("status", [...COMPLETED_HISTORY_STATUSES])
+    .order("started_at", { ascending: false })
+    .limit(MAX_BACKTEST_SESSIONS_PER_USER);
 
   if (error || !data) {
     return [] as BacktestSessionRecord[];
@@ -100,19 +116,56 @@ export async function getBacktestSessions(userId: string) {
   return (data as BacktestSessionRow[]).map(normalizeBacktestSession);
 }
 
-export async function getBacktestSessionById(sessionId: string) {
+export async function deleteIncompleteBacktestSessions(userId: string) {
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) {
+    return;
+  }
+
+  const { data, error } = await supabase
+    .from("backtest_sessions")
+    .select("id")
+    .eq("user_id", userId)
+    .in("status", [...INCOMPLETE_SESSION_STATUSES]);
+
+  if (error || !data || data.length === 0) {
+    return;
+  }
+
+  const sessionIds = data.map((item) => item.id);
+
+  if (sessionIds.length === 0) {
+    return;
+  }
+
+  await supabase
+    .from("backtest_sessions")
+    .delete()
+    .eq("user_id", userId)
+    .in("id", sessionIds);
+}
+
+export async function getBacktestSessionById(
+  sessionId: string,
+  userId?: string,
+) {
   const supabase = await createSupabaseServerClient();
   if (!supabase) {
     return null;
   }
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("backtest_sessions")
     .select(
       "id, symbol, timeframe, window_start_at, bars_requested, direction, entry, stop, target, status, result_r, started_at, finished_at, thesis, review_notes, session_state_json",
     )
-    .eq("id", sessionId)
-    .maybeSingle();
+    .eq("id", sessionId);
+
+  if (userId) {
+    query = query.eq("user_id", userId);
+  }
+
+  const { data, error } = await query.maybeSingle();
 
   if (error || !data) {
     return null;

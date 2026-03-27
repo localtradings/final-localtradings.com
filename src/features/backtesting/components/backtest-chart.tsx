@@ -42,6 +42,7 @@ type BacktestChartProps = {
 type ChartCandle = CandlestickData<Time>;
 type ChartMarker = SeriesMarker<Time>;
 type LineCoordinateState = Record<BacktestLineField, number | null>;
+const PRICE_SCALE_GUTTER_PX = 76;
 
 const LINE_STYLES: Record<
   BacktestLineField,
@@ -143,7 +144,7 @@ export function BacktestChart({
         },
       },
       layout: {
-        attributionLogo: true,
+        attributionLogo: false,
         background: {
           type: ColorType.Solid,
           color: "transparent",
@@ -405,7 +406,10 @@ export function BacktestChart({
       <div className="relative h-full min-h-[20rem] overflow-hidden rounded-[var(--radius-lg)] bg-[#060a0f]">
         <div className="h-full w-full" ref={containerRef} />
 
-        <div className="pointer-events-none absolute inset-0">
+        <div
+          className="pointer-events-none absolute inset-y-0 left-0"
+          style={{ right: `${PRICE_SCALE_GUTTER_PX}px` }}
+        >
           {(Object.keys(LINE_STYLES) as BacktestLineField[]).map((field) => {
             const coordinate = lineCoordinates[field];
             const price = lineValues[field];
@@ -468,7 +472,7 @@ export function BacktestChart({
                   style={{ backgroundColor: style.color }}
                 />
                 <span
-                  className={`pointer-events-none absolute left-2 top-1/2 z-20 inline-flex min-h-7 -translate-y-1/2 items-center gap-1 rounded-md border px-2 py-1 text-[10px] font-semibold shadow-[0_8px_18px_rgba(0,0,0,0.24)] transition ${style.pillClassName}`}
+                  className={`pointer-events-none absolute right-2 top-1/2 z-20 inline-flex min-h-7 -translate-y-1/2 items-center gap-1 rounded-md border px-2 py-1 text-[10px] font-semibold shadow-[0_8px_18px_rgba(0,0,0,0.24)] transition ${style.pillClassName}`}
                 >
                   <span>{style.title}</span>
                   <span className="text-white/85">

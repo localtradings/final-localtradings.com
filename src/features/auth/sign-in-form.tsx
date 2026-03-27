@@ -16,10 +16,16 @@ const initialState: ActionState = {
 };
 
 type SignInFormProps = {
+  missingConfig?: boolean;
+  reason?: string;
   redirectTo?: string;
 };
 
-export function SignInForm({ redirectTo = "/app" }: SignInFormProps) {
+export function SignInForm({
+  missingConfig = false,
+  reason,
+  redirectTo = "/app",
+}: SignInFormProps) {
   const [state, formAction, isPending] = useActionState(signIn, initialState);
 
   const containerVariants: Variants = {
@@ -68,6 +74,25 @@ export function SignInForm({ redirectTo = "/app" }: SignInFormProps) {
           Need help?
         </Link>
       </motion.div>
+
+      {missingConfig ? (
+        <motion.p
+          className="rounded-[var(--radius-lg)] border border-secondary/25 bg-secondary-container/20 px-4 py-3 text-sm leading-6 text-secondary"
+          variants={itemVariants}
+        >
+          Supabase auth is not configured in this environment yet, so signed-in
+          routes like backtesting are unavailable until those env values are set.
+        </motion.p>
+      ) : null}
+
+      {!missingConfig && reason === "auth" ? (
+        <motion.p
+          className="rounded-[var(--radius-lg)] border border-outline/16 bg-surface-low/70 px-4 py-3 text-sm leading-6 text-muted"
+          variants={itemVariants}
+        >
+          Sign in to continue into the signed-in workspace.
+        </motion.p>
+      ) : null}
 
       <motion.div className="space-y-2" variants={itemVariants}>
         <Label htmlFor="email">Email</Label>

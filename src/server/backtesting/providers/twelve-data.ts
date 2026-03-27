@@ -152,6 +152,15 @@ async function fetchWindow(
   return normalized;
 }
 
+function parseWindowStart(windowStartAt: string) {
+  const timestamp = Date.parse(windowStartAt);
+  if (Number.isNaN(timestamp)) {
+    throw new TwelveDataError("Saved replay window is invalid.", 400);
+  }
+
+  return new Date(timestamp);
+}
+
 export async function fetchTwelveDataCandles(
   selection: BacktestSelection,
   barsRequested: number,
@@ -194,4 +203,32 @@ export async function fetchTwelveDataCandles(
     "Unable to load a valid random replay window. Try another symbol or timeframe.",
     500,
   );
+}
+
+export async function fetchTwelveDataCandlesForWindow(
+  selection: BacktestSelection,
+  windowStartAt: string,
+  barsRequested: number,
+) {
+  if (!hasTwelveDataEnv()) {
+    throw new TwelveDataError(
+      "Historical data requires TWELVE_DATA_API_KEY in your environment.",
+      503,
+    );
+  }
+
+  const startAt = parseWindowStart(windowStartAt);
+  const candles = await fetchWindow(selection, startAt, barsRequested);
+
+  if (candles.length < barsRequested) {
+    throw new TwelveDataError(
+      "Saved replay window no longer has enough historical candles to resume.",
+      409,
+    );
+  }
+
+  return {
+    candles,
+    windowStartAt: startAt.toISOString(),
+  };
 }

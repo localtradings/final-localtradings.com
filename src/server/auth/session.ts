@@ -2,7 +2,6 @@ import "server-only";
 
 import { redirect } from "next/navigation";
 
-import { hasSupabaseEnv } from "@/lib/env";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function getCurrentUser() {
@@ -22,7 +21,7 @@ export async function getCurrentUser() {
 export async function requireUser() {
   const user = await getCurrentUser();
 
-  if (hasSupabaseEnv() && !user) {
+  if (!user) {
     redirect("/sign-in");
   }
 

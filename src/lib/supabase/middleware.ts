@@ -5,6 +5,14 @@ import { env, hasSupabaseEnv } from "@/lib/env";
 
 export async function updateSession(request: NextRequest) {
   if (!hasSupabaseEnv()) {
+    if (request.nextUrl.pathname.startsWith("/app")) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/sign-in";
+      url.searchParams.set("redirectTo", request.nextUrl.pathname);
+      url.searchParams.set("reason", "config");
+      return NextResponse.redirect(url);
+    }
+
     return NextResponse.next({ request });
   }
 
@@ -34,6 +42,7 @@ export async function updateSession(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = "/sign-in";
     url.searchParams.set("redirectTo", request.nextUrl.pathname);
+    url.searchParams.set("reason", "auth");
     return NextResponse.redirect(url);
   }
 

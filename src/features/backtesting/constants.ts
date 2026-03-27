@@ -134,14 +134,14 @@ export const DEFAULT_BACKTEST_ACCOUNT: BacktestAccountState = {
 };
 
 export const BACKTEST_STATUS_LABELS: Record<BacktestSessionStatus, string> = {
-  draft: "Draft",
-  armed: "Armed",
-  active: "Active",
-  target_hit: "Target Hit",
-  stop_hit: "Stop Hit",
-  manual_close: "Manual Close",
-  unfinished: "Unfinished",
-  breakeven: "Breakeven",
+  draft: "Setup Ready",
+  armed: "Waiting for Entry",
+  active: "Trade Open",
+  target_hit: "Take Profit Hit",
+  stop_hit: "Stopped Out",
+  manual_close: "Closed Manually",
+  unfinished: "Replay Ended",
+  breakeven: "Closed at Breakeven",
 };
 
 export function getBacktestInstrument(symbol: string) {

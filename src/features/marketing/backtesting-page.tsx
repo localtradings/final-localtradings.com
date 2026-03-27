@@ -8,19 +8,18 @@ const featureTiles = [
   { icon: "speed", label: "Chart Replay" },
   { icon: "play_circle", label: "Autoplay" },
   { icon: "trending_up", label: "Long / Short" },
-  { icon: "show_chart", label: "Equity Graph" },
-  { icon: "note_stack", label: "Session Notes" },
-  { icon: "layers", label: "Multiple TF" },
+  { icon: "layers", label: "Timeframe Switch" },
   { icon: "straighten", label: "Trade Planner" },
-  { icon: "fact_check", label: "Result Summary" },
+  { icon: "history", label: "Saved Sessions" },
+  { icon: "fact_check", label: "Result Tracking" },
   { icon: "settings_ethernet", label: "Replay Controls" },
-  { icon: "monitoring", label: "Review Panel" },
+  { icon: "description", label: "Thesis + Review Notes" },
 ];
 
-const setupStats = [
+const setupStats: Array<{ label: string; value: string; tone?: string }> = [
   { label: "Entry", value: "1.08542" },
-  { label: "Profit", value: "+2.45%", tone: "text-success" },
-  { label: "Duration", value: "4h 15m" },
+  { label: "Risk", value: "1.00%" },
+  { label: "Mode", value: "Replay" },
 ];
 
 export function MarketingBacktestingPage() {

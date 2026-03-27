@@ -128,11 +128,10 @@ export const backtestingCopy = {
     "Chart replay",
     "Autoplay",
     "Long / short",
-    "Equity graph",
-    "Session notes",
     "Timeframe switch",
     "Trade planner",
-    "Result summary",
+    "Saved sessions",
+    "Result tracking",
   ],
   reasons: [
     {
@@ -211,7 +210,7 @@ export const publicHelpCopy = {
     {
       title: "Backtesting",
       description:
-        "Get help with replay controls, planning inputs, and review panels.",
+        "Get help with replay controls, planning inputs, saved sessions, and review notes.",
       icon: "query_stats",
     },
     {

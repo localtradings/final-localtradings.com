@@ -3,6 +3,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { saveBacktestAccount } from "@/server/backtesting/account-actions";
+import {
+  deleteBacktestSession,
+  saveBacktestSession,
+} from "@/server/backtesting/actions";
 
 import {
   BACKTEST_INITIAL_REVEAL_COUNT,
@@ -18,36 +22,45 @@ import type {
   BacktestAccountState,
   BacktestCandlesResponse,
   BacktestDirection,
-  BacktestHistoryItem,
   BacktestLineField,
   BacktestLineValues,
   BacktestOrderType,
   BacktestSelection,
+  BacktestSessionRecord,
+  BacktestSessionStatus,
   BacktestTradeDraft,
   BacktestTradeExecution,
 } from "../types";
 import { createDefaultReplayState } from "../utils/session-state";
 import {
+  activateTradeExecution,
   advancePendingTradeExecution,
   advanceTradeExecution,
-  activateTradeExecution,
   armPendingTradeExecution,
   buildTradeDraftFromPrice,
-  calculateRiskFromVolume,
   calculatePositionSize,
+  calculateRiskFromVolume,
   createDraftExecution,
   deriveRiskSettings,
-  formatPrice,
   finalizeUnfinishedTrade,
+  formatPrice,
+  manuallyCloseTrade,
   validateTradeDraft,
 } from "../utils/trade-engine";
 
 type UseBacktestingWorkspaceOptions = {
   initialAccount?: BacktestAccountState | null;
+  initialSessions?: BacktestSessionRecord[];
   userId?: string | null;
 };
 
-const HISTORY_LIMIT = 20;
+const SESSION_LIMIT = 25;
+const COMPLETED_HISTORY_STATUSES: BacktestSessionStatus[] = [
+  "target_hit",
+  "stop_hit",
+  "manual_close",
+  "breakeven",
+];
 
 function parseDraftPrice(value: string) {
   const parsed = Number(value);
@@ -99,8 +112,16 @@ function buildStatusNotice(
 
   if (status === "unfinished") {
     return moneyLabel
-      ? `Replay ended ${moneyLabel}.`
+      ? `Replay ended ${moneyLabel}. No history entry was saved.`
       : "Replay window ended before the trade resolved.";
+  }
+
+  if (status === "manual_close") {
+    return moneyLabel ? `Trade closed ${moneyLabel}.` : "Trade closed.";
+  }
+
+  if (status === "breakeven") {
+    return "Trade closed near breakeven.";
   }
 
   if (status === "armed") return "Pending order armed. Price must touch entry first.";
@@ -156,12 +177,40 @@ function buildOrderAwareValidation(
   });
 }
 
-function createHistoryKey(userId?: string | null) {
-  return `backtesting-history:${userId ?? "guest"}`;
-}
-
 function createBalanceKey(userId?: string | null) {
   return `backtesting-balance:${userId ?? "guest"}`;
+}
+
+function mergeSessions(
+  current: BacktestSessionRecord[],
+  session: BacktestSessionRecord,
+) {
+  return [session, ...current.filter((item) => item.id !== session.id)]
+    .sort(
+      (left, right) =>
+        new Date(right.startedAt).getTime() - new Date(left.startedAt).getTime(),
+    )
+    .slice(0, SESSION_LIMIT);
+}
+
+function removeSession(
+  current: BacktestSessionRecord[],
+  sessionId: string,
+) {
+  return current.filter((item) => item.id !== sessionId);
+}
+
+function createSettledExecutionKey(execution: BacktestTradeExecution) {
+  if (
+    execution.closedAtTime === null ||
+    execution.status === "draft" ||
+    execution.status === "armed" ||
+    execution.status === "active"
+  ) {
+    return null;
+  }
+
+  return `${execution.status}:${execution.closedAtTime}:${execution.resultAmount ?? "na"}`;
 }
 
 export function useBacktestingWorkspace(
@@ -211,7 +260,12 @@ export function useBacktestingWorkspace(
   const [account, setAccount] = useState<BacktestAccountState>(
     options.initialAccount ?? DEFAULT_BACKTEST_ACCOUNT,
   );
-  const [history, setHistory] = useState<BacktestHistoryItem[]>([]);
+  const [sessions, setSessions] = useState<BacktestSessionRecord[]>(
+    (options.initialSessions ?? []).slice(0, SESSION_LIMIT),
+  );
+  const [pendingSessionActionId, setPendingSessionActionId] = useState<string | null>(
+    null,
+  );
 
   const requestIdRef = useRef(0);
   const datasetRef = useRef<BacktestCandlesResponse | null>(null);
@@ -220,11 +274,13 @@ export function useBacktestingWorkspace(
   const draftRef = useRef(tradeDraft);
   const selectionRef = useRef(activeSelection);
   const accountRef = useRef(account);
+  const sessionsRef = useRef(sessions);
   const defaultVolumeRef = useRef(defaultDraft.volume);
   const persistedAccountRef = useRef<BacktestAccountState>(
     options.initialAccount ?? DEFAULT_BACKTEST_ACCOUNT,
   );
   const settledExecutionKeyRef = useRef<string | null>(null);
+  const sessionStartedAtRef = useRef(new Date().toISOString());
 
   useEffect(() => {
     datasetRef.current = dataset;
@@ -251,35 +307,8 @@ export function useBacktestingWorkspace(
   }, [account]);
 
   useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    const raw = window.sessionStorage.getItem(createHistoryKey(options.userId));
-    if (!raw) {
-      return;
-    }
-
-    try {
-      const parsed = JSON.parse(raw) as BacktestHistoryItem[];
-      if (Array.isArray(parsed)) {
-        setHistory(parsed.slice(0, HISTORY_LIMIT));
-      }
-    } catch {
-      window.sessionStorage.removeItem(createHistoryKey(options.userId));
-    }
-  }, [options.userId]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    window.sessionStorage.setItem(
-      createHistoryKey(options.userId),
-      JSON.stringify(history.slice(0, HISTORY_LIMIT)),
-    );
-  }, [history, options.userId]);
+    sessionsRef.current = sessions;
+  }, [sessions]);
 
   useEffect(() => {
     if (!options.userId) {
@@ -426,28 +455,6 @@ export function useBacktestingWorkspace(
     return null;
   }, [execution.resultAmount, execution.riskAmount, liveResultR]);
 
-  const moneySummary = useMemo(() => {
-    if (execution.status === "draft") {
-      return {
-        riskPercent: riskSettings.riskPercent,
-        riskAmount: riskSettings.riskAmount,
-        volume: draftVolume,
-        livePnl: null,
-        finalPnl: null,
-        balanceAfterTrade: null,
-      };
-    }
-
-      return {
-        riskPercent: execution.riskPercent,
-        riskAmount: execution.riskAmount,
-        volume: execution.volume,
-        livePnl: liveResultAmount,
-        finalPnl: execution.resultAmount,
-        balanceAfterTrade: execution.balanceAfterTrade,
-      };
-  }, [draftVolume, execution, liveResultAmount, riskSettings]);
-
   const displayBalance = useMemo(() => {
     if (execution.status === "active" && typeof liveResultAmount === "number") {
       return account.currentBalance + liveResultAmount;
@@ -473,81 +480,86 @@ export function useBacktestingWorkspace(
     );
   }, [displayBalance, options.userId]);
 
-  const loadRandomWindow = useCallback(async (selection: BacktestSelection) => {
-    setIsLoading(true);
-    setLoadError(null);
-    setNotice(null);
-    setReplay((current) => ({ ...current, isPlaying: false }));
+  const loadRandomWindow = useCallback(
+    async (selection: BacktestSelection) => {
+      setIsLoading(true);
+      setLoadError(null);
+      setNotice(null);
+      setReplay((current) => ({ ...current, isPlaying: false }));
 
-    const requestId = requestIdRef.current + 1;
-    requestIdRef.current = requestId;
+      const requestId = requestIdRef.current + 1;
+      requestIdRef.current = requestId;
 
-    try {
-      const params = new URLSearchParams({
-        symbol: selection.symbol,
-        timeframe: selection.timeframe,
-      });
+      try {
+        const params = new URLSearchParams({
+          symbol: selection.symbol,
+          timeframe: selection.timeframe,
+        });
 
-      const response = await fetch(`/api/backtesting/candles?${params.toString()}`, {
-        cache: "no-store",
-      });
-      const payload = await response.json();
+        const response = await fetch(`/api/backtesting/candles?${params.toString()}`, {
+          cache: "no-store",
+        });
+        const payload = await response.json();
 
-      if (!response.ok) {
-        throw new Error(payload.message ?? "Unable to load a random replay window.");
+        if (!response.ok) {
+          throw new Error(payload.message ?? "Unable to load a random replay window.");
+        }
+
+        if (requestIdRef.current !== requestId) {
+          return;
+        }
+
+        const data = payload as BacktestCandlesResponse;
+        const anchorCandle =
+          data.candles[Math.max(0, data.selection.initialRevealCount - 1)] ??
+          data.candles.at(-1);
+
+        if (!anchorCandle) {
+          throw new Error("Unable to load a valid random replay window.");
+        }
+
+        const nextDraft = buildTradeDraftFromPrice(
+          data.instrument,
+          selection.timeframe,
+          anchorCandle.close,
+          "Long",
+        );
+        const nextValidation = validateTradeDraft(nextDraft);
+        const seededRisk = deriveRiskSettings(accountRef.current, {
+          riskPercent: accountRef.current.defaultRiskPercent,
+        });
+        const seededVolume = calculatePositionSize(nextValidation, seededRisk.riskAmount);
+        const hydratedDraft = {
+          ...nextDraft,
+          volume: seededVolume ? seededVolume.toFixed(2) : defaultVolumeRef.current,
+        };
+
+        settledExecutionKeyRef.current = null;
+        sessionStartedAtRef.current = new Date().toISOString();
+        setDataset(data);
+        setSelectionDraft(selection);
+        setActiveSelection(selection);
+        setTradeDraft(hydratedDraft);
+        setExecution(createDraftExecution());
+        setReplay({
+          replayIndex: Math.max(data.selection.initialRevealCount - 1, 0),
+          isPlaying: false,
+          speedId: replayRef.current.speedId,
+        });
+
+      } catch (error) {
+        setDataset(null);
+        setLoadError(
+          error instanceof Error
+            ? error.message
+            : "Unable to load a valid random replay window.",
+        );
+      } finally {
+        setIsLoading(false);
       }
-
-      if (requestIdRef.current !== requestId) {
-        return;
-      }
-
-      const data = payload as BacktestCandlesResponse;
-      const anchorCandle =
-        data.candles[Math.max(0, data.selection.initialRevealCount - 1)] ??
-        data.candles.at(-1);
-
-      if (!anchorCandle) {
-        throw new Error("Unable to load a valid random replay window.");
-      }
-
-      const nextDraft = buildTradeDraftFromPrice(
-        data.instrument,
-        selection.timeframe,
-        anchorCandle.close,
-        "Long",
-      );
-      const nextValidation = validateTradeDraft(nextDraft);
-      const seededRisk = deriveRiskSettings(accountRef.current, {
-        riskPercent: accountRef.current.defaultRiskPercent,
-      });
-      const seededVolume = calculatePositionSize(nextValidation, seededRisk.riskAmount);
-
-      settledExecutionKeyRef.current = null;
-      setDataset(data);
-      setSelectionDraft(selection);
-      setActiveSelection(selection);
-      setTradeDraft({
-        ...nextDraft,
-        volume: seededVolume ? seededVolume.toFixed(2) : defaultVolumeRef.current,
-      });
-      setExecution(createDraftExecution());
-      setReplay({
-        replayIndex: Math.max(data.selection.initialRevealCount - 1, 0),
-        isPlaying: false,
-        speedId: replayRef.current.speedId,
-      });
-      setNotice("Random replay loaded.");
-    } catch (error) {
-      setDataset(null);
-      setLoadError(
-        error instanceof Error
-          ? error.message
-          : "Unable to load a valid random replay window.",
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+    },
+    [],
+  );
 
   useEffect(() => {
     void loadRandomWindow(DEFAULT_BACKTEST_SELECTION);
@@ -646,48 +658,67 @@ export function useBacktestingWorkspace(
       return;
     }
 
-    const executionKey = `${execution.status}:${execution.closedAtTime}:${execution.resultAmount ?? "na"}`;
-    if (settledExecutionKeyRef.current === executionKey) {
+    const executionKey = createSettledExecutionKey(execution);
+    if (!executionKey || settledExecutionKeyRef.current === executionKey) {
       return;
     }
 
     settledExecutionKeyRef.current = executionKey;
 
-    if (typeof execution.balanceAfterTrade === "number") {
+    const isCompletedHistoryStatus = COMPLETED_HISTORY_STATUSES.includes(execution.status);
+
+    if (isCompletedHistoryStatus && typeof execution.balanceAfterTrade === "number") {
       setAccount((current) => ({
         ...current,
         currentBalance: execution.balanceAfterTrade ?? current.currentBalance,
       }));
     }
 
-    setHistory((current) => {
-      const nextHistory: BacktestHistoryItem = {
-        id: executionKey,
-        symbol: activeSelection.symbol,
-        timeframe: activeSelection.timeframe,
-        direction: tradeDraft.direction,
-        orderType: execution.orderType ?? tradeDraft.orderType,
-        volume: execution.volume,
+    if (!isCompletedHistoryStatus || !datasetRef.current) {
+      return;
+    }
+
+    const closedAtTime = execution.closedAtTime;
+    if (closedAtTime === null) {
+      return;
+    }
+
+    const snapshot = {
+      replay: {
+        ...replayRef.current,
+        isPlaying: false,
+      },
+      tradeDraft: draftRef.current,
+      execution,
+    };
+
+    void (async () => {
+      const result = await saveBacktestSession({
+        symbol: datasetRef.current?.selection.symbol ?? selectionRef.current.symbol,
+        timeframe: datasetRef.current?.selection.timeframe ?? selectionRef.current.timeframe,
+        windowStartAt: datasetRef.current?.selection.windowStartAt ?? new Date().toISOString(),
+        barsRequested:
+          datasetRef.current?.selection.barsRequested ?? BACKTEST_INITIAL_REVEAL_COUNT,
+        direction: draftRef.current.direction,
+        entry: execution.entry,
+        stop: execution.stop,
+        target: execution.target,
         status: execution.status,
         resultR: execution.resultR,
-        resultAmount: execution.resultAmount,
-        balanceAfter: execution.balanceAfterTrade,
-        closedAt:
-          execution.closedAtTime !== null
-            ? new Date(execution.closedAtTime).toISOString()
-            : new Date().toISOString(),
-      };
+        startedAt: sessionStartedAtRef.current,
+        finishedAt: new Date(closedAtTime * 1000).toISOString(),
+        thesis: "",
+        reviewNotes: "",
+        sessionStateJson: snapshot,
+      });
 
-      return [nextHistory, ...current].slice(0, HISTORY_LIMIT);
-    });
-  }, [
-    activeSelection.symbol,
-    activeSelection.timeframe,
-    execution,
-    isTradeFinished,
-    tradeDraft.direction,
-    tradeDraft.orderType,
-  ]);
+      if (result.ok) {
+        setSessions((current) => mergeSessions(current, result.session));
+      } else {
+        setNotice("Trade completed, but history could not be saved.");
+      }
+    })();
+  }, [execution, isTradeFinished]);
 
   function togglePlayback() {
     if (!canStepForward) {
@@ -740,23 +771,6 @@ export function useBacktestingWorkspace(
     }));
   }
 
-  function updateRiskPercent(nextValue: number) {
-    const safeValue = sanitizePositiveNumber(nextValue, DEFAULT_BACKTEST_ACCOUNT.defaultRiskPercent);
-    const targetRiskAmount = (account.currentBalance * safeValue) / 100;
-    const nextVolume = calculatePositionSize(primaryValidation, targetRiskAmount);
-    if (nextVolume) {
-      updateVolume(nextVolume);
-    }
-  }
-
-  function updateRiskAmount(nextValue: number) {
-    const safeAmount = sanitizePositiveNumber(nextValue, riskSettings.riskAmount ?? 1);
-    const nextVolume = calculatePositionSize(primaryValidation, safeAmount);
-    if (nextVolume) {
-      updateVolume(nextVolume);
-    }
-  }
-
   function updateStartingBalance(nextValue: number) {
     const safeValue = sanitizePositiveNumber(
       nextValue,
@@ -792,7 +806,10 @@ export function useBacktestingWorkspace(
       return;
     }
 
-    if (typeof riskSettings.riskAmount !== "number" || typeof riskSettings.riskPercent !== "number") {
+    if (
+      typeof riskSettings.riskAmount !== "number" ||
+      typeof riskSettings.riskPercent !== "number"
+    ) {
       setNotice("Move the lines into a valid setup first.");
       return;
     }
@@ -830,7 +847,9 @@ export function useBacktestingWorkspace(
       );
 
       if (!marketValidation.isValid) {
-        setNotice(marketValidation.message ?? "Move stop and target into a valid setup first.");
+        setNotice(
+          marketValidation.message ?? "Move stop and target into a valid setup first.",
+        );
         return;
       }
 
@@ -869,6 +888,29 @@ export function useBacktestingWorkspace(
     setNotice(buildStatusNotice("armed", null));
   }
 
+  function closeTrade() {
+    const activeDataset = datasetRef.current;
+    const replayState = replayRef.current;
+    const visibleCandle =
+      activeDataset?.candles[replayState.replayIndex] ?? currentCandle;
+
+    if (!visibleCandle) {
+      setNotice("No candle is visible to close this trade.");
+      return;
+    }
+
+    const nextExecution = manuallyCloseTrade(
+      executionRef.current,
+      visibleCandle,
+      replayState.replayIndex,
+      draftRef.current.direction,
+    );
+
+    setExecution(nextExecution);
+    setReplay((current) => ({ ...current, isPlaying: false }));
+    setNotice(buildStatusNotice(nextExecution.status, nextExecution.resultAmount));
+  }
+
   function resetTradeLines() {
     const instrument = datasetRef.current?.instrument ?? currentInstrument;
     const referencePrice = currentCandle?.close ?? instrument.basePrice;
@@ -901,11 +943,30 @@ export function useBacktestingWorkspace(
     setSelectionDraft((current) => ({ ...current, [field]: value }));
   }
 
+  async function removeSavedSession(sessionId: string) {
+    setPendingSessionActionId(sessionId);
+    const result = await deleteBacktestSession(sessionId);
+
+    if (!result.ok) {
+      setPendingSessionActionId(null);
+      setNotice("Unable to delete that session right now.");
+      return;
+    }
+
+    const nextSessions = removeSession(sessionsRef.current, sessionId);
+    setSessions(nextSessions);
+
+    setPendingSessionActionId(null);
+    setNotice("History item deleted.");
+  }
+
   return {
     account,
     activeSelection,
+    activeWindowStartAt: dataset?.selection.windowStartAt ?? null,
     canArmBuy: execution.status === "draft" && buyValidation.isValid,
     canArmSell: execution.status === "draft" && sellValidation.isValid,
+    canCloseTrade: execution.status === "active",
     canDragLines: execution.status === "draft",
     canStepForward,
     currentCandle,
@@ -913,7 +974,6 @@ export function useBacktestingWorkspace(
     dataset,
     draftVolume,
     execution,
-    history,
     initialCatalog: {
       instruments: BACKTEST_INSTRUMENTS,
       timeframes: BACKTEST_TIMEFRAMES,
@@ -924,9 +984,9 @@ export function useBacktestingWorkspace(
     liveResultAmount,
     liveResultR,
     loadError,
-    moneySummary,
     notice,
     orderType: tradeDraft.orderType,
+    pendingSessionActionId,
     primaryValidation,
     displayBalance,
     randomizeWindow,
@@ -936,21 +996,25 @@ export function useBacktestingWorkspace(
     revealedCandles,
     riskSettings,
     selectionDraft,
+    sessions,
     setLineValue,
     setReplay,
+    stagedSelectionChanged:
+      selectionDraft.symbol !== activeSelection.symbol ||
+      selectionDraft.timeframe !== activeSelection.timeframe,
     statusLabel,
     stepReplayForward,
     togglePlayback,
     tradeDraft,
     updateDraftField,
     updateOrderType,
-    updateVolume,
-    updateRiskAmount,
-    updateRiskPercent,
     updateSelectionField,
     updateStartingBalance,
+    updateVolume,
     armBuy: () => armPendingOrder("Long"),
     armSell: () => armPendingOrder("Short"),
+    closeTrade,
+    deleteSession: removeSavedSession,
     windowKey:
       dataset?.selection.windowStartAt ??
       `${activeSelection.symbol}:${activeSelection.timeframe}`,
