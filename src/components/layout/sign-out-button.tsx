@@ -1,4 +1,5 @@
 import { signOut } from "@/server/auth/actions";
+import { LogOut } from "lucide-react";
 
 type SignOutButtonProps = {
   className?: string;
@@ -14,8 +15,8 @@ export function SignOutButton({ className }: SignOutButtonProps) {
         }
         type="submit"
       >
-        <span className="material-symbols-outlined text-base">logout</span>
-        Sign Out
+        <LogOut className="h-4 w-4" strokeWidth={2} />
+        Logout
       </button>
     </form>
   );

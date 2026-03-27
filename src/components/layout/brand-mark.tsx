@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BarChart3 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -15,24 +16,28 @@ export function BrandMark({
 }: BrandMarkProps) {
   return (
     <Link
-      className={cn("inline-flex items-center gap-3 text-foreground", className)}
+      className={cn("inline-flex items-center gap-2.5 text-white", className)}
       href={href}
     >
-      <span className="inline-flex h-10 w-10 items-center justify-center rounded-[var(--radius-xl)] border border-primary/20 bg-primary/10 text-primary">
-        <span className="material-symbols-outlined text-[1.15rem]">
-          candlestick_chart
-        </span>
-      </span>
-      <span className="flex flex-col">
-        <span className="font-heading text-sm font-extrabold uppercase tracking-[0.28em] text-primary">
+      {compact ? (
+        <span className="font-heading text-[1rem] font-extrabold uppercase tracking-[-0.04em] text-white">
           localtradings.com
         </span>
-        {!compact ? (
-          <span className="text-xs text-muted">
-            Learn, quiz, and backtest with clarity.
+      ) : (
+        <>
+          <span className="inline-flex h-10 w-10 items-center justify-center rounded-[var(--radius-xl)] border border-primary/20 bg-primary/10 text-primary shadow-lg shadow-black/20">
+            <BarChart3 className="h-[1.1rem] w-[1.1rem]" strokeWidth={2} />
           </span>
-        ) : null}
-      </span>
+          <span className="flex flex-col leading-none">
+            <span className="font-heading text-[1.05rem] font-extrabold tracking-tight text-foreground">
+              localtradings.com
+            </span>
+            <span className="mt-1 text-[11px] uppercase tracking-[0.16em] text-muted">
+              Learn before risking money
+            </span>
+          </span>
+        </>
+      )}
     </Link>
   );
 }

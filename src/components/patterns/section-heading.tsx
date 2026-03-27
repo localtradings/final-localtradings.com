@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
+import { Reveal } from "@/components/ui/reveal";
 
 type SectionHeadingProps = {
   eyebrow?: string;
@@ -26,20 +27,26 @@ export function SectionHeading({
     >
       <div className="max-w-3xl space-y-3">
         {eyebrow ? (
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary">
-            {eyebrow}
-          </p>
+          <Reveal>
+            <p className="eyebrow">
+              {eyebrow}
+            </p>
+          </Reveal>
         ) : null}
-        <h2 className="font-heading text-3xl font-extrabold tracking-tight sm:text-4xl">
-          {title}
-        </h2>
+        <Reveal delay={0.05}>
+          <h2 className="font-heading text-[2rem] font-extrabold tracking-tight sm:text-[2.4rem]">
+            {title}
+          </h2>
+        </Reveal>
         {description ? (
-          <p className="max-w-2xl text-sm leading-7 text-muted sm:text-base">
-            {description}
-          </p>
+          <Reveal delay={0.1}>
+            <p className="max-w-2xl text-sm leading-7 text-muted sm:text-[0.98rem]">
+              {description}
+            </p>
+          </Reveal>
         ) : null}
       </div>
-      {action ? <div>{action}</div> : null}
+      {action ? <Reveal delay={0.15}><div>{action}</div></Reveal> : null}
     </div>
   );
 }

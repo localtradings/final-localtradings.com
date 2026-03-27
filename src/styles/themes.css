@@ -8,14 +8,14 @@
 
 .theme-marketing,
 .theme-auth {
-  --background: #141311;
+  --background: #000000;
   --foreground: #e7e2dd;
-  --surface: #141311;
-  --surface-low: #1d1b19;
-  --surface-high: #2b2a27;
-  --surface-highest: #363431;
-  --outline: #a78b7d;
-  --outline-variant: #584237;
+  --surface: #020202;
+  --surface-low: #050505;
+  --surface-high: #0a0a0a;
+  --surface-highest: #111111;
+  --outline: #6a5648;
+  --outline-variant: #2a2019;
   --primary: #ffb690;
   --primary-dim: #e46609;
   --secondary: #ffb877;
@@ -28,10 +28,10 @@
 }
 
 .theme-home {
-  --surface: #0a0806;
-  --surface-low: #0f0d0b;
-  --surface-high: #1e1915;
-  --surface-highest: #28221d;
+  --surface: #020202;
+  --surface-low: #050403;
+  --surface-high: #0c0907;
+  --surface-highest: #120d09;
   --outline: #5c524a;
   --outline-variant: #3d3630;
   --primary: #e46609;
@@ -41,21 +41,21 @@
 }
 
 .theme-product {
-  --background: #090f15;
-  --foreground: #dbe6f9;
-  --surface: #090f15;
-  --surface-low: #0d141d;
-  --surface-high: #17202c;
-  --surface-highest: #1c2634;
-  --outline: #6b7686;
-  --outline-variant: #3e4957;
-  --primary: #9ccaff;
-  --primary-dim: #85b7ee;
-  --secondary: #ccbeff;
-  --secondary-container: #3e316f;
-  --tertiary: #ddffe3;
-  --tertiary-container: #94feba;
-  --success: #86efac;
-  --danger: #fa746f;
-  --muted: #a1acbd;
+  --background: #070a0f;
+  --foreground: #e2e8f0;
+  --surface: #070a0f;
+  --surface-low: #0b1016;
+  --surface-high: #121922;
+  --surface-highest: #18222d;
+  --outline: #687282;
+  --outline-variant: #364152;
+  --primary: #cbd5e1;
+  --primary-dim: #94a3b8;
+  --secondary: #d8dee9;
+  --secondary-container: #222c39;
+  --tertiary: #d9e2ec;
+  --tertiary-container: #2d3642;
+  --success: #22c55e;
+  --danger: #ef4444;
+  --muted: #95a3b8;
 }
