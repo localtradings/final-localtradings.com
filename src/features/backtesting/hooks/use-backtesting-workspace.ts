@@ -181,6 +181,39 @@ function createBalanceKey(userId?: string | null) {
   return `backtesting-balance:${userId ?? "guest"}`;
 }
 
+function isBacktestCandlesResponse(
+  value: unknown,
+): value is BacktestCandlesResponse {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const payload = value as Partial<BacktestCandlesResponse>;
+  return (
+    Array.isArray(payload.candles) &&
+    !!payload.instrument &&
+    !!payload.selection &&
+    typeof payload.selection.initialRevealCount === "number" &&
+    typeof payload.selection.windowStartAt === "string"
+  );
+}
+
+function getReplayLoadErrorMessage(status?: number) {
+  if (status === 401) {
+    return "Sign in again to keep backtesting.";
+  }
+
+  if (status === 503) {
+    return "Backtesting is unavailable right now.";
+  }
+
+  if (status === 400) {
+    return "Try loading a different chart.";
+  }
+
+  return "Unable to load a new chart right now.";
+}
+
 function mergeSessions(
   current: BacktestSessionRecord[],
   session: BacktestSessionRecord,
@@ -188,7 +221,8 @@ function mergeSessions(
   return [session, ...current.filter((item) => item.id !== session.id)]
     .sort(
       (left, right) =>
-        new Date(right.startedAt).getTime() - new Date(left.startedAt).getTime(),
+        new Date(right.finishedAt ?? right.startedAt).getTime() -
+        new Date(left.finishedAt ?? left.startedAt).getTime(),
     )
     .slice(0, SESSION_LIMIT);
 }
@@ -499,23 +533,33 @@ export function useBacktestingWorkspace(
         const response = await fetch(`/api/backtesting/candles?${params.toString()}`, {
           cache: "no-store",
         });
-        const payload = await response.json();
+        let payload: unknown = null;
+
+        try {
+          payload = await response.json();
+        } catch {
+          payload = null;
+        }
 
         if (!response.ok) {
-          throw new Error(payload.message ?? "Unable to load a random replay window.");
+          throw new Error(getReplayLoadErrorMessage(response.status));
         }
 
         if (requestIdRef.current !== requestId) {
           return;
         }
 
-        const data = payload as BacktestCandlesResponse;
+        if (!isBacktestCandlesResponse(payload)) {
+          throw new Error("Unable to load a new chart right now.");
+        }
+
+        const data = payload;
         const anchorCandle =
           data.candles[Math.max(0, data.selection.initialRevealCount - 1)] ??
           data.candles.at(-1);
 
         if (!anchorCandle) {
-          throw new Error("Unable to load a valid random replay window.");
+          throw new Error("Unable to load a new chart right now.");
         }
 
         const nextDraft = buildTradeDraftFromPrice(
@@ -548,11 +592,10 @@ export function useBacktestingWorkspace(
         });
 
       } catch (error) {
-        setDataset(null);
         setLoadError(
-          error instanceof Error
+          error instanceof Error && error.message
             ? error.message
-            : "Unable to load a valid random replay window.",
+            : "Unable to load a new chart right now.",
         );
       } finally {
         setIsLoading(false);
@@ -784,6 +827,14 @@ export function useBacktestingWorkspace(
   }
 
   function resetAccountBalance() {
+    if (
+      executionRef.current.status === "armed" ||
+      executionRef.current.status === "active"
+    ) {
+      setNotice("Close or cancel the current trade before resetting the balance.");
+      return;
+    }
+
     setAccount((current) => ({
       ...current,
       currentBalance: current.startingBalance,
@@ -822,6 +873,8 @@ export function useBacktestingWorkspace(
           ? formatPrice(referenceEntryPrice, currentInstrument)
           : current.entry,
     }));
+
+    sessionStartedAtRef.current = new Date().toISOString();
 
     if (nextOrderType === "market") {
       const activeDataset = datasetRef.current;
@@ -912,6 +965,11 @@ export function useBacktestingWorkspace(
   }
 
   function resetTradeLines() {
+    if (executionRef.current.status !== "draft") {
+      setNotice("Reset Setup is only available before a trade is active.");
+      return;
+    }
+
     const instrument = datasetRef.current?.instrument ?? currentInstrument;
     const referencePrice = currentCandle?.close ?? instrument.basePrice;
     const nextDraft = buildTradeDraftFromPrice(

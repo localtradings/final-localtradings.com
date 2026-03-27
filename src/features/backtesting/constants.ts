@@ -123,8 +123,8 @@ export const REPLAY_SPEEDS: ReplaySpeed[] = [
 export const DEFAULT_REPLAY_SPEED_ID = REPLAY_SPEEDS[1].id;
 
 export const DEFAULT_BACKTEST_SELECTION: BacktestSelection = {
-  symbol: BACKTEST_INSTRUMENTS[0].symbol,
-  timeframe: "1h",
+  symbol: "XAUUSD",
+  timeframe: "15min",
 };
 
 export const DEFAULT_BACKTEST_ACCOUNT: BacktestAccountState = {

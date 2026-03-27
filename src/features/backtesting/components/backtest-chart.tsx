@@ -43,6 +43,7 @@ type ChartCandle = CandlestickData<Time>;
 type ChartMarker = SeriesMarker<Time>;
 type LineCoordinateState = Record<BacktestLineField, number | null>;
 const PRICE_SCALE_GUTTER_PX = 76;
+const REPLAY_VIEW_BAR_COUNT = 120;
 
 const LINE_STYLES: Record<
   BacktestLineField,
@@ -159,6 +160,10 @@ export function BacktestChart({
         borderColor: "rgba(148,163,184,0.14)",
         autoScale: true,
         ticksVisible: true,
+        scaleMargins: {
+          top: 0.16,
+          bottom: 0.16,
+        },
       },
       timeScale: {
         borderColor: "rgba(148,163,184,0.14)",
@@ -263,8 +268,8 @@ export function BacktestChart({
     }
 
     const nextRange = {
-      from: Math.max(0, chartCandles.length - 260),
-      to: chartCandles.length + 6,
+      from: Math.max(0, chartCandles.length - 1 - REPLAY_VIEW_BAR_COUNT / 2),
+      to: chartCandles.length - 1 + REPLAY_VIEW_BAR_COUNT / 2,
     };
 
     const isNewWindow = lastWindowKeyRef.current !== windowKey;
@@ -276,6 +281,9 @@ export function BacktestChart({
     if (isNewWindow || followReplayRef.current) {
       applyingRangeRef.current = true;
       chartRef.current.timeScale().setVisibleLogicalRange(nextRange);
+      chartRef.current.priceScale("right").applyOptions({
+        autoScale: true,
+      });
       window.requestAnimationFrame(() => {
         applyingRangeRef.current = false;
       });
@@ -485,8 +493,16 @@ export function BacktestChart({
         </div>
 
         {isLoading ? (
-          <div className="absolute inset-0 flex items-center justify-center bg-[#060a0f]/88 text-sm text-slate-400">
-            Loading random replay chart…
+          <div className="absolute inset-0 flex items-center justify-center bg-[#060a0f]/88">
+            <div className="flex flex-col items-center gap-3 text-slate-300">
+              <div className="relative h-10 w-10">
+                <span className="absolute inset-0 rounded-full border-2 border-white/10" />
+                <span className="absolute inset-0 animate-spin rounded-full border-2 border-transparent border-t-[#3b82f6] border-r-[#3b82f6]" />
+              </div>
+              <p className="text-sm font-medium text-slate-300">
+                Loading chart...
+              </p>
+            </div>
           </div>
         ) : candles.length === 0 ? (
           <div className="absolute inset-0 flex items-center justify-center bg-[#060a0f]/88 text-sm text-slate-400">

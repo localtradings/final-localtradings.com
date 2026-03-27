@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ChevronDown, ChevronUp, History, Share2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,11 @@ import { Select } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { BacktestBalancePill } from "@/components/layout/backtest-balance-pill";
 
-import { getBacktestInstrument, REPLAY_SPEEDS } from "../constants";
+import {
+  BACKTEST_STATUS_LABELS,
+  getBacktestInstrument,
+  REPLAY_SPEEDS,
+} from "../constants";
 import type { BacktestAccountRecord, BacktestSessionRecord, BacktestSessionStatus } from "../types";
 import { useBacktestingWorkspace } from "../hooks/use-backtesting-workspace";
 import { downloadBacktestShareCard } from "../utils/share-card";
@@ -21,6 +25,11 @@ type BacktestingClientProps = {
   initialSessions?: BacktestSessionRecord[];
   shareDisplayName: string;
   userId?: string | null;
+};
+
+type ToastState = {
+  tone: "error" | "info";
+  message: string;
 };
 
 const SELECT_CLASS =
@@ -200,6 +209,7 @@ export function BacktestingClient({
   const workspace = useBacktestingWorkspace({ initialAccount, initialSessions, userId });
   const [sessionsOpen, setSessionsOpen] = useState(false);
   const [sharingSessionId, setSharingSessionId] = useState<string | null>(null);
+  const [toast, setToast] = useState<ToastState | null>(null);
 
   const riskRewardLabel = useMemo(() => {
     if (!workspace.primaryValidation.isValid || !workspace.primaryValidation.riskReward) {
@@ -210,27 +220,21 @@ export function BacktestingClient({
   }, [workspace.primaryValidation]);
 
   const resultBadge = useMemo(() => {
-    if (workspace.execution.status === "target_hit") {
-      return `Target Hit ${formatMoney(workspace.execution.resultAmount)}`;
-    }
-
-    if (workspace.execution.status === "stop_hit") {
-      return `Stop Hit ${formatMoney(workspace.execution.resultAmount)}`;
-    }
-
-    if (workspace.execution.status === "armed") {
-      return "Waiting For Entry";
-    }
-
     if (workspace.execution.status === "active") {
-      return `Trade Live ${formatMoney(workspace.liveResultAmount)}`;
+      const liveLabel = formatMoney(workspace.liveResultAmount);
+      return liveLabel === "N/A"
+        ? BACKTEST_STATUS_LABELS.active
+        : `${BACKTEST_STATUS_LABELS.active} ${liveLabel}`;
     }
 
-    if (workspace.execution.status === "unfinished") {
-      return `Window Ended ${formatMoney(workspace.execution.resultAmount)}`;
+    if (workspace.execution.status === "draft" || workspace.execution.status === "armed") {
+      return BACKTEST_STATUS_LABELS[workspace.execution.status];
     }
 
-    return "Draft";
+    const settledLabel = formatMoney(workspace.execution.resultAmount);
+    return settledLabel === "N/A"
+      ? BACKTEST_STATUS_LABELS[workspace.execution.status]
+      : `${BACKTEST_STATUS_LABELS[workspace.execution.status]} ${settledLabel}`;
   }, [
     workspace.execution.resultAmount,
     workspace.execution.status,
@@ -262,7 +266,7 @@ export function BacktestingClient({
 
   const loadButtonLabel = workspace.stagedSelectionChanged
     ? `Load ${workspace.selectionDraft.symbol} ${workspace.selectionDraft.timeframe}`
-    : "New Window";
+    : "Load Chart";
 
   async function handleShareSession(session: BacktestSessionRecord) {
     setSharingSessionId(session.id);
@@ -277,8 +281,42 @@ export function BacktestingClient({
     }
   }
 
+  useEffect(() => {
+    const message = workspace.loadError ?? workspace.notice;
+
+    if (!message) {
+      return;
+    }
+
+    setToast({
+      tone: workspace.loadError ? "error" : "info",
+      message,
+    });
+
+    const timeout = window.setTimeout(() => {
+      setToast((current) => (current?.message === message ? null : current));
+    }, 3600);
+
+    return () => window.clearTimeout(timeout);
+  }, [workspace.loadError, workspace.notice]);
+
   return (
-    <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-[var(--radius-xl)] bg-[#080d12] shadow-[inset_0_1px_0_rgba(255,255,255,0.02)] ring-1 ring-white/5">
+    <div className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-[var(--radius-xl)] bg-[#080d12] shadow-[inset_0_1px_0_rgba(255,255,255,0.02)] ring-1 ring-white/5">
+      {toast ? (
+        <div className="pointer-events-none absolute right-3 top-3 z-50">
+          <div
+            className={cn(
+              "min-w-[14rem] max-w-[20rem] rounded-lg border px-3 py-2 text-[11px] shadow-[0_18px_48px_rgba(0,0,0,0.36)] backdrop-blur transition",
+              toast.tone === "error"
+                ? "border-[#7f1d1d] bg-[#2a1114]/95 text-[#fecaca]"
+                : "border-white/10 bg-[#111720]/95 text-slate-200",
+            )}
+          >
+            {toast.message}
+          </div>
+        </div>
+      ) : null}
+
       <div className="shrink-0 border-b border-white/5 px-2 py-1.5">
         <div className="flex flex-wrap items-end gap-2">
           <label className="grid w-[8.5rem] min-w-0 gap-1">
@@ -422,7 +460,7 @@ export function BacktestingClient({
             </p>
             <p className="mt-0.5 text-[10px] leading-4 text-slate-500">
               {workspace.activeWindowStartAt
-                ? `Loaded ${formatSessionMoment(workspace.activeWindowStartAt)}`
+                ? formatSessionMoment(workspace.activeWindowStartAt)
                 : "Current chart is ready for a new backtest session."}
             </p>
           </div>
@@ -435,7 +473,7 @@ export function BacktestingClient({
                 workspace.execution.status === "stop_hit" && "text-[#fca5a5]",
                 workspace.execution.status === "active" && "text-[#93c5fd]",
               )}
-              label="R / R"
+              label="Risk/Reward"
               value={riskRewardLabel}
             />
           </div>
@@ -521,6 +559,7 @@ export function BacktestingClient({
             </Button>
             <Button
               className="h-8 min-h-8 rounded-md border border-white/8 bg-[#0d1319] px-3 text-xs font-semibold text-slate-200 hover:bg-[#121922]"
+              disabled={!workspace.canDragLines}
               onClick={workspace.resetTradeLines}
               type="button"
               variant="ghost"
@@ -529,6 +568,10 @@ export function BacktestingClient({
             </Button>
             <Button
               className="h-8 min-h-8 rounded-md border border-white/8 bg-[#0d1319] px-3 text-xs font-semibold text-slate-200 hover:bg-[#121922]"
+              disabled={
+                workspace.execution.status === "armed" ||
+                workspace.execution.status === "active"
+              }
               onClick={workspace.resetAccountBalance}
               type="button"
               variant="ghost"
@@ -589,7 +632,7 @@ export function BacktestingClient({
                             getSessionTone(item.status),
                           )}
                         >
-                          {item.status.replace("_", " ")}
+                          {BACKTEST_STATUS_LABELS[item.status]}
                         </span>
                       </div>
                       <div className="mt-1.5 grid grid-cols-2 gap-1">
@@ -606,7 +649,7 @@ export function BacktestingClient({
                             (getHistoryPositionReturn(item) ?? 0) > 0 && "text-[#86efac]",
                             (getHistoryPositionReturn(item) ?? 0) < 0 && "text-[#fca5a5]",
                           )}
-                          label="%"
+                          label="Return %"
                           value={formatPercent(getHistoryPositionReturn(item))}
                         />
                       </div>
@@ -649,7 +692,7 @@ export function BacktestingClient({
                           </Button>
                         ) : null}
                         <Button
-                          className="h-7 rounded-md px-2.5 text-[10px]"
+                          className="h-7 rounded-md px-2.5 text-[10px] text-slate-500 hover:text-slate-200"
                           disabled={
                             workspace.pendingSessionActionId === item.id ||
                             sharingSessionId === item.id
@@ -672,17 +715,6 @@ export function BacktestingClient({
               </div>
             ) : null}
           </div>
-
-          {(workspace.notice || workspace.loadError) ? (
-            <div
-              className={cn(
-                "rounded-md bg-[#0c1117] px-2.5 py-2 text-[11px] leading-5",
-                workspace.loadError ? "text-[#fca5a5]" : "text-slate-400",
-              )}
-            >
-              {workspace.loadError ?? workspace.notice}
-            </div>
-          ) : null}
 
         </aside>
       </div>

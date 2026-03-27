@@ -106,7 +106,7 @@ export async function getBacktestSessions(userId: string) {
     )
     .eq("user_id", userId)
     .in("status", [...COMPLETED_HISTORY_STATUSES])
-    .order("started_at", { ascending: false })
+    .order("finished_at", { ascending: false })
     .limit(MAX_BACKTEST_SESSIONS_PER_USER);
 
   if (error || !data) {

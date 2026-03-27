@@ -103,7 +103,7 @@ async function pruneBacktestSessionsForUser(userId: string) {
     .from("backtest_sessions")
     .select("id")
     .eq("user_id", userId)
-    .order("started_at", { ascending: false })
+    .order("finished_at", { ascending: false })
     .range(MAX_BACKTEST_SESSIONS_PER_USER, MAX_BACKTEST_SESSIONS_PER_USER + 99);
 
   if (error || !data || data.length === 0) {
