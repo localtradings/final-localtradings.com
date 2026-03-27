@@ -46,6 +46,18 @@ type BacktestLoadActionSuccess = {
 };
 
 const MAX_BACKTEST_SESSIONS_PER_USER = 25;
+const FULL_BACKTEST_SESSION_SELECT =
+  "id, symbol, timeframe, window_start_at, bars_requested, direction, entry, stop, target, status, result_r, started_at, finished_at, thesis, review_notes, session_state_json";
+const LEGACY_BACKTEST_SESSION_SELECT =
+  "id, symbol, timeframe, direction, entry, stop, target, status, result_r, started_at, finished_at, thesis, review_notes, session_state_json";
+
+function buildScenarioId(input: {
+  symbol: string;
+  timeframe: string;
+  windowStartAt: string;
+}) {
+  return `${input.symbol}:${input.timeframe}:${input.windowStartAt}`;
+}
 
 const backtestSessionSchema = z.object({
   id: z.string().uuid().optional(),
@@ -93,6 +105,11 @@ function buildFallbackDraft(input: z.infer<typeof backtestSessionSchema>) {
   };
 }
 
+function isLegacyBacktestSchemaError(error: { message?: string } | null) {
+  const message = error?.message?.toLowerCase() ?? "";
+  return message.includes("window_start_at") || message.includes("bars_requested");
+}
+
 async function pruneBacktestSessionsForUser(userId: string) {
   const supabase = await createSupabaseServerClient();
   if (!supabase) {
@@ -103,7 +120,7 @@ async function pruneBacktestSessionsForUser(userId: string) {
     .from("backtest_sessions")
     .select("id")
     .eq("user_id", userId)
-    .order("finished_at", { ascending: false })
+    .order("started_at", { ascending: false })
     .range(MAX_BACKTEST_SESSIONS_PER_USER, MAX_BACKTEST_SESSIONS_PER_USER + 99);
 
   if (error || !data || data.length === 0) {
@@ -154,8 +171,26 @@ export async function saveBacktestSession(
     user_id: user.id,
     symbol: parsed.data.symbol,
     timeframe: parsed.data.timeframe,
+    scenario_id: buildScenarioId(parsed.data),
     window_start_at: parsed.data.windowStartAt,
     bars_requested: parsed.data.barsRequested,
+    direction: parsed.data.direction,
+    entry: parsed.data.entry,
+    stop: parsed.data.stop,
+    target: parsed.data.target,
+    status: parsed.data.status,
+    result_r: parsed.data.resultR,
+    started_at: parsed.data.startedAt,
+    finished_at: parsed.data.finishedAt,
+    thesis: parsed.data.thesis,
+    review_notes: parsed.data.reviewNotes,
+    session_state_json: sanitizedSnapshot,
+  };
+  const legacyPayload = {
+    user_id: user.id,
+    symbol: parsed.data.symbol,
+    timeframe: parsed.data.timeframe,
+    scenario_id: buildScenarioId(parsed.data),
     direction: parsed.data.direction,
     entry: parsed.data.entry,
     stop: parsed.data.stop,
@@ -175,19 +210,37 @@ export async function saveBacktestSession(
         .update(payload)
         .eq("id", parsed.data.id)
         .eq("user_id", user.id)
-        .select(
-          "id, symbol, timeframe, window_start_at, bars_requested, direction, entry, stop, target, status, result_r, started_at, finished_at, thesis, review_notes, session_state_json",
-        )
+        .select(FULL_BACKTEST_SESSION_SELECT)
         .single()
     : supabase
         .from("backtest_sessions")
         .insert(payload)
-        .select(
-          "id, symbol, timeframe, window_start_at, bars_requested, direction, entry, stop, target, status, result_r, started_at, finished_at, thesis, review_notes, session_state_json",
-        )
+        .select(FULL_BACKTEST_SESSION_SELECT)
         .single();
 
-  const { data, error } = await query;
+  const primaryResult = await query;
+  let data: unknown = primaryResult.data;
+  let error = primaryResult.error;
+
+  if (error && isLegacyBacktestSchemaError(error)) {
+    const legacyQuery = parsed.data.id
+      ? supabase
+          .from("backtest_sessions")
+          .update(legacyPayload)
+          .eq("id", parsed.data.id)
+          .eq("user_id", user.id)
+          .select(LEGACY_BACKTEST_SESSION_SELECT)
+          .single()
+      : supabase
+          .from("backtest_sessions")
+          .insert(legacyPayload)
+          .select(LEGACY_BACKTEST_SESSION_SELECT)
+          .single();
+
+    const legacyResult = await legacyQuery;
+    data = legacyResult.data;
+    error = legacyResult.error;
+  }
 
   if (error || !data) {
     return { ok: false, reason: error?.message ?? "save_failed" as const };
@@ -199,7 +252,7 @@ export async function saveBacktestSession(
 
   return {
     ok: true,
-    session: normalizeBacktestSession(data),
+    session: normalizeBacktestSession(data as Parameters<typeof normalizeBacktestSession>[0]),
   };
 }
 

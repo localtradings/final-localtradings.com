@@ -266,7 +266,7 @@ export function BacktestingClient({
 
   const loadButtonLabel = workspace.stagedSelectionChanged
     ? `Load ${workspace.selectionDraft.symbol} ${workspace.selectionDraft.timeframe}`
-    : "Load Chart";
+    : "New Chart";
 
   async function handleShareSession(session: BacktestSessionRecord) {
     setSharingSessionId(session.id);
@@ -303,7 +303,7 @@ export function BacktestingClient({
   return (
     <div className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-[var(--radius-xl)] bg-[#080d12] shadow-[inset_0_1px_0_rgba(255,255,255,0.02)] ring-1 ring-white/5">
       {toast ? (
-        <div className="pointer-events-none absolute right-3 top-3 z-50">
+        <div className="pointer-events-none absolute left-1/2 top-3 z-50 -translate-x-1/2">
           <div
             className={cn(
               "min-w-[14rem] max-w-[20rem] rounded-lg border px-3 py-2 text-[11px] shadow-[0_18px_48px_rgba(0,0,0,0.36)] backdrop-blur transition",

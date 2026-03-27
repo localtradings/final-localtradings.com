@@ -26,12 +26,16 @@ const INCOMPLETE_SESSION_STATUSES = [
   "active",
   "unfinished",
 ] as const;
+const FULL_BACKTEST_SESSION_SELECT =
+  "id, symbol, timeframe, window_start_at, bars_requested, direction, entry, stop, target, status, result_r, started_at, finished_at, thesis, review_notes, session_state_json";
+const LEGACY_BACKTEST_SESSION_SELECT =
+  "id, symbol, timeframe, direction, entry, stop, target, status, result_r, started_at, finished_at, thesis, review_notes, session_state_json";
 
 type BacktestSessionRow = {
   id: string;
   symbol: string;
   timeframe: string;
-  window_start_at: string;
+  window_start_at?: string | null;
   bars_requested: number | null;
   direction: string;
   entry: number | null;
@@ -45,6 +49,11 @@ type BacktestSessionRow = {
   review_notes: string | null;
   session_state_json: unknown;
 };
+
+function isLegacyBacktestSchemaError(error: { message?: string } | null) {
+  const message = error?.message?.toLowerCase() ?? "";
+  return message.includes("window_start_at") || message.includes("bars_requested");
+}
 
 export function normalizeBacktestSession(
   row: BacktestSessionRow,
@@ -70,7 +79,7 @@ export function normalizeBacktestSession(
     id: row.id,
     symbol: row.symbol,
     timeframe: row.timeframe as BacktestTimeframe,
-    windowStartAt: row.window_start_at,
+    windowStartAt: row.window_start_at ?? row.started_at,
     barsRequested:
       typeof row.bars_requested === "number" && row.bars_requested > 0
         ? row.bars_requested
@@ -99,15 +108,29 @@ export async function getBacktestSessions(userId: string) {
     return [] as BacktestSessionRecord[];
   }
 
-  const { data, error } = await supabase
+  const baseQuery = supabase
     .from("backtest_sessions")
-    .select(
-      "id, symbol, timeframe, window_start_at, bars_requested, direction, entry, stop, target, status, result_r, started_at, finished_at, thesis, review_notes, session_state_json",
-    )
+    .select(FULL_BACKTEST_SESSION_SELECT)
     .eq("user_id", userId)
     .in("status", [...COMPLETED_HISTORY_STATUSES])
-    .order("finished_at", { ascending: false })
-    .limit(MAX_BACKTEST_SESSIONS_PER_USER);
+    .order("started_at", { ascending: false });
+
+  const primaryResult = await baseQuery.limit(MAX_BACKTEST_SESSIONS_PER_USER);
+  let data: unknown = primaryResult.data;
+  let error = primaryResult.error;
+
+  if (error && isLegacyBacktestSchemaError(error)) {
+    const legacyResult = await supabase
+      .from("backtest_sessions")
+      .select(LEGACY_BACKTEST_SESSION_SELECT)
+      .eq("user_id", userId)
+      .in("status", [...COMPLETED_HISTORY_STATUSES])
+      .order("started_at", { ascending: false })
+      .limit(MAX_BACKTEST_SESSIONS_PER_USER);
+
+    data = legacyResult.data;
+    error = legacyResult.error;
+  }
 
   if (error || !data) {
     return [] as BacktestSessionRecord[];
@@ -156,16 +179,31 @@ export async function getBacktestSessionById(
 
   let query = supabase
     .from("backtest_sessions")
-    .select(
-      "id, symbol, timeframe, window_start_at, bars_requested, direction, entry, stop, target, status, result_r, started_at, finished_at, thesis, review_notes, session_state_json",
-    )
+    .select(FULL_BACKTEST_SESSION_SELECT)
     .eq("id", sessionId);
 
   if (userId) {
     query = query.eq("user_id", userId);
   }
 
-  const { data, error } = await query.maybeSingle();
+  const primaryResult = await query.maybeSingle();
+  let data: unknown = primaryResult.data;
+  let error = primaryResult.error;
+
+  if (error && isLegacyBacktestSchemaError(error)) {
+    let legacyQuery = supabase
+      .from("backtest_sessions")
+      .select(LEGACY_BACKTEST_SESSION_SELECT)
+      .eq("id", sessionId);
+
+    if (userId) {
+      legacyQuery = legacyQuery.eq("user_id", userId);
+    }
+
+    const legacyResult = await legacyQuery.maybeSingle();
+    data = legacyResult.data;
+    error = legacyResult.error;
+  }
 
   if (error || !data) {
     return null;

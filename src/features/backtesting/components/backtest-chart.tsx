@@ -43,7 +43,7 @@ type ChartCandle = CandlestickData<Time>;
 type ChartMarker = SeriesMarker<Time>;
 type LineCoordinateState = Record<BacktestLineField, number | null>;
 const PRICE_SCALE_GUTTER_PX = 76;
-const REPLAY_VIEW_BAR_COUNT = 120;
+const REPLAY_VIEW_BAR_COUNT = 180;
 
 const LINE_STYLES: Record<
   BacktestLineField,

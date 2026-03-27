@@ -221,8 +221,8 @@ function mergeSessions(
   return [session, ...current.filter((item) => item.id !== session.id)]
     .sort(
       (left, right) =>
-        new Date(right.finishedAt ?? right.startedAt).getTime() -
-        new Date(left.finishedAt ?? left.startedAt).getTime(),
+        new Date(right.startedAt).getTime() -
+        new Date(left.startedAt).getTime(),
     )
     .slice(0, SESSION_LIMIT);
 }
@@ -300,6 +300,7 @@ export function useBacktestingWorkspace(
   const [pendingSessionActionId, setPendingSessionActionId] = useState<string | null>(
     null,
   );
+  const [historySaveTick, setHistorySaveTick] = useState(0);
 
   const requestIdRef = useRef(0);
   const datasetRef = useRef<BacktestCandlesResponse | null>(null);
@@ -314,6 +315,8 @@ export function useBacktestingWorkspace(
     options.initialAccount ?? DEFAULT_BACKTEST_ACCOUNT,
   );
   const settledExecutionKeyRef = useRef<string | null>(null);
+  const pendingSaveExecutionKeyRef = useRef<string | null>(null);
+  const historySaveAttemptsRef = useRef<Record<string, number>>({});
   const sessionStartedAtRef = useRef(new Date().toISOString());
 
   useEffect(() => {
@@ -702,11 +705,13 @@ export function useBacktestingWorkspace(
     }
 
     const executionKey = createSettledExecutionKey(execution);
-    if (!executionKey || settledExecutionKeyRef.current === executionKey) {
+    if (
+      !executionKey ||
+      settledExecutionKeyRef.current === executionKey ||
+      pendingSaveExecutionKeyRef.current === executionKey
+    ) {
       return;
     }
-
-    settledExecutionKeyRef.current = executionKey;
 
     const isCompletedHistoryStatus = COMPLETED_HISTORY_STATUSES.includes(execution.status);
 
@@ -718,6 +723,7 @@ export function useBacktestingWorkspace(
     }
 
     if (!isCompletedHistoryStatus || !datasetRef.current) {
+      settledExecutionKeyRef.current = executionKey;
       return;
     }
 
@@ -734,6 +740,8 @@ export function useBacktestingWorkspace(
       tradeDraft: draftRef.current,
       execution,
     };
+
+    pendingSaveExecutionKeyRef.current = executionKey;
 
     void (async () => {
       const result = await saveBacktestSession({
@@ -756,12 +764,28 @@ export function useBacktestingWorkspace(
       });
 
       if (result.ok) {
+        settledExecutionKeyRef.current = executionKey;
+        pendingSaveExecutionKeyRef.current = null;
+        delete historySaveAttemptsRef.current[executionKey];
         setSessions((current) => mergeSessions(current, result.session));
       } else {
+        pendingSaveExecutionKeyRef.current = null;
+
+        const nextAttemptCount = (historySaveAttemptsRef.current[executionKey] ?? 0) + 1;
+        historySaveAttemptsRef.current[executionKey] = nextAttemptCount;
+
+        if (nextAttemptCount < 3) {
+          window.setTimeout(() => {
+            setHistorySaveTick((current) => current + 1);
+          }, 1200);
+          return;
+        }
+
+        settledExecutionKeyRef.current = executionKey;
         setNotice("Trade completed, but history could not be saved.");
       }
     })();
-  }, [execution, isTradeFinished]);
+  }, [execution, historySaveTick, isTradeFinished]);
 
   function togglePlayback() {
     if (!canStepForward) {
