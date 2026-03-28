@@ -33,6 +33,8 @@ export function ProductTopbar({
           />
           <input
             className="h-10 w-full rounded-[var(--radius-md)] border border-outline-variant/15 bg-surface-high/60 py-2 pl-10 pr-3 text-sm text-foreground outline-none placeholder:text-muted focus:border-primary/30"
+            id="product-topbar-search"
+            name="product_topbar_search"
             placeholder="Search lessons or topics..."
             readOnly
             value=""

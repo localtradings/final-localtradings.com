@@ -5,10 +5,8 @@ import {
   CandlestickSeries,
   ColorType,
   CrosshairMode,
-  LineStyle,
   type CandlestickData,
   type IChartApi,
-  type IPriceLine,
   type ISeriesApi,
   type ISeriesMarkersPluginApi,
   type SeriesMarker,
@@ -88,7 +86,6 @@ export function BacktestChart({
   const chartRef = useRef<IChartApi | null>(null);
   const seriesRef = useRef<ISeriesApi<"Candlestick", Time> | null>(null);
   const markersRef = useRef<ISeriesMarkersPluginApi<Time> | null>(null);
-  const linesRef = useRef<IPriceLine[]>([]);
   const resizeFrameRef = useRef<number | null>(null);
   const applyingRangeRef = useRef(false);
   const followReplayRef = useRef(true);
@@ -222,7 +219,6 @@ export function BacktestChart({
         window.cancelAnimationFrame(resizeFrameRef.current);
       }
       markersRef.current = null;
-      linesRef.current = [];
       seriesRef.current = null;
       chart.remove();
       chartRef.current = null;
@@ -289,37 +285,6 @@ export function BacktestChart({
       });
     }
   }, [chartCandles, markers, windowKey]);
-
-  useEffect(() => {
-    const series = seriesRef.current;
-    if (!series) {
-      return;
-    }
-
-    linesRef.current.forEach((line) => {
-      series.removePriceLine(line);
-    });
-    linesRef.current = [];
-
-    (Object.keys(LINE_STYLES) as BacktestLineField[]).forEach((field) => {
-      const price = lineValues[field];
-      if (typeof price !== "number") {
-        return;
-      }
-
-      const style = LINE_STYLES[field];
-      const line = series.createPriceLine({
-        axisLabelVisible: false,
-        color: style.color,
-        lineStyle: LineStyle.Solid,
-        lineWidth: 2,
-        price,
-        title: "",
-      });
-
-      linesRef.current.push(line);
-    });
-  }, [lineValues]);
 
   useEffect(() => {
     let frame = 0;

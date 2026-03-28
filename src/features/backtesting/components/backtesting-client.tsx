@@ -85,14 +85,18 @@ function CompactStat({
 }
 
 function InlineField({
+  fieldId,
   label,
+  name,
   value,
   onChange,
   disabled = false,
   readOnly = false,
   accentClassName,
 }: {
+  fieldId: string;
   label: string;
+  name: string;
   value: string;
   onChange: (value: string) => void;
   disabled?: boolean;
@@ -100,12 +104,14 @@ function InlineField({
   accentClassName?: string;
 }) {
   return (
-    <label className="grid gap-1">
+    <label className="grid gap-1" htmlFor={fieldId}>
       <ToolbarLabel>{label}</ToolbarLabel>
       <Input
         className={cn(INPUT_CLASS, accentClassName)}
         disabled={disabled}
+        id={fieldId}
         inputMode="decimal"
+        name={name}
         onChange={(event) => onChange(event.target.value)}
         readOnly={readOnly}
         value={value}
@@ -323,6 +329,8 @@ export function BacktestingClient({
             <ToolbarLabel>Symbol</ToolbarLabel>
             <Select
               className={SELECT_CLASS}
+              id="backtest-symbol"
+              name="backtest_symbol"
               onChange={(event) =>
                 workspace.updateSelectionField("symbol", event.target.value)
               }
@@ -340,6 +348,8 @@ export function BacktestingClient({
             <ToolbarLabel>Timeframe</ToolbarLabel>
             <Select
               className={SELECT_CLASS}
+              id="backtest-timeframe"
+              name="backtest_timeframe"
               onChange={(event) =>
                 workspace.updateSelectionField("timeframe", event.target.value)
               }
@@ -357,6 +367,8 @@ export function BacktestingClient({
             <ToolbarLabel>Speed</ToolbarLabel>
             <Select
               className={SELECT_CLASS}
+              id="backtest-speed"
+              name="backtest_speed"
               onChange={(event) =>
                 workspace.setReplay((current) => ({
                   ...current,
@@ -483,6 +495,8 @@ export function BacktestingClient({
             <Select
               className={SELECT_CLASS}
               disabled={!workspace.canDragLines}
+              id="backtest-order-type"
+              name="backtest_order_type"
               onChange={(event) =>
                 workspace.updateOrderType(event.target.value as "market" | "limit" | "stop")
               }
@@ -497,20 +511,26 @@ export function BacktestingClient({
           <div className="grid grid-cols-3 gap-1 rounded-md bg-[#0c1117] p-1.25">
             <InlineField
               disabled={!workspace.canDragLines || workspace.orderType === "market"}
+              fieldId="backtest-entry"
               label="Entry"
+              name="backtest_entry"
               onChange={(value) => workspace.updateDraftField("entry", value)}
               readOnly={workspace.orderType === "market"}
               value={priceInputValues.entry}
             />
             <InlineField
               disabled={!workspace.canDragLines}
+              fieldId="backtest-stop-loss"
               label="Stop Loss"
+              name="backtest_stop_loss"
               onChange={(value) => workspace.updateDraftField("stop", value)}
               value={priceInputValues.stop}
             />
             <InlineField
               disabled={!workspace.canDragLines}
+              fieldId="backtest-take-profit"
               label="Take Profit"
+              name="backtest_take_profit"
               onChange={(value) => workspace.updateDraftField("target", value)}
               value={priceInputValues.target}
             />
@@ -518,13 +538,17 @@ export function BacktestingClient({
 
           <div className="grid grid-cols-2 gap-1 rounded-md bg-[#0c1117] p-1.25">
             <InlineField
+              fieldId="backtest-starting-balance"
               label="Starting Balance"
+              name="backtest_starting_balance"
               onChange={(value) => workspace.updateStartingBalance(Number(value))}
               value={formatEditableNumber(workspace.account.startingBalance)}
             />
             <InlineField
               disabled={!workspace.canDragLines}
+              fieldId="backtest-position-size"
               label="Position Size"
+              name="backtest_position_size"
               onChange={(value) => workspace.updateVolume(Number(value))}
               value={workspace.tradeDraft.volume}
             />
