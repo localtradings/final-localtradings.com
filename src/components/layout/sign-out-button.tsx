@@ -16,7 +16,7 @@ export function SignOutButton({ className }: SignOutButtonProps) {
         type="submit"
       >
         <LogOut className="h-4 w-4" strokeWidth={2} />
-        Logout
+        <span className="hidden sm:inline">Logout</span>
       </button>
     </form>
   );

@@ -44,24 +44,35 @@ export function NavLink({
   return (
     <Link
       className={cn(
-        "group flex items-center gap-2.5 text-sm font-semibold transition-all duration-200",
+        "group flex items-center text-sm font-semibold transition-all duration-150",
         mobile
-          ? "flex-col justify-center rounded-[var(--radius-lg)] px-1.5 py-1.5 text-[10px]"
-          : "rounded-r-[var(--radius-lg)] rounded-l-[var(--radius-md)] px-3 py-2.5",
+          ? "flex-col justify-center gap-2.5 rounded-[var(--radius-lg)] px-1.5 py-1.5 text-[10px]"
+          : "min-h-[2.625rem] gap-[0.55rem] rounded-[10px] px-2.25 py-[0.45rem] text-[12.5px] tracking-[-0.01em]",
         isActive
-          ? "border-r-2 border-primary bg-primary/10 text-foreground shadow-lg shadow-black/15"
-          : "text-muted hover:bg-surface-high/60 hover:text-foreground",
+          ? mobile
+            ? "border-r-2 border-primary bg-primary/10 text-foreground shadow-lg shadow-black/15"
+            : "border border-white/[0.08] bg-white/[0.04] text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
+          : mobile
+            ? "text-muted hover:bg-surface-high/60 hover:text-foreground"
+            : "border border-transparent text-muted hover:border-white/[0.05] hover:bg-white/[0.03] hover:text-foreground",
       )}
       href={href}
     >
       {Icon ? (
-        <Icon
-          className={cn(
-            "shrink-0",
-            mobile ? "h-[1rem] w-[1rem]" : "h-[0.95rem] w-[0.95rem]",
-          )}
-          strokeWidth={2}
-        />
+        mobile ? (
+          <Icon className="h-[1rem] w-[1rem] shrink-0" strokeWidth={2} />
+        ) : (
+          <span
+            className={cn(
+              "inline-flex h-[1.625rem] w-[1.625rem] shrink-0 items-center justify-center rounded-[7px] border transition-colors",
+              isActive
+                ? "border-white/[0.08] bg-black/20 text-foreground"
+                : "border-white/[0.05] bg-black/10 text-muted group-hover:text-foreground",
+            )}
+          >
+            <Icon className="h-[0.82rem] w-[0.82rem]" strokeWidth={1.95} />
+          </span>
+        )
       ) : null}
       <span className={cn(mobile ? "truncate text-[9px] leading-tight" : "truncate")}>
         {label}

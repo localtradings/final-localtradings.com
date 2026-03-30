@@ -45,12 +45,36 @@ export const getLessonsForModule = cache(async (moduleSlug: string) => {
 
 export const getLessonBySlug = cache(
   async (moduleSlug: string, lessonSlug: string) => {
-    const filePath = path.join(lessonsRoot, moduleSlug, `${lessonSlug}.mdx`);
-    const { frontmatter, content } = await readMdxFile<LessonFrontmatter>(filePath);
-    return {
-      frontmatter,
-      content,
-    };
+    const directory = path.join(lessonsRoot, moduleSlug);
+    const directFilePath = path.join(directory, `${lessonSlug}.mdx`);
+
+    try {
+      const { frontmatter, content } = await readMdxFile<LessonFrontmatter>(directFilePath);
+      return {
+        frontmatter,
+        content,
+      };
+    } catch (error) {
+      const files = await fs.readdir(directory);
+
+      for (const file of files) {
+        if (!file.endsWith(".mdx")) {
+          continue;
+        }
+
+        const filePath = path.join(directory, file);
+        const { frontmatter, content } = await readMdxFile<LessonFrontmatter>(filePath);
+
+        if (frontmatter.slug === lessonSlug) {
+          return {
+            frontmatter,
+            content,
+          };
+        }
+      }
+
+      throw error;
+    }
   },
 );
 

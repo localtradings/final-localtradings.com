@@ -40,6 +40,10 @@ export function WebGLShader({ className }: WebGLShaderProps) {
 
     const canvas = canvasRef.current;
     const refs = sceneRef.current;
+    const contextAttributes = {
+      alpha: true,
+      antialias: true,
+    };
 
     const vertexShader = `
       attribute vec3 position;
@@ -84,11 +88,28 @@ export function WebGLShader({ className }: WebGLShaderProps) {
     };
 
     refs.scene = new THREE.Scene();
-    refs.renderer = new THREE.WebGLRenderer({
-      canvas,
-      antialias: true,
-      alpha: true,
-    });
+    const glContext = (
+      canvas.getContext("webgl2", contextAttributes) ??
+      canvas.getContext("webgl", contextAttributes) ??
+      canvas.getContext("experimental-webgl", contextAttributes)
+    ) as WebGL2RenderingContext | WebGLRenderingContext | null;
+
+    if (!glContext) {
+      canvas.style.display = "none";
+      return;
+    }
+
+    try {
+      refs.renderer = new THREE.WebGLRenderer({
+        canvas,
+        antialias: true,
+        alpha: true,
+        context: glContext,
+      });
+    } catch {
+      canvas.style.display = "none";
+      return;
+    }
     refs.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     refs.renderer.setClearColor(new THREE.Color(0x000000), 1);
 

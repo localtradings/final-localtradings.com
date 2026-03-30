@@ -158,6 +158,189 @@
   background-size: 2.5rem 2.5rem;
 }
 
+.learn-tradingview {
+  --background: #090a0d;
+  --foreground: #d4d7dd;
+  --surface: #090a0d;
+  --surface-low: #0f1013;
+  --surface-high: #14161a;
+  --surface-highest: #1a1d22;
+  --outline: #545861;
+  --outline-variant: #26292f;
+  --primary: #b2b7bf;
+  --primary-dim: #868c96;
+  --secondary: #979ca5;
+  --secondary-container: #1c1e22;
+  --tertiary: #089981;
+  --tertiary-container: #042b25;
+  --success: #089981;
+  --danger: #f23645;
+  --muted: #787b86;
+}
+
+.learn-tv-screen {
+  position: relative;
+  min-height: 100%;
+  padding: 0.125rem;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.012) 0%, transparent 16%),
+    linear-gradient(180deg, #0d0f13 0%, #08090b 100%);
+  border-radius: 0.9rem;
+}
+
+.learn-tv-screen::before {
+  display: none;
+}
+
+.learn-tv-screen::after {
+  display: none;
+}
+
+.learn-tv-screen--flat {
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
+}
+
+.learn-tv-panel {
+  border: 1px solid rgba(36, 39, 45, 0.86);
+  background: linear-gradient(180deg, rgba(16, 18, 22, 0.98), rgba(11, 12, 15, 0.98));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.015);
+}
+
+.learn-tv-panel-muted {
+  background: linear-gradient(180deg, rgba(13, 14, 17, 0.98), rgba(10, 11, 13, 0.98));
+}
+
+.learn-tv-frame {
+  border: 1px solid rgba(36, 39, 45, 0.52);
+  background: transparent;
+  box-shadow: none;
+}
+
+.learn-tv-kicker {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.learn-tv-tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+.learn-tv-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  border: 1px solid rgba(42, 45, 52, 0.88);
+  background: rgba(22, 24, 28, 0.9);
+  max-width: 100%;
+  padding: 0.28rem 0.56rem;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--foreground);
+  white-space: nowrap;
+}
+
+.learn-tv-chip--positive {
+  border-color: rgba(8, 153, 129, 0.35);
+  color: var(--success);
+}
+
+.learn-tv-chip--negative {
+  border-color: rgba(242, 54, 69, 0.35);
+  color: var(--danger);
+}
+
+.learn-tv-chip--active {
+  border-color: rgba(196, 201, 209, 0.18);
+  background: rgba(30, 32, 37, 0.98);
+  color: #eceff4;
+}
+
+.learn-tv-table-row {
+  border-top: 1px solid color-mix(in srgb, var(--outline-variant) 90%, transparent);
+  background: transparent;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease;
+  min-width: 0;
+}
+
+.learn-tv-table-row:first-child {
+  border-top: 0;
+}
+
+.learn-tv-table-row:hover {
+  border-color: rgba(184, 189, 198, 0.08);
+  background: rgba(21, 23, 27, 0.72);
+}
+
+.learn-tv-watchlist-row {
+  width: 100%;
+  border: 1px solid rgba(36, 39, 45, 0.78);
+  background: rgba(15, 16, 19, 0.94);
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease;
+}
+
+.learn-tv-watchlist-row:hover {
+  border-color: rgba(184, 189, 198, 0.1);
+  background: rgba(21, 23, 27, 0.96);
+}
+
+.learn-tv-watchlist-row[aria-current="true"] {
+  border-color: rgba(204, 209, 216, 0.16);
+  background: rgba(27, 29, 33, 0.98);
+}
+
+.learn-tv-positive {
+  color: var(--success);
+}
+
+.learn-tv-negative {
+  color: var(--danger);
+}
+
+.learn-tradingview .btn-primary {
+  border: 1px solid rgba(210, 215, 224, 0.1);
+  background: linear-gradient(180deg, #2a2e34, #1f2228);
+  color: #f4f6fa;
+  box-shadow: none;
+}
+
+.learn-tradingview .btn-primary:hover {
+  background: linear-gradient(180deg, #31353d, #23262c);
+}
+
+.learn-tradingview .btn-secondary {
+  border: 1px solid rgba(42, 45, 50, 0.82);
+  background: rgba(18, 20, 24, 0.9);
+  color: var(--foreground);
+  box-shadow: none;
+}
+
+.learn-tradingview .btn-secondary:hover {
+  background: rgba(24, 26, 30, 0.96);
+}
+
+.learn-tradingview .card-surface {
+  border: 1px solid rgba(38, 41, 47, 0.92);
+  background: linear-gradient(180deg, rgba(18, 20, 24, 0.98), rgba(12, 13, 16, 0.98));
+  box-shadow: none;
+}
+
+.learn-tradingview .eyebrow {
+  color: #cfd3d9;
+}
+
 .prose-localtradings h1,
 .prose-localtradings h2,
 .prose-localtradings h3 {
@@ -168,14 +351,99 @@
 
 .prose-localtradings {
   color: var(--foreground);
+  font-size: 0.98rem;
 }
 
 .prose-localtradings p,
 .prose-localtradings li {
   color: color-mix(in srgb, var(--foreground) 82%, var(--muted));
-  line-height: 1.85;
+  line-height: 1.75;
 }
 
 .prose-localtradings a {
   color: var(--primary);
+}
+
+.prose-localtradings > *:first-child {
+  margin-top: 0;
+}
+
+.prose-localtradings h1 + p,
+.prose-localtradings h2 + p,
+.prose-localtradings h3 + p {
+  margin-top: 0.75rem;
+}
+
+.prose-localtradings ul,
+.prose-localtradings ol {
+  margin-block: 0.875rem 0;
+}
+
+.prose-localtradings ul li::marker,
+.prose-localtradings ol li::marker {
+  color: #8f949d;
+}
+
+.prose-localtradings hr {
+  margin-block: 1.5rem;
+  border: 0;
+  border-top: 1px solid rgba(42, 45, 50, 0.9);
+}
+
+.learn-tradingview .prose-localtradings h1,
+.learn-tradingview .prose-localtradings h2,
+.learn-tradingview .prose-localtradings h3 {
+  color: #f0f3fa;
+  overflow-wrap: anywhere;
+  line-height: 1.08;
+}
+
+.learn-tradingview .prose-localtradings p,
+.learn-tradingview .prose-localtradings li {
+  color: #b2b5be;
+  line-height: 1.72;
+  overflow-wrap: anywhere;
+}
+
+.learn-tradingview .prose-localtradings strong {
+  color: #eef2ff;
+}
+
+.learn-tradingview .prose-localtradings a {
+  color: #dde1e7;
+  text-decoration: underline;
+  text-decoration-color: rgba(221, 225, 231, 0.25);
+  text-underline-offset: 0.18em;
+}
+
+.learn-tradingview .prose-localtradings blockquote {
+  border: 1px solid rgba(42, 45, 50, 0.84);
+  border-left: 2px solid rgba(170, 175, 183, 0.26);
+  background: rgba(18, 20, 24, 0.86);
+  padding-left: 1rem;
+  color: #c4c9d2;
+  overflow-wrap: anywhere;
+}
+
+.learn-tradingview .prose-localtradings code {
+  border: 1px solid rgba(42, 45, 50, 0.9);
+  border-radius: 0.4rem;
+  background: rgba(20, 22, 27, 0.92);
+  padding: 0.08rem 0.32rem;
+  font-size: 0.88em;
+}
+
+.learn-tradingview .prose-localtradings pre {
+  margin-top: 1rem;
+  border: 1px solid rgba(42, 45, 50, 0.9);
+  border-radius: 0.9rem;
+  background: #0c0e12;
+  padding: 0.95rem 1rem;
+  overflow-x: auto;
+}
+
+.learn-tradingview .prose-localtradings pre code {
+  border: 0;
+  background: transparent;
+  padding: 0;
 }

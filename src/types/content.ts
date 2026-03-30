@@ -6,6 +6,10 @@ export type ModuleSummary = {
   duration: string;
   outcomes: string[];
   lessonSlugs: string[];
+  featured?: boolean;
+  releaseOrder: number;
+  topic: string;
+  imageSrc?: string;
 };
 
 export type LessonFrontmatter = {
@@ -15,7 +19,22 @@ export type LessonFrontmatter = {
   summary: string;
   duration: string;
   order: number;
+  topic: string;
+  imageSrc?: string;
   quizSlug?: string;
+};
+
+export type LearnHubEntry = {
+  kind: "module" | "lesson";
+  slug: string;
+  moduleSlug: string;
+  title: string;
+  summary: string;
+  topic: string;
+  imageSrc?: string;
+  href: string;
+  releaseOrder: number;
+  lessonOrder?: number;
 };
 
 export type QuizQuestion = {

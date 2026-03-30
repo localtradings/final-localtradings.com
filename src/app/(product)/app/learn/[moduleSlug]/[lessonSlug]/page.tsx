@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { moduleCatalog } from "@/content/modules";
 import { getLessonsForModule } from "@/lib/content";
 import { LessonPage } from "@/features/learn/lesson-page";
+import { getLessonBySlug } from "@/lib/content";
 
 type LessonRouteProps = {
   params: Promise<{
@@ -28,9 +29,10 @@ export async function generateStaticParams() {
 export async function generateMetadata({
   params,
 }: LessonRouteProps): Promise<Metadata> {
-  const { lessonSlug } = await params;
+  const { moduleSlug, lessonSlug } = await params;
+  const lesson = await getLessonBySlug(moduleSlug, lessonSlug).catch(() => null);
   return {
-    title: lessonSlug.split("-").join(" "),
+    title: lesson?.frontmatter.title ?? lessonSlug.split("-").join(" "),
   };
 }
 

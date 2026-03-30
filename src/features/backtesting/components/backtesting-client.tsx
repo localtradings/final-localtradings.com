@@ -33,10 +33,10 @@ type ToastState = {
 };
 
 const SELECT_CLASS =
-  "h-8 min-h-8 rounded-md border border-white/8 bg-[#0d1319] px-2.5 py-1 text-xs text-slate-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] focus:border-white/16 focus:ring-2 focus:ring-white/6";
+  "h-8 min-h-8 rounded-sm border border-white/8 bg-[#0d1319] px-2.5 py-1 text-xs text-slate-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] focus:border-white/16 focus:ring-2 focus:ring-white/6";
 
 const INPUT_CLASS =
-  "h-8 min-h-8 rounded-md border border-white/8 bg-[#0d1319] px-2.5 py-1 text-xs text-slate-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] focus:border-white/16 focus:ring-2 focus:ring-white/6";
+  "h-8 min-h-8 rounded-sm border border-white/8 bg-[#0d1319] px-2.5 py-1 text-xs text-slate-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] focus:border-white/16 focus:ring-2 focus:ring-white/6";
 
 function ToolbarLabel({ children }: { children: string }) {
   return (
@@ -73,7 +73,7 @@ function CompactStat({
   accentClassName?: string;
 }) {
   return (
-    <div className="rounded-md bg-[#0d1218] px-2 py-1.5">
+    <div className="rounded-[0.5rem] border border-white/5 bg-[#0b1015] px-2.5 py-2">
       <p className="text-[9px] font-medium uppercase tracking-[0.16em] text-slate-500">
         {label}
       </p>
@@ -307,12 +307,12 @@ export function BacktestingClient({
   }, [workspace.loadError, workspace.notice]);
 
   return (
-    <div className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-[var(--radius-xl)] bg-[#080d12] shadow-[inset_0_1px_0_rgba(255,255,255,0.02)] ring-1 ring-white/5">
+    <div className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-[0.75rem] bg-[#080d12] shadow-[inset_0_1px_0_rgba(255,255,255,0.02)] ring-1 ring-white/5">
       {toast ? (
         <div className="pointer-events-none absolute left-1/2 top-3 z-50 -translate-x-1/2">
           <div
             className={cn(
-              "min-w-[14rem] max-w-[20rem] rounded-lg border px-3 py-2 text-[11px] shadow-[0_18px_48px_rgba(0,0,0,0.36)] backdrop-blur transition",
+              "min-w-[14rem] max-w-[20rem] rounded-md border px-3 py-2 text-[11px] shadow-[0_18px_48px_rgba(0,0,0,0.36)] backdrop-blur transition",
               toast.tone === "error"
                 ? "border-[#7f1d1d] bg-[#2a1114]/95 text-[#fecaca]"
                 : "border-white/10 bg-[#111720]/95 text-slate-200",
@@ -323,77 +323,79 @@ export function BacktestingClient({
         </div>
       ) : null}
 
-      <div className="shrink-0 border-b border-white/5 px-2 py-1.5">
-        <div className="flex flex-wrap items-end gap-2">
-          <label className="grid w-[8.5rem] min-w-0 gap-1">
-            <ToolbarLabel>Symbol</ToolbarLabel>
-            <Select
-              className={SELECT_CLASS}
-              id="backtest-symbol"
-              name="backtest_symbol"
-              onChange={(event) =>
-                workspace.updateSelectionField("symbol", event.target.value)
-              }
-              value={workspace.selectionDraft.symbol}
-            >
-              {workspace.initialCatalog.instruments.map((item) => (
-                <option key={item.symbol} value={item.symbol}>
-                  {item.label}
-                </option>
-              ))}
-            </Select>
-          </label>
+      <div className="shrink-0 border-b border-white/5 px-2 py-2">
+        <div className="grid gap-2 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+          <div className="flex flex-wrap items-end gap-2">
+            <label className="grid w-[8.5rem] min-w-0 gap-1">
+              <ToolbarLabel>Symbol</ToolbarLabel>
+              <Select
+                className={SELECT_CLASS}
+                id="backtest-symbol"
+                name="backtest_symbol"
+                onChange={(event) =>
+                  workspace.updateSelectionField("symbol", event.target.value)
+                }
+                value={workspace.selectionDraft.symbol}
+              >
+                {workspace.initialCatalog.instruments.map((item) => (
+                  <option key={item.symbol} value={item.symbol}>
+                    {item.label}
+                  </option>
+                ))}
+              </Select>
+            </label>
 
-          <label className="grid w-[5.75rem] min-w-0 gap-1">
-            <ToolbarLabel>Timeframe</ToolbarLabel>
-            <Select
-              className={SELECT_CLASS}
-              id="backtest-timeframe"
-              name="backtest_timeframe"
-              onChange={(event) =>
-                workspace.updateSelectionField("timeframe", event.target.value)
-              }
-              value={workspace.selectionDraft.timeframe}
-            >
-              {workspace.initialCatalog.timeframes.map((item) => (
-                <option key={item} value={item}>
-                  {item}
-                </option>
-              ))}
-            </Select>
-          </label>
+            <label className="grid w-[5.75rem] min-w-0 gap-1">
+              <ToolbarLabel>Timeframe</ToolbarLabel>
+              <Select
+                className={SELECT_CLASS}
+                id="backtest-timeframe"
+                name="backtest_timeframe"
+                onChange={(event) =>
+                  workspace.updateSelectionField("timeframe", event.target.value)
+                }
+                value={workspace.selectionDraft.timeframe}
+              >
+                {workspace.initialCatalog.timeframes.map((item) => (
+                  <option key={item} value={item}>
+                    {item}
+                  </option>
+                ))}
+              </Select>
+            </label>
 
-          <label className="grid w-[5rem] min-w-0 gap-1">
-            <ToolbarLabel>Speed</ToolbarLabel>
-            <Select
-              className={SELECT_CLASS}
-              id="backtest-speed"
-              name="backtest_speed"
-              onChange={(event) =>
-                workspace.setReplay((current) => ({
-                  ...current,
-                  speedId: event.target.value,
-                  isPlaying: false,
-                }))
-              }
-              value={workspace.replay.speedId}
-            >
-              {REPLAY_SPEEDS.map((speed) => (
-                <option key={speed.id} value={speed.id}>
-                  {speed.label}
-                </option>
-              ))}
-            </Select>
-          </label>
+            <label className="grid w-[5rem] min-w-0 gap-1">
+              <ToolbarLabel>Speed</ToolbarLabel>
+              <Select
+                className={SELECT_CLASS}
+                id="backtest-speed"
+                name="backtest_speed"
+                onChange={(event) =>
+                  workspace.setReplay((current) => ({
+                    ...current,
+                    speedId: event.target.value,
+                    isPlaying: false,
+                  }))
+                }
+                value={workspace.replay.speedId}
+              >
+                {REPLAY_SPEEDS.map((speed) => (
+                  <option key={speed.id} value={speed.id}>
+                    {speed.label}
+                  </option>
+                ))}
+              </Select>
+            </label>
+          </div>
 
-          <div className="ml-auto flex flex-wrap items-center gap-1.5">
+          <div className="grid grid-cols-3 gap-1.5 sm:flex sm:flex-wrap sm:items-center sm:justify-end lg:ml-auto">
             <BacktestBalancePill
-              className="h-8 rounded-md border-white/8 bg-[#0d1319] px-2.5 text-[11px] text-slate-100"
+              className="col-span-3 h-8 rounded-sm border-white/8 bg-[#0d1319] px-2.5 text-[11px] text-slate-100 sm:col-auto"
               initialBalance={initialAccount?.currentBalance}
               userId={userId}
             />
             <Button
-              className="h-8 min-h-8 rounded-md border border-white/8 bg-[#0d1319] px-3 text-xs font-semibold text-slate-100 hover:bg-[#121922]"
+              className="h-8 min-h-8 rounded-sm border border-white/8 bg-[#0d1319] px-3 text-xs font-semibold text-slate-100 hover:bg-[#121922] sm:w-auto"
               disabled={workspace.isLoading}
               onClick={workspace.randomizeWindow}
               type="button"
@@ -402,7 +404,7 @@ export function BacktestingClient({
               {loadButtonLabel}
             </Button>
             <Button
-              className="h-8 min-h-8 rounded-md border border-white/8 bg-[#0d1319] px-3 text-xs font-semibold text-slate-100 hover:bg-[#121922]"
+              className="h-8 min-h-8 rounded-sm border border-white/8 bg-[#0d1319] px-3 text-xs font-semibold text-slate-100 hover:bg-[#121922] sm:w-auto"
               disabled={!workspace.canStepForward || workspace.isLoading}
               onClick={workspace.togglePlayback}
               type="button"
@@ -411,7 +413,7 @@ export function BacktestingClient({
               {workspace.replay.isPlaying ? "Pause" : "Play"}
             </Button>
             <Button
-              className="h-8 min-h-8 rounded-md border border-white/8 bg-[#0d1319] px-3 text-xs font-semibold text-slate-100 hover:bg-[#121922]"
+              className="h-8 min-h-8 rounded-sm border border-white/8 bg-[#0d1319] px-3 text-xs font-semibold text-slate-100 hover:bg-[#121922] sm:w-auto"
               disabled={!workspace.canStepForward || workspace.isLoading}
               onClick={workspace.stepReplayForward}
               type="button"
@@ -423,7 +425,7 @@ export function BacktestingClient({
         </div>
       </div>
 
-      <div className="grid min-h-0 flex-1 grid-cols-1 gap-1.5 p-1.5 lg:grid-cols-[minmax(0,1fr)_18rem]">
+      <div className="grid min-h-0 flex-1 grid-cols-1 gap-2 p-1.5 lg:grid-cols-[minmax(0,1fr)_18rem]">
         <section className="flex min-h-0 min-w-0 flex-col">
           <BacktestChart
             candles={workspace.revealedCandles}
@@ -454,13 +456,13 @@ export function BacktestingClient({
           </p>
         </section>
 
-        <aside className="flex min-h-0 flex-col gap-1.5 overflow-y-auto overflow-x-hidden rounded-lg bg-[#090d12] p-1 pr-1.5">
-          <div className="rounded-md bg-[#0c1117] px-2 py-1.5">
+        <aside className="flex min-h-0 flex-col gap-2 overflow-y-auto overflow-x-hidden rounded-[0.6rem] bg-[#090d12] p-1.5">
+          <div className="rounded-[0.55rem] border border-white/5 bg-[#0c1117] px-2.5 py-2">
             <div className="flex items-center justify-between gap-2">
               <ToolbarLabel>Loaded Chart</ToolbarLabel>
               <span
                 className={cn(
-                  "inline-flex rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.16em]",
+                  "inline-flex rounded-[0.4rem] border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.16em]",
                   getSessionTone(workspace.execution.status),
                 )}
               >
@@ -490,7 +492,7 @@ export function BacktestingClient({
             />
           </div>
 
-          <label className="grid gap-1 rounded-md bg-[#0c1117] p-1.25">
+          <label className="grid gap-1 rounded-[0.55rem] border border-white/5 bg-[#0c1117] p-1.5">
             <ToolbarLabel>Order Type</ToolbarLabel>
             <Select
               className={SELECT_CLASS}
@@ -508,7 +510,7 @@ export function BacktestingClient({
             </Select>
           </label>
 
-          <div className="grid grid-cols-3 gap-1 rounded-md bg-[#0c1117] p-1.25">
+          <div className="grid grid-cols-3 gap-1.5 rounded-[0.55rem] border border-white/5 bg-[#0c1117] p-1.5">
             <InlineField
               disabled={!workspace.canDragLines || workspace.orderType === "market"}
               fieldId="backtest-entry"
@@ -536,7 +538,7 @@ export function BacktestingClient({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-1 rounded-md bg-[#0c1117] p-1.25">
+          <div className="grid grid-cols-2 gap-1.5 rounded-[0.55rem] border border-white/5 bg-[#0c1117] p-1.5">
             <InlineField
               fieldId="backtest-starting-balance"
               label="Starting Balance"
@@ -564,7 +566,7 @@ export function BacktestingClient({
 
           <div className="grid grid-cols-2 gap-1.5">
             <Button
-              className="h-8 min-h-8 rounded-md border border-[#2563eb] bg-[#1d4ed8] px-3 text-xs font-semibold text-[#eff6ff] hover:bg-[#1e40af]"
+              className="h-8 min-h-8 rounded-sm border border-[#2563eb] bg-[#1d4ed8] px-3 text-xs font-semibold text-[#eff6ff] hover:bg-[#1e40af]"
               disabled={!workspace.canArmBuy}
               onClick={workspace.armBuy}
               type="button"
@@ -573,7 +575,7 @@ export function BacktestingClient({
               Buy
             </Button>
             <Button
-              className="h-8 min-h-8 rounded-md border border-[#dc2626] bg-[#b91c1c] px-3 text-xs font-semibold text-[#fff1f2] hover:bg-[#991b1b]"
+              className="h-8 min-h-8 rounded-sm border border-[#dc2626] bg-[#b91c1c] px-3 text-xs font-semibold text-[#fff1f2] hover:bg-[#991b1b]"
               disabled={!workspace.canArmSell}
               onClick={workspace.armSell}
               type="button"
@@ -582,7 +584,7 @@ export function BacktestingClient({
               Sell
             </Button>
             <Button
-              className="h-8 min-h-8 rounded-md border border-white/8 bg-[#0d1319] px-3 text-xs font-semibold text-slate-200 hover:bg-[#121922]"
+              className="h-8 min-h-8 rounded-sm border border-white/8 bg-[#0d1319] px-3 text-xs font-semibold text-slate-200 hover:bg-[#121922]"
               disabled={!workspace.canDragLines}
               onClick={workspace.resetTradeLines}
               type="button"
@@ -591,7 +593,7 @@ export function BacktestingClient({
               Reset Setup
             </Button>
             <Button
-              className="h-8 min-h-8 rounded-md border border-white/8 bg-[#0d1319] px-3 text-xs font-semibold text-slate-200 hover:bg-[#121922]"
+              className="h-8 min-h-8 rounded-sm border border-white/8 bg-[#0d1319] px-3 text-xs font-semibold text-slate-200 hover:bg-[#121922]"
               disabled={
                 workspace.execution.status === "armed" ||
                 workspace.execution.status === "active"
@@ -603,7 +605,7 @@ export function BacktestingClient({
               Reset Balance
             </Button>
             <Button
-              className="col-span-2 h-8 min-h-8 rounded-md border border-white/8 bg-[#0d1319] px-3 text-xs font-semibold text-slate-200 hover:bg-[#121922]"
+              className="col-span-2 h-8 min-h-8 rounded-sm border border-white/8 bg-[#0d1319] px-3 text-xs font-semibold text-slate-200 hover:bg-[#121922]"
               disabled={!workspace.canCloseTrade}
               onClick={workspace.closeTrade}
               type="button"
@@ -613,9 +615,9 @@ export function BacktestingClient({
             </Button>
           </div>
 
-          <div className="rounded-md bg-[#0c1117]">
+          <div className="rounded-[0.55rem] border border-white/5 bg-[#0c1117]">
             <button
-              className="flex w-full items-center justify-between px-2 py-1.5 text-left text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400"
+              className="flex w-full items-center justify-between gap-3 px-2.5 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400"
               onClick={() => setSessionsOpen((current) => !current)}
               type="button"
             >
@@ -626,19 +628,21 @@ export function BacktestingClient({
               {sessionsOpen ? (
                 <ChevronUp className="h-3.5 w-3.5" />
               ) : (
-                <span className="inline-flex items-center gap-1.5">
-                  <span>{workspace.sessions.length}</span>
+                <span className="inline-flex items-center gap-2">
+                  <span className="inline-flex min-w-5 items-center justify-center rounded-[0.35rem] border border-white/8 bg-[#111821] px-1.5 py-0.5 text-[9px] text-slate-300">
+                    {workspace.sessions.length}
+                  </span>
                   <ChevronDown className="h-3.5 w-3.5" />
                 </span>
               )}
             </button>
 
             {sessionsOpen ? (
-              <div className="max-h-56 space-y-1.5 overflow-y-auto px-2 pb-2">
+              <div className="max-h-56 space-y-1.5 overflow-y-auto px-2.5 pb-2.5">
                 {workspace.sessions.length > 0 ? (
                   workspace.sessions.map((item) => (
                     <div
-                      className="rounded-md border border-white/6 bg-[#0a0f15] px-2 py-1.5 text-[10px] text-slate-300"
+                      className="rounded-[0.5rem] border border-white/6 bg-[#0a0f15] px-2.5 py-2 text-[10px] text-slate-300"
                       key={item.id}
                     >
                       <div className="flex items-start justify-between gap-2">
@@ -652,7 +656,7 @@ export function BacktestingClient({
                         </div>
                         <span
                           className={cn(
-                            "inline-flex rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.16em]",
+                            "inline-flex rounded-[0.4rem] border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.16em]",
                             getSessionTone(item.status),
                           )}
                         >
@@ -677,7 +681,7 @@ export function BacktestingClient({
                           value={formatPercent(getHistoryPositionReturn(item))}
                         />
                       </div>
-                      <div className="mt-1.5 grid grid-cols-2 gap-1 rounded-md bg-[#10161f] px-2 py-1.5 text-[10px] text-slate-400">
+                      <div className="mt-1.5 grid grid-cols-2 gap-1 rounded-[0.45rem] bg-[#10161f] px-2 py-1.5 text-[10px] text-slate-400">
                         <div>
                           <p className="text-[9px] uppercase tracking-[0.16em] text-slate-500">
                             Entry
@@ -704,7 +708,7 @@ export function BacktestingClient({
                       <div className="mt-2 flex flex-wrap gap-1.5">
                         {canShareSession(item.status) ? (
                           <Button
-                            className="h-7 rounded-md px-2.5 text-[10px]"
+                            className="h-7 rounded-sm px-2.5 text-[10px]"
                             disabled={sharingSessionId === item.id}
                             onClick={() => void handleShareSession(item)}
                             size="sm"
@@ -716,7 +720,7 @@ export function BacktestingClient({
                           </Button>
                         ) : null}
                         <Button
-                          className="h-7 rounded-md px-2.5 text-[10px] text-slate-500 hover:text-slate-200"
+                          className="h-7 rounded-sm px-2.5 text-[10px] text-slate-500 hover:text-slate-200"
                           disabled={
                             workspace.pendingSessionActionId === item.id ||
                             sharingSessionId === item.id

@@ -20,8 +20,13 @@ export function BrandMark({
       href={href}
     >
       {compact ? (
-        <span className="font-heading text-[1rem] font-extrabold uppercase tracking-[-0.04em] text-white">
-          localtradings.com
+        <span className="flex flex-col leading-none">
+          <span className="font-heading text-[0.93rem] font-extrabold tracking-[-0.03em] text-foreground">
+            localtradings.com
+          </span>
+          <span className="mt-[0.22rem] text-[9px] uppercase tracking-[0.19em] text-muted">
+            Trading workspace
+          </span>
         </span>
       ) : (
         <>

@@ -1,4 +1,5 @@
 import { Card } from "@/components/ui/card";
+import { SignOutButton } from "@/components/layout/sign-out-button";
 import { hasSupabaseEnv } from "@/lib/env";
 import { requireUser } from "@/server/auth/session";
 import { getCurrentProfile } from "@/server/profile/queries";
@@ -34,6 +35,9 @@ export async function ProfilePage() {
               in demo mode.
             </div>
           ) : null}
+          <div className="pt-2 lg:hidden">
+            <SignOutButton className="inline-flex w-full items-center justify-center gap-2 rounded-[12px] border border-outline/20 bg-surface-high px-4 py-3 text-sm font-semibold text-foreground transition hover:bg-surface-highest" />
+          </div>
         </div>
       </Card>
       <Card className="p-8">
