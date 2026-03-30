@@ -142,6 +142,17 @@ function getStatusChipClass(statusLabel: string) {
   );
 }
 
+function getBoardStatusChipClass(statusLabel: string) {
+  return cn(
+    "learn-tv-chip rounded-[0.6rem] px-2 py-[0.26rem] text-[0.54rem] tracking-[0.11em]",
+    statusLabel === "Completed"
+      ? "learn-tv-chip--positive"
+      : statusLabel === "In Progress"
+        ? "learn-tv-chip--active"
+        : "",
+  );
+}
+
 function matchesBoardFilter(
   progressLabel: string | null,
   filterValue: ModuleBoardFilterValue,
@@ -375,7 +386,7 @@ function getModulePrimaryAction(
 
   if (module.progressLabel === "In Progress") {
     return {
-      href: `/app/learn/${module.slug}/${actionLesson.slug}`,
+      href: `/app/learn/${module.slug}`,
       label: "Continue module",
       detailLabel: "Next lesson",
       detailValue: actionLesson.title,
@@ -383,7 +394,7 @@ function getModulePrimaryAction(
   }
 
   return {
-    href: `/app/learn/${module.slug}/${actionLesson.slug}`,
+    href: `/app/learn/${module.slug}`,
     label: "Start module",
     detailLabel: "Starts with",
     detailValue: actionLesson.title,
@@ -584,23 +595,27 @@ function ModuleSelector({
   return (
     <button
       aria-current={isActive ? "true" : undefined}
-      className="learn-tv-watchlist-row h-[3.25rem] overflow-hidden rounded-[0.9rem] px-3 py-1.5 text-left sm:h-[3.45rem] sm:px-3.25 sm:py-1.75"
+      className="learn-tv-watchlist-row min-h-[3.35rem] rounded-[0.68rem] px-3 py-2 text-left sm:min-h-[3.48rem] sm:px-3.25 sm:py-2.25"
       onClick={onSelect}
       type="button"
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <p className="learn-tv-kicker">{module.code}</p>
-            <span className={getStatusChipClass(statusLabel)}>{statusLabel}</span>
+      <div className="flex min-w-0 flex-col gap-1.5">
+        <div className="flex items-center justify-between gap-2.5">
+          <div className="flex min-w-0 items-center gap-2">
+            <p className="learn-tv-kicker shrink-0">{module.code}</p>
+            <span className={getBoardStatusChipClass(statusLabel)}>{statusLabel}</span>
           </div>
-          <p className="mt-0.5 truncate text-sm font-semibold text-foreground">{module.title}</p>
-          <p className="truncate text-[11px] leading-4 text-muted">
-            {module.topic} • {module.totalLessons} lessons
+          <p
+            className={cn(
+              "shrink-0 text-[10.5px] font-semibold leading-none learn-tv-tabular",
+              getStatusTextClass(statusLabel),
+            )}
+          >
+            {module.completedCount}/{module.totalLessons}
           </p>
         </div>
-        <p className={cn("shrink-0 text-xs font-semibold learn-tv-tabular", getStatusTextClass(statusLabel))}>
-          {module.completedCount}/{module.totalLessons}
+        <p className="truncate text-[0.92rem] font-semibold leading-[1.1] text-foreground">
+          {module.title}
         </p>
       </div>
     </button>
@@ -1236,28 +1251,32 @@ export function LearnHubClient({ modules }: { modules: LearnHubModule[] }) {
                       <p className="learn-tv-kicker">
                         {activeModule.code} • {activeModule.topic}
                       </p>
-                      <h2 className="break-words font-heading text-[1.24rem] font-extrabold leading-[1.04] tracking-tight text-foreground sm:text-[1.82rem]">
+                      <h2 className="break-words font-heading text-[1.34rem] font-extrabold leading-[1.02] tracking-tight text-foreground sm:text-[2.02rem]">
                         {activeModule.title}
                       </h2>
-                      <p className="max-w-[31rem] text-[12px] leading-5 text-[#b3b7c2] sm:text-[13px] sm:leading-5">
+                      <p className="max-w-[31rem] text-[12.5px] leading-5 text-[#b3b7c2] sm:text-[14px] sm:leading-6">
                         {activeModule.description}
                       </p>
                     </div>
 
-                    <div className="mt-3 grid grid-cols-1 gap-2.5 border-y border-outline-variant/70 py-2 sm:mt-3.5 sm:grid-cols-3 sm:gap-3 sm:py-2.5">
+                    <div className="mt-5 grid grid-cols-1 gap-2.5 border-y border-outline-variant/70 py-2 sm:mt-6 sm:grid-cols-3 sm:gap-3 sm:py-2.5">
                       <div className="min-w-0">
                         <p className="learn-tv-kicker">Topic</p>
-                        <p className="mt-1 text-[13px] font-semibold text-foreground">{activeModule.topic}</p>
+                        <p className="mt-1 text-[14px] font-semibold text-foreground sm:text-[15px]">
+                          {activeModule.topic}
+                        </p>
                       </div>
                       <div className="min-w-0">
                         <p className="learn-tv-kicker">Duration</p>
-                        <p className="mt-1 text-[13px] font-semibold text-foreground">{activeModule.duration}</p>
+                        <p className="mt-1 text-[14px] font-semibold text-foreground sm:text-[15px]">
+                          {activeModule.duration}
+                        </p>
                       </div>
                       <div className="min-w-0">
                         <p className="learn-tv-kicker">Progress</p>
                         <p
                           className={cn(
-                            "mt-1 text-[13px] font-semibold",
+                            "mt-1 text-[14px] font-semibold sm:text-[15px]",
                             getStatusTextClass(getDisplayStatus(activeModule.progressLabel)),
                           )}
                         >
@@ -1387,15 +1406,10 @@ export function LearnHubClient({ modules }: { modules: LearnHubModule[] }) {
             className="learn-tv-frame flex flex-col overflow-hidden rounded-[0.9rem]"
             style={moduleBoardHeight ? { height: `${moduleBoardHeight}px` } : undefined}
           >
-            <div className="flex items-start justify-between gap-3 border-b border-outline-variant/70 px-3 py-2.5 sm:px-3.5 sm:py-3">
-              <div>
-                <h2 className="text-sm font-semibold tracking-tight text-foreground sm:text-base">
-                  Module board
-                </h2>
-              </div>
-              <p className="shrink-0 text-xs font-semibold learn-tv-tabular text-muted">
-                {moduleBoardEntries.length}/{moduleSnapshots.length}
-              </p>
+            <div className="border-b border-outline-variant/70 px-3 py-2.5 text-center sm:px-3.5 sm:py-3">
+              <h2 className="text-sm font-semibold tracking-tight text-foreground sm:text-base">
+                Module board
+              </h2>
             </div>
 
             <div className="flex-1 min-h-0 overflow-y-auto px-3 py-2 pr-2 sm:px-3.5 sm:py-2.5 sm:pr-2.5">
@@ -1423,10 +1437,10 @@ export function LearnHubClient({ modules }: { modules: LearnHubModule[] }) {
       </div>
 
       <section className="learn-tv-panel overflow-hidden rounded-[0.9rem]">
-        <div className="flex flex-col gap-2.5 border-b border-outline-variant/70 px-3.5 py-3 lg:flex-row lg:items-end lg:justify-between sm:px-4 sm:py-3.5">
-          <div>
-            <p className="learn-tv-kicker">Lesson library</p>
-            <h2 className="mt-1 font-heading text-[1.08rem] font-extrabold tracking-tight text-foreground sm:text-[1.25rem]">
+        <div className="grid gap-3 border-b border-outline-variant/70 px-3.5 py-3 lg:grid-cols-[minmax(12.5rem,15rem)_minmax(0,1fr)] lg:items-end sm:px-4 sm:py-3.5">
+          <div className="min-w-0 pr-2">
+            <p className="learn-tv-kicker text-[0.58rem] tracking-[0.18em]">Lesson library</p>
+            <h2 className="mt-1 font-heading text-[1.14rem] font-extrabold tracking-tight text-foreground sm:text-[1.3rem]">
               All lessons
             </h2>
           </div>
