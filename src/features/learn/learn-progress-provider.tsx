@@ -12,7 +12,15 @@ import {
 } from "react";
 
 import {
+  emptyBookmarkState,
+  normalizeLearnBookmarkState,
+  setLessonBookmark,
+  setModuleBookmark,
+  type LearnBookmarkState,
+} from "@/features/learn/bookmark-state";
+import {
   importLegacyLearnProgress,
+  saveLearnBookmark,
   saveLearnLessonProgress,
 } from "@/server/learn/actions";
 
@@ -27,6 +35,9 @@ import {
 } from "./progress-state";
 
 type LearnProgressContextValue = {
+  bookmarkState: LearnBookmarkState;
+  setLessonBookmarked: (moduleSlug: string, lessonSlug: string, bookmarked: boolean) => void;
+  setModuleBookmarked: (moduleSlug: string, bookmarked: boolean) => void;
   state: LearnProgressState;
   markLessonOpened: (lesson: LessonDescriptor) => void;
   markLessonCompleted: (lesson: LessonDescriptor) => void;
@@ -52,6 +63,7 @@ function readLegacyStoredProgress() {
 }
 
 type LearnProgressProviderProps = {
+  initialBookmarks?: LearnBookmarkState;
   children: ReactNode;
   initialState?: LearnProgressState;
   userId: string;
@@ -59,6 +71,7 @@ type LearnProgressProviderProps = {
 
 export function LearnProgressProvider({
   children,
+  initialBookmarks = emptyBookmarkState,
   initialState = emptyProgressState,
   userId,
 }: LearnProgressProviderProps) {
@@ -66,10 +79,18 @@ export function LearnProgressProvider({
     () => normalizeLearnProgressState(initialState),
     [initialState],
   );
+  const normalizedInitialBookmarks = useMemo(
+    () => normalizeLearnBookmarkState(initialBookmarks),
+    [initialBookmarks],
+  );
   const [state, setState] = useState(normalizedInitialState);
+  const [bookmarkState, setBookmarkState] = useState(normalizedInitialBookmarks);
   const stateRef = useRef(normalizedInitialState);
   const confirmedStateRef = useRef(normalizedInitialState);
+  const bookmarkStateRef = useRef(normalizedInitialBookmarks);
+  const confirmedBookmarkStateRef = useRef(normalizedInitialBookmarks);
   const writeQueueRef = useRef(Promise.resolve());
+  const bookmarkQueueRef = useRef(Promise.resolve());
 
   const enqueueStateSync = useCallback(
     (lesson: LessonDescriptor, status: "in_progress" | "completed") => {
@@ -157,13 +178,84 @@ export function LearnProgressProvider({
     [enqueueStateSync],
   );
 
+  const enqueueBookmarkSync = useCallback(
+    (
+      target:
+        | {
+            kind: "module";
+            moduleSlug: string;
+          }
+        | {
+            kind: "lesson";
+            moduleSlug: string;
+            lessonSlug: string;
+          },
+      bookmarked: boolean,
+    ) => {
+      bookmarkQueueRef.current = bookmarkQueueRef.current
+        .then(async () => {
+          const result = await saveLearnBookmark(target, bookmarked);
+          if (!result.ok) {
+            bookmarkStateRef.current = confirmedBookmarkStateRef.current;
+            setBookmarkState(confirmedBookmarkStateRef.current);
+            return;
+          }
+
+          const nextState = normalizeLearnBookmarkState(result.state);
+          confirmedBookmarkStateRef.current = nextState;
+          bookmarkStateRef.current = nextState;
+          setBookmarkState(nextState);
+        })
+        .catch(() => {
+          bookmarkStateRef.current = confirmedBookmarkStateRef.current;
+          setBookmarkState(confirmedBookmarkStateRef.current);
+        });
+    },
+    [],
+  );
+
+  const setModuleBookmarked = useCallback(
+    (moduleSlug: string, bookmarked: boolean) => {
+      const nextState = setModuleBookmark(bookmarkStateRef.current, moduleSlug, bookmarked);
+      bookmarkStateRef.current = nextState;
+      setBookmarkState(nextState);
+      enqueueBookmarkSync({ kind: "module", moduleSlug }, bookmarked);
+    },
+    [enqueueBookmarkSync],
+  );
+
+  const setLessonBookmarked = useCallback(
+    (moduleSlug: string, lessonSlug: string, bookmarked: boolean) => {
+      const nextState = setLessonBookmark(
+        bookmarkStateRef.current,
+        moduleSlug,
+        lessonSlug,
+        bookmarked,
+      );
+      bookmarkStateRef.current = nextState;
+      setBookmarkState(nextState);
+      enqueueBookmarkSync({ kind: "lesson", moduleSlug, lessonSlug }, bookmarked);
+    },
+    [enqueueBookmarkSync],
+  );
+
   const value = useMemo(
     () => ({
+      bookmarkState,
+      setLessonBookmarked,
+      setModuleBookmarked,
       state,
       markLessonOpened,
       markLessonCompleted,
     }),
-    [markLessonCompleted, markLessonOpened, state],
+    [
+      bookmarkState,
+      markLessonCompleted,
+      markLessonOpened,
+      setLessonBookmarked,
+      setModuleBookmarked,
+      state,
+    ],
   );
 
   return (

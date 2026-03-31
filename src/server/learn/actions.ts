@@ -1,6 +1,11 @@
 "use server";
 
 import {
+  type LearnBookmarkState,
+  type LearnBookmarkTarget,
+  emptyBookmarkState,
+} from "@/features/learn/bookmark-state";
+import {
   createLessonKey,
   emptyProgressState,
   mergeLearnProgressStates,
@@ -13,12 +18,22 @@ import {
 } from "@/features/learn/progress-state";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
-import { getLearnProgressState } from "./queries";
+import { getLearnBookmarkState, getLearnProgressState } from "./queries";
 
 type LearnProgressActionResult =
   | {
       ok: true;
       state: LearnProgressState;
+    }
+  | {
+      ok: false;
+      reason: string;
+    };
+
+type LearnBookmarkActionResult =
+  | {
+      ok: true;
+      state: LearnBookmarkState;
     }
   | {
       ok: false;
@@ -37,6 +52,16 @@ function toLessonRow(
     started_at: lesson.startedAt,
     updated_at: lesson.updatedAt,
     completed_at: lesson.completedAt ?? null,
+  };
+}
+
+function toBookmarkRow(userId: string, target: LearnBookmarkTarget) {
+  return {
+    user_id: userId,
+    item_type: target.kind,
+    module_slug: target.moduleSlug,
+    lesson_slug: target.kind === "lesson" ? target.lessonSlug : "",
+    updated_at: new Date().toISOString(),
   };
 }
 
@@ -124,5 +149,56 @@ export async function importLegacyLearnProgress(
   return {
     ok: true,
     state: rows.length > 0 ? await getLearnProgressState(user.id) : currentState ?? emptyProgressState,
+  };
+}
+
+export async function saveLearnBookmark(
+  target: LearnBookmarkTarget,
+  bookmarked: boolean,
+): Promise<LearnBookmarkActionResult> {
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) {
+    return { ok: false, reason: "supabase_not_configured" };
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { ok: false, reason: "not_authenticated" };
+  }
+
+  if (bookmarked) {
+    const { error } = await supabase
+      .from("learn_bookmarks")
+      .upsert(toBookmarkRow(user.id, target), {
+        onConflict: "user_id,item_type,module_slug,lesson_slug",
+      });
+
+    if (error) {
+      return { ok: false, reason: error.message };
+    }
+  } else {
+    const query = supabase
+      .from("learn_bookmarks")
+      .delete()
+      .eq("user_id", user.id)
+      .eq("item_type", target.kind)
+      .eq("module_slug", target.moduleSlug);
+
+    const { error } =
+      target.kind === "lesson"
+        ? await query.eq("lesson_slug", target.lessonSlug)
+        : await query.eq("lesson_slug", "");
+
+    if (error) {
+      return { ok: false, reason: error.message };
+    }
+  }
+
+  return {
+    ok: true,
+    state: (await getLearnBookmarkState(user.id)) ?? emptyBookmarkState,
   };
 }

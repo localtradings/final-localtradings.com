@@ -3,6 +3,12 @@
 import Link from "next/link";
 import { ArrowLeft, ArrowUpRight } from "lucide-react";
 
+import { isModuleBookmarked } from "@/features/learn/bookmark-state";
+import { BookmarkButton } from "@/features/learn/bookmark-button";
+import {
+  BookmarkFeedbackToast,
+  useBookmarkFeedback,
+} from "@/features/learn/bookmark-feedback";
 import {
   getLessonProgress,
   getModuleProgressStatus,
@@ -56,7 +62,8 @@ export function ModulePageClient({
   learningModule,
   lessons,
 }: ModulePageClientProps) {
-  const { state } = useLearnProgress();
+  const { bookmarkState, setModuleBookmarked, state } = useLearnProgress();
+  const { pushToast, toast } = useBookmarkFeedback();
   const moduleStatus = formatStatusLabel(
     getModuleProgressStatus(state, {
       slug: learningModule.slug,
@@ -121,14 +128,38 @@ export function ModulePageClient({
               </span>
             </div>
 
-            <div className="mt-3.5 space-y-2 sm:mt-4 sm:space-y-2.5">
-              <p className="learn-tv-kicker">Module view</p>
-              <h1 className="break-words font-heading text-[1.35rem] font-extrabold leading-[1.06] tracking-tight text-foreground sm:text-[2.15rem]">
-                {learningModule.title}
-              </h1>
-              <p className="max-w-[36rem] text-[12px] leading-5 text-[#b3b7c2] sm:text-[13px] sm:leading-6">
-                {learningModule.description}
-              </p>
+            <div className="mt-3.5 sm:mt-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="space-y-2 sm:space-y-2.5">
+                  <p className="learn-tv-kicker">Module view</p>
+                  <h1 className="break-words font-heading text-[1.35rem] font-extrabold leading-[1.06] tracking-tight text-foreground sm:text-[2.15rem]">
+                    {learningModule.title}
+                  </h1>
+                  <p className="max-w-[36rem] text-[12px] leading-5 text-[#b3b7c2] sm:text-[13px] sm:leading-6">
+                    {learningModule.description}
+                  </p>
+                </div>
+
+                <BookmarkButton
+                  active={isModuleBookmarked(bookmarkState, learningModule.slug)}
+                  className="shrink-0"
+                  label={
+                    isModuleBookmarked(bookmarkState, learningModule.slug)
+                      ? `Remove ${learningModule.title} bookmark`
+                      : `Bookmark ${learningModule.title}`
+                  }
+                  onClick={() => {
+                    const nextValue = !isModuleBookmarked(bookmarkState, learningModule.slug);
+                    setModuleBookmarked(learningModule.slug, nextValue);
+                    pushToast(
+                      nextValue
+                        ? "Added module to bookmarks"
+                        : "Removed module from bookmarks",
+                    );
+                  }}
+                  size="md"
+                />
+              </div>
             </div>
 
             <div className="mt-4 grid grid-cols-1 gap-3 border-y border-outline-variant/70 py-3 sm:grid-cols-3 sm:gap-4 sm:py-3.5">
@@ -306,7 +337,7 @@ export function ModulePageClient({
                     {lesson.duration}
                   </p>
 
-                  <div className="hidden md:flex md:justify-end">
+                  <div className="hidden md:flex md:items-center md:justify-end md:gap-2">
                     <span className="inline-flex items-center gap-2 text-sm font-semibold text-foreground">
                       {getLessonActionLabel(statusLabel)}
                       <ArrowUpRight className="h-4 w-4" strokeWidth={2} />
@@ -318,6 +349,8 @@ export function ModulePageClient({
           })}
         </div>
       </section>
+
+      <BookmarkFeedbackToast toast={toast} />
     </div>
   );
 }

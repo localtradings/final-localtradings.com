@@ -6,11 +6,21 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, type SyntheticEvent } from "react";
 import {
   ArrowUpRight,
+  Bookmark,
   ChevronLeft,
   ChevronRight,
   Search,
 } from "lucide-react";
 
+import {
+  isLessonBookmarked,
+  isModuleBookmarked,
+} from "@/features/learn/bookmark-state";
+import { BookmarkButton } from "@/features/learn/bookmark-button";
+import {
+  BookmarkFeedbackToast,
+  useBookmarkFeedback,
+} from "@/features/learn/bookmark-feedback";
 import {
   getContinueLearningLesson,
   getLessonProgress,
@@ -67,6 +77,26 @@ type SearchSuggestion = {
   moduleIndex?: number;
   topicValue?: string;
 };
+
+type BookmarkRailItem =
+  | {
+      id: string;
+      kind: "module";
+      href: string;
+      label: string;
+      meta: string;
+      sortValue: string;
+      summary: string;
+    }
+  | {
+      id: string;
+      kind: "lesson";
+      href: string;
+      label: string;
+      meta: string;
+      sortValue: string;
+      summary: string;
+    };
 
 const ITEMS_PER_PAGE = 8;
 
@@ -582,51 +612,68 @@ function FilterControls({
 }
 
 function ModuleSelector({
+  isBookmarked,
   isActive,
   module,
+  onBookmarkToggle,
   onSelect,
 }: {
+  isBookmarked: boolean;
   isActive: boolean;
   module: ModuleSnapshot;
+  onBookmarkToggle: () => void;
   onSelect: () => void;
 }) {
   const statusLabel = getDisplayStatus(module.progressLabel);
 
   return (
-    <button
+    <div
       aria-current={isActive ? "true" : undefined}
       className="learn-tv-watchlist-row min-h-[3.35rem] rounded-[0.68rem] px-3 py-2 text-left sm:min-h-[3.48rem] sm:px-3.25 sm:py-2.25"
-      onClick={onSelect}
-      type="button"
     >
-      <div className="flex min-w-0 flex-col gap-1.5">
-        <div className="flex items-center justify-between gap-2.5">
-          <div className="flex min-w-0 items-center gap-2">
-            <p className="learn-tv-kicker shrink-0">{module.code}</p>
-            <span className={getBoardStatusChipClass(statusLabel)}>{statusLabel}</span>
+      <div className="flex items-start gap-2.5">
+        <button className="min-w-0 flex-1 text-left" onClick={onSelect} type="button">
+          <div className="flex min-w-0 flex-col gap-1.5">
+            <div className="flex items-center justify-between gap-2.5">
+              <div className="flex min-w-0 items-center gap-2">
+                <p className="learn-tv-kicker shrink-0">{module.code}</p>
+                <span className={getBoardStatusChipClass(statusLabel)}>{statusLabel}</span>
+              </div>
+              <p
+                className={cn(
+                  "shrink-0 text-[10.5px] font-semibold leading-none learn-tv-tabular",
+                  getStatusTextClass(statusLabel),
+                )}
+              >
+                {module.completedCount}/{module.totalLessons}
+              </p>
+            </div>
+            <p className="truncate text-[0.92rem] font-semibold leading-[1.1] text-foreground">
+              {module.title}
+            </p>
           </div>
-          <p
-            className={cn(
-              "shrink-0 text-[10.5px] font-semibold leading-none learn-tv-tabular",
-              getStatusTextClass(statusLabel),
-            )}
-          >
-            {module.completedCount}/{module.totalLessons}
-          </p>
-        </div>
-        <p className="truncate text-[0.92rem] font-semibold leading-[1.1] text-foreground">
-          {module.title}
-        </p>
+        </button>
+
+        <BookmarkButton
+          active={isBookmarked}
+          className="mt-0.5 shrink-0"
+          label={isBookmarked ? `Remove ${module.title} bookmark` : `Bookmark ${module.title}`}
+          onClick={onBookmarkToggle}
+        />
       </div>
-    </button>
+    </div>
   );
 }
 
 function LessonRow({
+  isBookmarked,
   entry,
+  onBookmarkToggle,
   progressLabel,
 }: {
+  isBookmarked: boolean;
   entry: LearnLessonEntry;
+  onBookmarkToggle: () => void;
   progressLabel: string | null;
 }) {
   const actionLabel = getLessonActionLabel(progressLabel);
@@ -673,10 +720,17 @@ function LessonRow({
               {statusLabel}
             </p>
           </div>
-          <Link className="btn-secondary min-h-8 px-3 py-1.5 text-[11px] sm:min-h-9 sm:px-3.5 sm:text-xs" href={entry.href}>
-            {actionLabel}
-            <ArrowUpRight className="h-4 w-4" strokeWidth={2} />
-          </Link>
+          <div className="flex items-center gap-2">
+            <BookmarkButton
+              active={isBookmarked}
+              label={isBookmarked ? `Remove ${entry.title} bookmark` : `Bookmark ${entry.title}`}
+              onClick={onBookmarkToggle}
+            />
+            <Link className="btn-secondary min-h-8 px-3 py-1.5 text-[11px] sm:min-h-9 sm:px-3.5 sm:text-xs" href={entry.href}>
+              {actionLabel}
+              <ArrowUpRight className="h-4 w-4" strokeWidth={2} />
+            </Link>
+          </div>
         </div>
       </div>
     </div>
@@ -685,8 +739,10 @@ function LessonRow({
 
 export function LearnHubClient({ modules }: { modules: LearnHubModule[] }) {
   const router = useRouter();
-  const { state } = useLearnProgress();
+  const { bookmarkState, setLessonBookmarked, setModuleBookmarked, state } =
+    useLearnProgress();
   const activeModuleSectionRef = useRef<HTMLElement | null>(null);
+  const { pushToast, toast } = useBookmarkFeedback();
 
   const [lessonTopic, setLessonTopic] = useState("All");
   const [lessonSort, setLessonSort] = useState<LessonSortValue>("recommended");
@@ -792,6 +848,63 @@ export function LearnHubClient({ modules }: { modules: LearnHubModule[] }) {
 
     return nextCounts;
   }, [lessonEntries]);
+
+  const bookmarkedRailItems = useMemo<BookmarkRailItem[]>(() => {
+    const moduleItems = Object.values(bookmarkState.modules).flatMap<BookmarkRailItem>(
+      (bookmark) => {
+        const matchedModule = moduleSnapshots.find(
+          (entry) => entry.slug === bookmark.moduleSlug,
+        );
+        if (!matchedModule) {
+          return [];
+        }
+
+        return [
+          {
+            id: `module:${matchedModule.slug}`,
+            kind: "module",
+            href: `/app/learn/${matchedModule.slug}`,
+            label: matchedModule.title,
+            meta: `${matchedModule.topic} • ${matchedModule.totalLessons} lessons`,
+            sortValue: bookmark.updatedAt,
+            summary: matchedModule.description,
+          },
+        ];
+      },
+    );
+
+    const lessonItems = Object.values(bookmarkState.lessons).flatMap<BookmarkRailItem>(
+      (bookmark) => {
+        const lesson = lessonEntries.find(
+          (entry) =>
+            entry.moduleSlug === bookmark.moduleSlug && entry.slug === bookmark.lessonSlug,
+        );
+        if (!lesson) {
+          return [];
+        }
+
+        return [
+          {
+            id: `lesson:${lesson.moduleSlug}:${lesson.slug}`,
+            kind: "lesson",
+            href: lesson.href,
+            label: lesson.title,
+            meta: `${lesson.moduleTitle} • ${lesson.duration}`,
+            sortValue: bookmark.updatedAt,
+            summary: lesson.summary,
+          },
+        ];
+      },
+    );
+
+    return [...moduleItems, ...lessonItems]
+      .filter((item) =>
+        !learnQuery
+          ? true
+          : matchesLearnQuery(learnQuery, [item.label, item.summary, item.meta]),
+      )
+      .sort((left, right) => right.sortValue.localeCompare(left.sortValue));
+  }, [bookmarkState.lessons, bookmarkState.modules, learnQuery, lessonEntries, moduleSnapshots]);
 
   const filteredLessonEntries = useMemo(() => {
     if (lessonStatuses.length === 0) {
@@ -1019,6 +1132,20 @@ export function LearnHubClient({ modules }: { modules: LearnHubModule[] }) {
     setActiveModuleIndex(nextIndex);
   };
 
+  const handleModuleBookmarkToggle = (moduleSlug: string, bookmarked: boolean) => {
+    setModuleBookmarked(moduleSlug, bookmarked);
+    pushToast(bookmarked ? "Added module to bookmarks" : "Removed module from bookmarks");
+  };
+
+  const handleLessonBookmarkToggle = (
+    moduleSlug: string,
+    lessonSlug: string,
+    bookmarked: boolean,
+  ) => {
+    setLessonBookmarked(moduleSlug, lessonSlug, bookmarked);
+    pushToast(bookmarked ? "Added lesson to bookmarks" : "Removed lesson from bookmarks");
+  };
+
   const applySearchSuggestion = (suggestion: SearchSuggestion) => {
     setIsSearchMenuOpen(false);
 
@@ -1240,11 +1367,28 @@ export function LearnHubClient({ modules }: { modules: LearnHubModule[] }) {
               <div className="grid lg:grid-cols-[minmax(0,1.05fr)_minmax(268px,0.95fr)]">
                 <div className="flex h-full min-w-0 flex-col justify-between gap-3 p-3 sm:p-3.5">
                   <div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="learn-tv-chip learn-tv-chip--active">Selected module</span>
-                      <span className={getStatusChipClass(getDisplayStatus(activeModule.progressLabel))}>
-                        {getDisplayStatus(activeModule.progressLabel)}
-                      </span>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="learn-tv-chip learn-tv-chip--active">Selected module</span>
+                        <span className={getStatusChipClass(getDisplayStatus(activeModule.progressLabel))}>
+                          {getDisplayStatus(activeModule.progressLabel)}
+                        </span>
+                      </div>
+                      <BookmarkButton
+                        active={isModuleBookmarked(bookmarkState, activeModule.slug)}
+                        className="shrink-0"
+                        label={
+                          isModuleBookmarked(bookmarkState, activeModule.slug)
+                            ? `Remove ${activeModule.title} bookmark`
+                            : `Bookmark ${activeModule.title}`
+                        }
+                        onClick={() =>
+                          handleModuleBookmarkToggle(
+                            activeModule.slug,
+                            !isModuleBookmarked(bookmarkState, activeModule.slug),
+                          )
+                        }
+                      />
                     </div>
 
                     <div className="mt-3 space-y-1.5 sm:mt-3.5 sm:space-y-2">
@@ -1322,13 +1466,7 @@ export function LearnHubClient({ modules }: { modules: LearnHubModule[] }) {
                       sizes="(min-width: 1280px) 34vw, (min-width: 768px) 48vw, 100vw"
                     />
                     <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(10,13,20,0.08),rgba(10,13,20,0.76))]" />
-                    <div className="absolute bottom-0 left-0 right-0 flex items-end justify-between gap-3 p-3 sm:p-3.5">
-                      <div className="min-w-0">
-                        <p className="learn-tv-kicker text-white/66">Module view</p>
-                        <p className="mt-1 break-words text-sm font-semibold text-white/92 sm:text-[0.95rem]">
-                          {activeModule.title}
-                        </p>
-                      </div>
+                    <div className="absolute bottom-0 left-0 right-0 flex items-end justify-end p-3 sm:p-3.5">
                       <div className="shrink-0 text-right">
                         <p className="learn-tv-kicker text-white/66">Completion</p>
                         <p
@@ -1362,13 +1500,19 @@ export function LearnHubClient({ modules }: { modules: LearnHubModule[] }) {
                           ),
                         );
 
+                        const lessonHref = `/app/learn/${activeModule.slug}/${lesson.slug}`;
+                        const bookmarked = isLessonBookmarked(
+                          bookmarkState,
+                          activeModule.slug,
+                          lesson.slug,
+                        );
+
                         return (
-                          <Link
-                            className="block px-0 py-1.5 transition hover:bg-surface-highest/30"
-                            href={`/app/learn/${activeModule.slug}/${lesson.slug}`}
+                          <div
+                            className="flex items-start justify-between gap-3 px-0 py-1.5 transition hover:bg-surface-highest/30"
                             key={lesson.slug}
                           >
-                            <div className="flex items-start justify-between gap-4">
+                            <Link className="min-w-0 flex-1" href={lessonHref}>
                               <div className="min-w-0">
                                 <div className="flex flex-wrap items-center gap-2">
                                   <span className="learn-tv-kicker">
@@ -1388,9 +1532,29 @@ export function LearnHubClient({ modules }: { modules: LearnHubModule[] }) {
                                 </p>
                                 <p className="mt-0.5 text-[11px] text-muted">{lesson.duration}</p>
                               </div>
-                              <ArrowUpRight className="mt-1 h-4 w-4 shrink-0 text-muted" />
+                            </Link>
+
+                            <div className="flex items-center gap-2">
+                              <BookmarkButton
+                                active={bookmarked}
+                                label={
+                                  bookmarked
+                                    ? `Remove ${lesson.title} bookmark`
+                                    : `Bookmark ${lesson.title}`
+                                }
+                                onClick={() =>
+                                  handleLessonBookmarkToggle(
+                                    activeModule.slug,
+                                    lesson.slug,
+                                    !bookmarked,
+                                  )
+                                }
+                              />
+                              <Link className="shrink-0 text-muted transition hover:text-foreground" href={lessonHref}>
+                                <ArrowUpRight className="h-4 w-4" />
+                              </Link>
                             </div>
-                          </Link>
+                          </div>
                         );
                       })}
                     </div>
@@ -1408,26 +1572,89 @@ export function LearnHubClient({ modules }: { modules: LearnHubModule[] }) {
           >
             <div className="border-b border-outline-variant/70 px-3 py-2.5 text-center sm:px-3.5 sm:py-3">
               <h2 className="text-sm font-semibold tracking-tight text-foreground sm:text-base">
-                Module board
+                Saved library
               </h2>
             </div>
 
-            <div className="flex-1 min-h-0 overflow-y-auto px-3 py-2 pr-2 sm:px-3.5 sm:py-2.5 sm:pr-2.5">
-              <div className="space-y-1.5">
-              {moduleBoardEntries.length === 0 ? (
-                <div className="rounded-[0.9rem] border border-outline-variant/70 bg-surface-low px-4 py-4 text-sm text-muted">
-                  No modules match that search right now.
+            <div className="flex flex-1 min-h-0 flex-col gap-0">
+              <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-3 py-2 sm:px-3.5 sm:py-2.5">
+                <div className="mb-1.5 flex items-center justify-between gap-2">
+                  <p className="learn-tv-kicker">My bookmarks</p>
+                  <span className="text-[11px] font-semibold text-muted">
+                    {bookmarkedRailItems.length}
+                  </span>
                 </div>
-              ) : (
-                moduleBoardEntries.map(({ module, index }) => (
-                  <ModuleSelector
-                    isActive={index === resolvedActiveModuleIndex}
-                    key={module.slug}
-                    module={module}
-                    onSelect={() => setActiveModuleFromUser(index)}
-                  />
-                ))
-              )}
+
+                <div className="min-h-0 flex-1 overflow-y-auto pr-1 sm:pr-1.5">
+                  {bookmarkedRailItems.length === 0 ? (
+                    <div className="rounded-[0.9rem] border border-outline-variant/70 bg-surface-low px-4 py-4 text-sm text-muted">
+                      No bookmarks yet. Start bookmarking modules or lessons to save them for later.
+                    </div>
+                  ) : (
+                    <div className="space-y-1.5">
+                      {bookmarkedRailItems.map((item) => (
+                        <Link
+                          className="block rounded-[0.78rem] border border-outline-variant/70 bg-surface-low px-3 py-2.5 transition hover:border-primary/18 hover:bg-surface-highest/55"
+                          href={item.href}
+                          key={item.id}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="learn-tv-kicker">{item.kind}</span>
+                                <span className="learn-tv-chip px-2 py-0.5 text-[0.52rem] tracking-[0.12em]">
+                                  Saved
+                                </span>
+                              </div>
+                              <p className="mt-1 break-words text-[13px] font-semibold text-foreground">
+                                {item.label}
+                              </p>
+                              <p className="mt-1 text-[11px] text-muted">{item.meta}</p>
+                            </div>
+                            <Bookmark className="mt-0.5 h-4 w-4 shrink-0 fill-current text-[#f3c94d]" />
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="border-t border-outline-variant/70" />
+
+              <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-3 py-2 sm:px-3.5 sm:py-2.5">
+                <div className="mb-1.5 flex items-center justify-between gap-2">
+                  <p className="learn-tv-kicker">Explore all modules</p>
+                  <span className="text-[11px] font-semibold text-muted">
+                    {moduleBoardEntries.length}
+                  </span>
+                </div>
+
+                <div className="min-h-0 flex-1 overflow-y-auto pr-1 sm:pr-1.5">
+                  {moduleBoardEntries.length === 0 ? (
+                    <div className="rounded-[0.9rem] border border-outline-variant/70 bg-surface-low px-4 py-4 text-sm text-muted">
+                      No modules match that search right now.
+                    </div>
+                  ) : (
+                    <div className="space-y-1.5">
+                      {moduleBoardEntries.map(({ module, index }) => (
+                        <ModuleSelector
+                          isActive={index === resolvedActiveModuleIndex}
+                          isBookmarked={isModuleBookmarked(bookmarkState, module.slug)}
+                          key={module.slug}
+                          module={module}
+                          onBookmarkToggle={() =>
+                            handleModuleBookmarkToggle(
+                              module.slug,
+                              !isModuleBookmarked(bookmarkState, module.slug),
+                            )
+                          }
+                          onSelect={() => setActiveModuleFromUser(index)}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -1486,7 +1713,15 @@ export function LearnHubClient({ modules }: { modules: LearnHubModule[] }) {
             {paginatedLessons.map((entry) => (
               <LessonRow
                 entry={entry}
+                isBookmarked={isLessonBookmarked(bookmarkState, entry.moduleSlug, entry.slug)}
                 key={`lesson:${entry.moduleSlug}:${entry.slug}`}
+                onBookmarkToggle={() =>
+                  handleLessonBookmarkToggle(
+                    entry.moduleSlug,
+                    entry.slug,
+                    !isLessonBookmarked(bookmarkState, entry.moduleSlug, entry.slug),
+                  )
+                }
                 progressLabel={formatProgress(
                   getLessonProgress(state, entry.moduleSlug, entry.slug)?.status ?? null,
                 )}
@@ -1501,6 +1736,8 @@ export function LearnHubClient({ modules }: { modules: LearnHubModule[] }) {
           totalPages={lessonTotalPages}
         />
       </section>
+
+      <BookmarkFeedbackToast toast={toast} />
     </div>
   );
 }

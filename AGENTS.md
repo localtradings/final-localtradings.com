@@ -3,10 +3,12 @@
 ## Repo rules
 
 - Build for `localtradings.com`
+- Treat the current code as the source of truth
+- Keep docs aligned with the current repo, not old planning files
 - Keep public and product shells separate
 - Keep route files thin and move real UI into `src/features`
 - Keep long copy and lesson/help bodies in `src/content`
-- Do not add excluded routes or Community features back into the app
+- Do not document or build future ideas until they exist in code
 
 ## Stack
 

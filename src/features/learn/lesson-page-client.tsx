@@ -4,6 +4,12 @@ import Link from "next/link";
 import { useEffect, type ReactNode } from "react";
 import { ArrowLeft } from "lucide-react";
 
+import { isLessonBookmarked } from "@/features/learn/bookmark-state";
+import { BookmarkButton } from "@/features/learn/bookmark-button";
+import {
+  BookmarkFeedbackToast,
+  useBookmarkFeedback,
+} from "@/features/learn/bookmark-feedback";
 import { getLessonProgress } from "@/features/learn/progress-state";
 import { useLearnProgress } from "@/features/learn/learn-progress-provider";
 import { cn } from "@/lib/utils";
@@ -38,7 +44,14 @@ export function LessonPageClient({
   lessons,
   children,
 }: LessonPageClientProps) {
-  const { markLessonCompleted, markLessonOpened, state } = useLearnProgress();
+  const {
+    bookmarkState,
+    markLessonCompleted,
+    markLessonOpened,
+    setLessonBookmarked,
+    state,
+  } = useLearnProgress();
+  const { pushToast, toast } = useBookmarkFeedback();
 
   useEffect(() => {
     markLessonOpened({
@@ -57,6 +70,7 @@ export function LessonPageClient({
 
   const currentProgress = getLessonProgress(state, learningModule.slug, lesson.slug);
   const currentStatus = formatStatus(currentProgress?.status ?? null);
+  const lessonBookmarked = isLessonBookmarked(bookmarkState, learningModule.slug, lesson.slug);
 
   return (
     <div className="learn-tv-screen space-y-3.5 pb-5 sm:space-y-4 sm:pb-7">
@@ -87,14 +101,39 @@ export function LessonPageClient({
               ) : null}
             </div>
 
-            <div className="mt-3.5 space-y-2 sm:mt-4 sm:space-y-2.5">
-              <p className="learn-tv-kicker">Lesson view</p>
-              <h1 className="break-words font-heading text-[1.35rem] font-extrabold leading-[1.06] tracking-tight text-foreground sm:text-[2.15rem]">
-                {lesson.title}
-              </h1>
-              <p className="max-w-[38rem] text-[12px] leading-5 text-[#b3b7c2] sm:text-[13px] sm:leading-6">
-                {lesson.summary}
-              </p>
+            <div className="mt-3.5 sm:mt-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="space-y-2 sm:space-y-2.5">
+                  <p className="learn-tv-kicker">Lesson view</p>
+                  <h1 className="break-words font-heading text-[1.35rem] font-extrabold leading-[1.06] tracking-tight text-foreground sm:text-[2.15rem]">
+                    {lesson.title}
+                  </h1>
+                  <p className="max-w-[38rem] text-[12px] leading-5 text-[#b3b7c2] sm:text-[13px] sm:leading-6">
+                    {lesson.summary}
+                  </p>
+                </div>
+
+                <div className="flex shrink-0 items-center">
+                  <BookmarkButton
+                    active={lessonBookmarked}
+                    label={
+                      lessonBookmarked
+                        ? `Remove ${lesson.title} bookmark`
+                        : `Bookmark ${lesson.title}`
+                    }
+                    onClick={() => {
+                      const nextValue = !lessonBookmarked;
+                      setLessonBookmarked(learningModule.slug, lesson.slug, nextValue);
+                      pushToast(
+                        nextValue
+                          ? "Added lesson to bookmarks"
+                          : "Removed lesson from bookmarks",
+                      );
+                    }}
+                    size="md"
+                  />
+                </div>
+              </div>
             </div>
 
             <div className="mt-4 grid grid-cols-2 gap-3 border-y border-outline-variant/70 py-3 sm:grid-cols-5 sm:gap-4 sm:py-3.5">
@@ -183,57 +222,87 @@ export function LessonPageClient({
                   getLessonProgress(state, learningModule.slug, item.slug)?.status ?? null,
                 );
                 const isCurrent = item.slug === lesson.slug;
+                const itemBookmarked = isLessonBookmarked(
+                  bookmarkState,
+                  learningModule.slug,
+                  item.slug,
+                );
+                const itemHref = `/app/learn/${learningModule.slug}/${item.slug}`;
 
                 return (
-                  <Link
+                  <div
                     className={cn(
-                      "block px-0 py-3 text-sm transition",
+                      "flex items-start justify-between gap-3 px-0 py-3 text-sm transition",
                       isCurrent
                         ? "text-foreground"
                         : "text-foreground hover:bg-surface-highest/30",
                     )}
-                    href={`/app/learn/${learningModule.slug}/${item.slug}`}
                     key={item.slug}
                   >
-                    <div className="space-y-1.5">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <span className="learn-tv-kicker">
-                          {String(item.order).padStart(2, "0")}
-                        </span>
-                        <span
+                    <Link className="min-w-0 flex-1" href={itemHref}>
+                      <div className="space-y-1.5">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <span className="learn-tv-kicker">
+                            {String(item.order).padStart(2, "0")}
+                          </span>
+                          <span
+                            className={cn(
+                              "text-[11px] font-semibold uppercase tracking-[0.16em]",
+                              statusLabel === "Completed"
+                                ? "learn-tv-positive"
+                                : statusLabel === "In Progress"
+                                  ? "text-primary"
+                                  : "text-muted",
+                            )}
+                          >
+                            {getDisplayStatus(statusLabel)}
+                          </span>
+                        </div>
+                        <p
                           className={cn(
-                            "text-[11px] font-semibold uppercase tracking-[0.16em]",
-                            statusLabel === "Completed"
-                              ? "learn-tv-positive"
-                              : statusLabel === "In Progress"
-                                ? "text-primary"
-                                : "text-muted",
+                            "break-words text-[13px] font-semibold sm:text-sm",
+                            isCurrent ? "text-foreground" : "",
                           )}
                         >
-                          {getDisplayStatus(statusLabel)}
-                        </span>
-                      </div>
-                      <p
-                        className={cn(
-                          "break-words text-[13px] font-semibold sm:text-sm",
-                          isCurrent ? "text-foreground" : "",
-                        )}
-                      >
-                        {item.title}
-                      </p>
-                      {isCurrent ? (
-                        <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted">
-                          Current lesson
+                          {item.title}
                         </p>
-                      ) : null}
-                    </div>
-                  </Link>
+                        {isCurrent ? (
+                          <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted">
+                            Current lesson
+                          </p>
+                        ) : null}
+                      </div>
+                    </Link>
+
+                    {!isCurrent ? (
+                      <BookmarkButton
+                        active={itemBookmarked}
+                        className="mt-0.5 shrink-0"
+                        label={
+                          itemBookmarked
+                            ? `Remove ${item.title} bookmark`
+                            : `Bookmark ${item.title}`
+                        }
+                        onClick={() => {
+                          const nextValue = !itemBookmarked;
+                          setLessonBookmarked(learningModule.slug, item.slug, nextValue);
+                          pushToast(
+                            nextValue
+                              ? "Added lesson to bookmarks"
+                              : "Removed lesson from bookmarks",
+                          );
+                        }}
+                      />
+                    ) : null}
+                  </div>
                 );
               })}
             </div>
           </div>
         </aside>
       </div>
+
+      <BookmarkFeedbackToast toast={toast} />
     </div>
   );
 }
