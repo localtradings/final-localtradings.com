@@ -279,24 +279,93 @@ export async function duplicateBacktestSession(
 
   const snapshot = createDuplicateSnapshot(existing);
   const now = new Date().toISOString();
-
-  return saveBacktestSession({
+  const duplicateEntry = Number.parseFloat(snapshot.tradeDraft.entry);
+  const duplicateStop = Number.parseFloat(snapshot.tradeDraft.stop);
+  const duplicateTarget = Number.parseFloat(snapshot.tradeDraft.target);
+  const duplicateDraft = {
+    ...snapshot.tradeDraft,
+    reviewNotes: "",
+  };
+  const sanitizedSnapshot = sanitizeSnapshot(
+    snapshot,
+    duplicateDraft,
+    BACKTEST_INITIAL_REVEAL_COUNT,
+  );
+  const payload = {
+    user_id: user.id,
     symbol: existing.symbol,
     timeframe: existing.timeframe,
-    windowStartAt: existing.windowStartAt,
-    barsRequested: existing.barsRequested,
-    direction: snapshot.tradeDraft.direction,
-    entry: Number(snapshot.tradeDraft.entry),
-    stop: Number(snapshot.tradeDraft.stop),
-    target: Number(snapshot.tradeDraft.target),
-    status: "draft",
-    resultR: null,
-    startedAt: now,
-    finishedAt: null,
-    thesis: snapshot.tradeDraft.thesis,
-    reviewNotes: "",
-    sessionStateJson: snapshot,
-  });
+    scenario_id: buildScenarioId({
+      symbol: existing.symbol,
+      timeframe: existing.timeframe,
+      windowStartAt: existing.windowStartAt,
+    }),
+    window_start_at: existing.windowStartAt,
+    bars_requested: existing.barsRequested,
+    direction: duplicateDraft.direction,
+    entry: Number.isFinite(duplicateEntry) ? duplicateEntry : existing.entry,
+    stop: Number.isFinite(duplicateStop) ? duplicateStop : existing.stop,
+    target: Number.isFinite(duplicateTarget) ? duplicateTarget : existing.target,
+    status: "draft" as const,
+    result_r: null,
+    started_at: now,
+    finished_at: null,
+    thesis: duplicateDraft.thesis,
+    review_notes: "",
+    session_state_json: sanitizedSnapshot,
+  };
+  const legacyPayload = {
+    user_id: user.id,
+    symbol: existing.symbol,
+    timeframe: existing.timeframe,
+    scenario_id: buildScenarioId({
+      symbol: existing.symbol,
+      timeframe: existing.timeframe,
+      windowStartAt: existing.windowStartAt,
+    }),
+    direction: duplicateDraft.direction,
+    entry: Number.isFinite(duplicateEntry) ? duplicateEntry : existing.entry,
+    stop: Number.isFinite(duplicateStop) ? duplicateStop : existing.stop,
+    target: Number.isFinite(duplicateTarget) ? duplicateTarget : existing.target,
+    status: "draft" as const,
+    result_r: null,
+    started_at: now,
+    finished_at: null,
+    thesis: duplicateDraft.thesis,
+    review_notes: "",
+    session_state_json: sanitizedSnapshot,
+  };
+
+  const primaryResult = await supabase
+    .from("backtest_sessions")
+    .insert(payload)
+    .select(FULL_BACKTEST_SESSION_SELECT)
+    .single();
+
+  let data: unknown = primaryResult.data;
+  let error = primaryResult.error;
+
+  if (error && isLegacyBacktestSchemaError(error)) {
+    const legacyResult = await supabase
+      .from("backtest_sessions")
+      .insert(legacyPayload)
+      .select(LEGACY_BACKTEST_SESSION_SELECT)
+      .single();
+
+    data = legacyResult.data;
+    error = legacyResult.error;
+  }
+
+  if (error || !data) {
+    return { ok: false, reason: error?.message ?? "duplicate_failed" };
+  }
+
+  await pruneBacktestSessionsForUser(user.id);
+
+  return {
+    ok: true,
+    session: normalizeBacktestSession(data as Parameters<typeof normalizeBacktestSession>[0]),
+  };
 }
 
 export async function deleteBacktestSession(

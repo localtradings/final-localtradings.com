@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft, ArrowUpRight } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 
 import { isModuleBookmarked } from "@/features/learn/bookmark-state";
 import { BookmarkButton } from "@/features/learn/bookmark-button";
@@ -9,10 +9,17 @@ import {
   BookmarkFeedbackToast,
   useBookmarkFeedback,
 } from "@/features/learn/bookmark-feedback";
+import { LearnDetailHeader } from "@/features/learn/components/learn-detail-header";
 import {
   getLessonProgress,
   getModuleProgressStatus,
 } from "@/features/learn/progress-state";
+import {
+  formatProgressStatus,
+  getCompletionPercent,
+  getDisplayStatus,
+  getLessonActionLabel,
+} from "@/features/learn/learn-shared";
 import { useLearnProgress } from "@/features/learn/learn-progress-provider";
 import { cn } from "@/lib/utils";
 import type { LessonFrontmatter, ModuleSummary } from "@/types/content";
@@ -22,49 +29,13 @@ type ModulePageClientProps = {
   lessons: LessonFrontmatter[];
 };
 
-function formatStatusLabel(status: "in_progress" | "completed" | null) {
-  if (status === "completed") {
-    return "Completed";
-  }
-
-  if (status === "in_progress") {
-    return "In Progress";
-  }
-
-  return null;
-}
-
-function getDisplayStatus(status: "In Progress" | "Completed" | null) {
-  return status ?? "Not started";
-}
-
-function getLessonActionLabel(status: "In Progress" | "Completed" | null) {
-  if (status === "Completed") {
-    return "Review lesson";
-  }
-
-  if (status === "In Progress") {
-    return "Resume lesson";
-  }
-
-  return "Start lesson";
-}
-
-function getCompletionPercent(completedCount: number, totalLessons: number) {
-  if (totalLessons === 0) {
-    return 0;
-  }
-
-  return Math.round((completedCount / totalLessons) * 100);
-}
-
 export function ModulePageClient({
   learningModule,
   lessons,
 }: ModulePageClientProps) {
   const { bookmarkState, setModuleBookmarked, state } = useLearnProgress();
   const { pushToast, toast } = useBookmarkFeedback();
-  const moduleStatus = formatStatusLabel(
+  const moduleStatus = formatProgressStatus(
     getModuleProgressStatus(state, {
       slug: learningModule.slug,
       title: learningModule.title,
@@ -86,7 +57,7 @@ export function ModulePageClient({
     null;
 
   const nextLessonStatus = nextLesson
-    ? formatStatusLabel(
+    ? formatProgressStatus(
         getLessonProgress(state, learningModule.slug, nextLesson.slug)?.status ?? null,
       )
     : null;
@@ -103,43 +74,9 @@ export function ModulePageClient({
     <div className="learn-tv-screen space-y-3.5 pb-5 sm:space-y-4 sm:pb-7">
       <div className="grid gap-3.5 xl:grid-cols-[minmax(0,1fr)_17.25rem]">
         <section className="learn-tv-panel rounded-[0.9rem] overflow-hidden">
-          <div className="bg-surface-high p-3.5 sm:p-5">
-            <div className="flex flex-wrap items-center gap-2 text-[12px] text-muted sm:gap-3 sm:text-sm">
-              <Link
-                className="inline-flex items-center gap-2 font-semibold text-foreground transition hover:text-primary"
-                href="/app/learn"
-              >
-                <ArrowLeft className="h-4 w-4" strokeWidth={2} />
-                Learn
-              </Link>
-              <span className="text-outline">/</span>
-              <span>{learningModule.topic}</span>
-              <span className="text-outline">/</span>
-              <span
-                className={cn(
-                  moduleStatus === "Completed"
-                    ? "learn-tv-positive"
-                    : moduleStatus === "In Progress"
-                      ? "text-primary"
-                      : "text-muted",
-                )}
-              >
-                {getDisplayStatus(moduleStatus)}
-              </span>
-            </div>
-
-            <div className="mt-3.5 sm:mt-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="space-y-2 sm:space-y-2.5">
-                  <p className="learn-tv-kicker">Module view</p>
-                  <h1 className="break-words font-heading text-[1.35rem] font-extrabold leading-[1.06] tracking-tight text-foreground sm:text-[2.15rem]">
-                    {learningModule.title}
-                  </h1>
-                  <p className="max-w-[36rem] text-[12px] leading-5 text-[#b3b7c2] sm:text-[13px] sm:leading-6">
-                    {learningModule.description}
-                  </p>
-                </div>
-
+          <div className="bg-surface-high">
+            <LearnDetailHeader
+              action={
                 <BookmarkButton
                   active={isModuleBookmarked(bookmarkState, learningModule.slug)}
                   className="shrink-0"
@@ -159,10 +96,16 @@ export function ModulePageClient({
                   }}
                   size="md"
                 />
-              </div>
-            </div>
-
-            <div className="mt-4 grid grid-cols-1 gap-3 border-y border-outline-variant/70 py-3 sm:grid-cols-3 sm:gap-4 sm:py-3.5">
+              }
+              backHref="/app/learn"
+              backLabel="Learn"
+              kicker="Module view"
+              statusLabel={getDisplayStatus(moduleStatus)}
+              summary={learningModule.description}
+              title={learningModule.title}
+              trailItems={[learningModule.topic]}
+            >
+              <div className="grid grid-cols-1 gap-3 border-y border-outline-variant/70 py-3 sm:grid-cols-3 sm:gap-4 sm:py-3.5">
               <div className="min-w-0">
                 <p className="learn-tv-kicker">Duration</p>
                 <p className="mt-1 text-[13px] font-semibold text-foreground">{learningModule.duration}</p>
@@ -186,9 +129,11 @@ export function ModulePageClient({
                   {completionPercent}% complete
                 </p>
               </div>
-            </div>
+              </div>
+            </LearnDetailHeader>
 
-            <div className="mt-4 flex flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-3">
+            <div className="px-3.5 pb-3.5 sm:px-5 sm:pb-5">
+              <div className="mt-4 flex flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-3">
               <div className="min-w-0">
                 <p className="learn-tv-kicker">{nextLesson ? "Next lesson" : "Module status"}</p>
                 <p className="mt-1.5 break-words text-[13px] font-semibold text-foreground sm:text-sm">
@@ -196,20 +141,21 @@ export function ModulePageClient({
                 </p>
               </div>
               <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
-              {nextLesson ? (
+                {nextLesson ? (
+                  <Link
+                    className="btn-primary min-h-9 w-full px-3.5 py-2 text-xs sm:min-h-10 sm:w-auto sm:px-4 sm:text-sm"
+                    href={`/app/learn/${learningModule.slug}/${nextLesson.slug}`}
+                  >
+                    {primaryActionLabel}
+                  </Link>
+                ) : null}
                 <Link
-                  className="btn-primary min-h-9 w-full px-3.5 py-2 text-xs sm:min-h-10 sm:w-auto sm:px-4 sm:text-sm"
-                  href={`/app/learn/${learningModule.slug}/${nextLesson.slug}`}
+                  className="btn-secondary min-h-9 w-full px-3.5 py-2 text-xs sm:min-h-10 sm:w-auto sm:px-4 sm:text-sm"
+                  href="/app/quiz"
                 >
-                  {primaryActionLabel}
+                  View quizzes
                 </Link>
-              ) : null}
-              <Link
-                className="btn-secondary min-h-9 w-full px-3.5 py-2 text-xs sm:min-h-10 sm:w-auto sm:px-4 sm:text-sm"
-                href="/app/quiz"
-              >
-                View quizzes
-              </Link>
+              </div>
               </div>
             </div>
           </div>
@@ -277,7 +223,7 @@ export function ModulePageClient({
         <div>
           {lessons.map((lesson) => {
             const lessonStatus = getLessonProgress(state, learningModule.slug, lesson.slug);
-            const statusLabel = formatStatusLabel(lessonStatus?.status ?? null);
+            const statusLabel = formatProgressStatus(lessonStatus?.status ?? null);
 
             return (
               <Link

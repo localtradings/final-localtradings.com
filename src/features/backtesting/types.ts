@@ -60,6 +60,75 @@ export type BacktestResolvedSelection = BacktestSelection & {
 
 export type BacktestLineField = "entry" | "stop" | "target";
 
+export type BacktestDrawingTool =
+  | "cursor"
+  | "horizontalLine"
+  | "trendLine"
+  | "ray"
+  | "extendedLine"
+  | "rectangle"
+  | "brush"
+  | "circle"
+  | "fibRetracement"
+  | "text"
+  | "triangle"
+  | "parallelChannel"
+  | "priceRange"
+  | "longShortPosition";
+
+export type BacktestDrawingHandle =
+  | "line"
+  | "start"
+  | "end"
+  | "topLeft"
+  | "topRight"
+  | "bottomLeft"
+  | "bottomRight";
+
+export type BacktestDrawingPoint = {
+  logical: number;
+  price: number;
+};
+
+export type BacktestDrawingStyle = {
+  stroke: string;
+  fill: string | null;
+  strokeWidth: number;
+};
+
+export type BacktestHorizontalLineDrawing = {
+  id: string;
+  type: "horizontalLine";
+  price: number;
+  style: BacktestDrawingStyle;
+};
+
+export type BacktestTrendLineDrawing = {
+  id: string;
+  type: "trendLine";
+  start: BacktestDrawingPoint;
+  end: BacktestDrawingPoint;
+  style: BacktestDrawingStyle;
+};
+
+export type BacktestRectangleDrawing = {
+  id: string;
+  type: "rectangle";
+  start: BacktestDrawingPoint;
+  end: BacktestDrawingPoint;
+  style: BacktestDrawingStyle;
+};
+
+export type BacktestDrawing =
+  | BacktestHorizontalLineDrawing
+  | BacktestTrendLineDrawing
+  | BacktestRectangleDrawing;
+
+export type BacktestDrawingSelectionState = {
+  drawingId: string | null;
+  handle: BacktestDrawingHandle | null;
+};
+
 export type BacktestLineValues = {
   entry: number | null;
   stop: number | null;

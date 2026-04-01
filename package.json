@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@radix-ui/react-label": "^2.1.8",
@@ -18,6 +20,12 @@
     "framer-motion": "^12.38.0",
     "gray-matter": "^4.0.3",
     "lightweight-charts": "^5.1.0",
+    "lightweight-charts-line-tools-circle": "github:difurious/lightweight-charts-line-tools-circle",
+    "lightweight-charts-line-tools-core": "github:difurious/lightweight-charts-line-tools-core",
+    "lightweight-charts-line-tools-fib-retracement": "github:difurious/lightweight-charts-line-tools-fib-retracement",
+    "lightweight-charts-line-tools-freehand": "github:difurious/lightweight-charts-line-tools-freehand",
+    "lightweight-charts-line-tools-lines": "github:difurious/lightweight-charts-line-tools-lines",
+    "lightweight-charts-line-tools-rectangle": "github:difurious/lightweight-charts-line-tools-rectangle",
     "lucide-react": "^1.5.0",
     "next": "16.2.1",
     "next-mdx-remote": "^5.0.0",
@@ -39,6 +47,7 @@
     "eslint-config-next": "16.2.1",
     "playwright": "^1.58.2",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.2"
   }
 }

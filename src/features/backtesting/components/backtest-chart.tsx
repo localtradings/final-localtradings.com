@@ -1,31 +1,80 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   CandlestickSeries,
   ColorType,
   CrosshairMode,
-  type CandlestickData,
   type IChartApi,
   type ISeriesApi,
   type ISeriesMarkersPluginApi,
-  type SeriesMarker,
   type Time,
   createChart,
   createSeriesMarkers,
 } from "lightweight-charts";
+import {
+  ToolBrushIcon,
+  ToolCircleIcon,
+  ToolClearIcon,
+  ToolCursorIcon,
+  ToolDeleteIcon,
+  ToolExtendedLineIcon,
+  ToolFibIcon,
+  ToolHorizontalLineIcon,
+  ToolLongShortIcon,
+  ToolParallelChannelIcon,
+  ToolPriceRangeIcon,
+  ToolRayIcon,
+  ToolRectangleIcon,
+  ToolTextIcon,
+  ToolTrendLineIcon,
+  ToolTriangleIcon,
+  type BacktestToolIcon,
+} from "./backtest-tool-icons";
+import {
+  createLineToolsPlugin,
+  type ILineToolsPlugin,
+  type LineToolsAfterEditEventParams,
+  type LineToolsDoubleClickEventParams,
+} from "lightweight-charts-line-tools-core/dist/lightweight-charts-line-tools-core.js";
+import registerLinesPlugin from "lightweight-charts-line-tools-lines/dist/lightweight-charts-line-tools-lines.js";
+import { LineToolRectangle } from "lightweight-charts-line-tools-rectangle/dist/lightweight-charts-line-tools-rectangle.js";
+import registerFreehandPlugin from "lightweight-charts-line-tools-freehand/dist/lightweight-charts-line-tools-freehand.js";
+import { LineToolCircle } from "lightweight-charts-line-tools-circle/dist/lightweight-charts-line-tools-circle.js";
+import registerFibRetracementPlugin from "lightweight-charts-line-tools-fib-retracement/dist/lightweight-charts-line-tools-fib-retracement.js";
+import registerTextPlugin from "../vendor/line-tools-extra/text/index";
+import registerTrianglePlugin from "../vendor/line-tools-extra/triangle/index";
+import registerParallelChannelPlugin from "../vendor/line-tools-extra/parallel-channel/index";
+import registerPriceRangePlugin from "../vendor/line-tools-extra/price-range/index";
+import registerLongShortPositionPlugin from "../vendor/line-tools-extra/long-short-position/index";
 
 import type {
   BacktestCandle,
   BacktestDirection,
+  BacktestDrawingTool,
   BacktestInstrument,
   BacktestLineField,
   BacktestLineValues,
   BacktestTradeExecution,
 } from "../types";
+import {
+  buildChartMarkers,
+  type ChartCandle,
+  type ExportedLineTool,
+  LINE_STYLES,
+  type LineCoordinateState,
+  parseExportedLineTools,
+  PRICE_SCALE_GUTTER_PX,
+  REPLAY_VIEW_BAR_COUNT,
+  roundToInstrument,
+  shiftExportedLineToolPoints,
+  stringifyExportedLineTools,
+} from "./backtest-chart-helpers";
 
 type BacktestChartProps = {
+  activeDrawingTool: BacktestDrawingTool;
   candles: BacktestCandle[];
+  drawingStorageKey: string;
   direction: BacktestDirection;
   editableFields: Record<BacktestLineField, boolean>;
   execution: BacktestTradeExecution;
@@ -33,45 +82,258 @@ type BacktestChartProps = {
   isLoading: boolean;
   lineValues: BacktestLineValues;
   onLineChange: (field: BacktestLineField, price: number) => void;
+  onToolChange: (tool: BacktestDrawingTool) => void;
   canEditLines: boolean;
   windowKey: string;
 };
 
-type ChartCandle = CandlestickData<Time>;
-type ChartMarker = SeriesMarker<Time>;
-type LineCoordinateState = Record<BacktestLineField, number | null>;
-const PRICE_SCALE_GUTTER_PX = 76;
-const REPLAY_VIEW_BAR_COUNT = 180;
+const TOOL_NAME_MAP: Record<Exclude<BacktestDrawingTool, "cursor">, string> = {
+  horizontalLine: "HorizontalLine",
+  trendLine: "TrendLine",
+  ray: "Ray",
+  extendedLine: "ExtendedLine",
+  rectangle: "Rectangle",
+  brush: "Brush",
+  circle: "Circle",
+  fibRetracement: "FibRetracement",
+  text: "Text",
+  triangle: "Triangle",
+  parallelChannel: "ParallelChannel",
+  priceRange: "PriceRange",
+  longShortPosition: "LongShortPosition",
+};
 
-const LINE_STYLES: Record<
-  BacktestLineField,
-  { color: string; title: string; pillClassName: string }
+const TOOL_POINT_REQUIREMENTS: Record<
+  Exclude<BacktestDrawingTool, "cursor">,
+  number
 > = {
-  entry: {
-    color: "#3b82f6",
-    title: "Entry",
-    pillClassName: "border-[#1d4ed8] bg-[#0f213f] text-[#dbeafe]",
+  horizontalLine: 1,
+  trendLine: 2,
+  ray: 2,
+  extendedLine: 2,
+  rectangle: 2,
+  brush: 2,
+  circle: 2,
+  fibRetracement: 2,
+  text: 1,
+  triangle: 3,
+  parallelChannel: 3,
+  priceRange: 2,
+  longShortPosition: 3,
+};
+
+const TOOL_ITEMS: Array<{
+  tool: BacktestDrawingTool;
+  icon: BacktestToolIcon;
+  label: string;
+}> = [
+  { tool: "cursor", icon: ToolCursorIcon, label: "Select" },
+  { tool: "horizontalLine", icon: ToolHorizontalLineIcon, label: "Horizontal line" },
+  { tool: "trendLine", icon: ToolTrendLineIcon, label: "Trend line" },
+  { tool: "ray", icon: ToolRayIcon, label: "Ray" },
+  { tool: "extendedLine", icon: ToolExtendedLineIcon, label: "Extended line" },
+  { tool: "rectangle", icon: ToolRectangleIcon, label: "Rectangle zone" },
+  { tool: "brush", icon: ToolBrushIcon, label: "Brush" },
+  { tool: "circle", icon: ToolCircleIcon, label: "Circle" },
+  { tool: "fibRetracement", icon: ToolFibIcon, label: "Fib retracement" },
+  { tool: "text", icon: ToolTextIcon, label: "Text note" },
+  { tool: "triangle", icon: ToolTriangleIcon, label: "Triangle" },
+  { tool: "parallelChannel", icon: ToolParallelChannelIcon, label: "Parallel channel" },
+  { tool: "priceRange", icon: ToolPriceRangeIcon, label: "Price range" },
+  { tool: "longShortPosition", icon: ToolLongShortIcon, label: "Long/short position" },
+];
+
+const TOOL_SHORTCUTS: Partial<Record<BacktestDrawingTool, string>> = {
+  cursor: "Esc",
+  horizontalLine: "Alt+H",
+  trendLine: "Alt+T",
+  ray: "Alt+R",
+  extendedLine: "Alt+E",
+  rectangle: "Alt+Shift+R",
+  brush: "Alt+B",
+  circle: "Alt+C",
+  fibRetracement: "Alt+F",
+  text: "Alt+X",
+  triangle: "Alt+Shift+T",
+  parallelChannel: "Alt+Shift+P",
+  priceRange: "Alt+P",
+  longShortPosition: "Alt+L",
+};
+
+const LINE_DRAG_ACTIVATION_THRESHOLD_PX = 4;
+const LINE_HIT_AREA_HEIGHT_PX = 24;
+
+const TOOL_OPTIONS: Partial<
+  Record<Exclude<BacktestDrawingTool, "cursor">, Record<string, unknown>>
+> = {
+  horizontalLine: {
+    line: { color: "#60a5fa", width: 2 },
   },
-  stop: {
-    color: "#ef4444",
-    title: "Stop",
-    pillClassName: "border-[#b91c1c] bg-[#3a1215] text-[#fee2e2]",
+  trendLine: {
+    line: { color: "#38bdf8", width: 2 },
   },
-  target: {
-    color: "#22c55e",
-    title: "Target",
-    pillClassName: "border-[#15803d] bg-[#102d1a] text-[#dcfce7]",
+  ray: {
+    line: { color: "#22d3ee", width: 2 },
+  },
+  extendedLine: {
+    line: { color: "#67e8f9", width: 2 },
+  },
+  rectangle: {
+    line: { color: "#f59e0b", width: 2 },
+    background: { color: "rgba(245, 158, 11, 0.12)" },
+  },
+  brush: {
+    line: { color: "#c084fc", width: 2 },
+  },
+  circle: {
+    line: { color: "#f97316", width: 2 },
+    background: { color: "rgba(249, 115, 22, 0.1)" },
+  },
+  fibRetracement: {
+    showPriceAxisLabels: false,
+    showTimeAxisLabels: false,
+    levels: [
+      { color: "#94a3b8", coeff: 0, opacity: 0 },
+      { color: "#ef4444", coeff: 0.236, opacity: 0.08 },
+      { color: "#f59e0b", coeff: 0.382, opacity: 0.08 },
+      { color: "#facc15", coeff: 0.5, opacity: 0.08 },
+      { color: "#22c55e", coeff: 0.618, opacity: 0.08 },
+      { color: "#38bdf8", coeff: 0.786, opacity: 0.08 },
+      { color: "#94a3b8", coeff: 1, opacity: 0 },
+    ],
+  },
+  text: {
+    text: {
+      value: "Note",
+      font: {
+        color: "#e2e8f0",
+        size: 12,
+        family: "sans-serif",
+      },
+      box: {
+        background: {
+          color: "rgba(11, 17, 23, 0.92)",
+          inflation: { x: 6, y: 4 },
+        },
+        border: {
+          color: "rgba(96, 165, 250, 0.45)",
+          width: 1,
+          radius: 6,
+        },
+      },
+    },
+  },
+  triangle: {
+    showPriceAxisLabels: false,
+    showTimeAxisLabels: false,
+    triangle: {
+      background: { color: "rgba(245, 158, 11, 0.14)" },
+      border: { color: "#f59e0b", width: 2 },
+    },
+  },
+  parallelChannel: {
+    channelLine: { color: "#38bdf8", width: 2 },
+    middleLine: { color: "rgba(56, 189, 248, 0.72)", width: 1 },
+    background: { color: "rgba(56, 189, 248, 0.12)" },
+    showMiddleLine: true,
+    showPriceAxisLabels: false,
+    showTimeAxisLabels: false,
+  },
+  priceRange: {
+    showPriceAxisLabels: false,
+    showTimeAxisLabels: false,
+    text: {
+      value: "",
+      font: { color: "#fde68a", size: 11, family: "sans-serif" },
+    },
+    priceRange: {
+      rectangle: {
+        background: { color: "rgba(168, 85, 247, 0.12)" },
+        border: { color: "#a855f7", width: 1.5, radius: 0 },
+      },
+      verticalLine: { color: "#a855f7", width: 1 },
+      horizontalLine: { color: "#a855f7", width: 1 },
+      showCenterHorizontalLine: true,
+      showCenterVerticalLine: true,
+      showTopPrice: true,
+      showBottomPrice: true,
+    },
+  },
+  longShortPosition: {
+    showPriceAxisLabels: false,
+    showTimeAxisLabels: false,
+    showAutoText: true,
+    entryStopLossRectangle: {
+      background: { color: "rgba(239, 68, 68, 0.18)" },
+      border: { color: "#ef4444", width: 1 },
+    },
+    entryPtRectangle: {
+      background: { color: "rgba(34, 197, 94, 0.18)" },
+      border: { color: "#22c55e", width: 1 },
+    },
+    entryStopLossText: {
+      font: { color: "#fecaca", size: 11, family: "sans-serif" },
+    },
+    entryPtText: {
+      font: { color: "#bbf7d0", size: 11, family: "sans-serif" },
+    },
   },
 };
 
-function roundToInstrument(price: number, instrument: BacktestInstrument) {
-  const snapped = Math.round(price / instrument.tickSize) * instrument.tickSize;
-  const factor = 10 ** instrument.pricePrecision;
-  return Math.round(snapped * factor) / factor;
+type LineToolsPluginRuntime = ILineToolsPlugin & {
+  _interactionManager?: {
+    deselectAllTools: () => void;
+  };
+  addLineTool: (type: string, points?: unknown[], options?: unknown) => string;
+  createOrUpdateLineTool: (
+    type: string,
+    points: unknown[],
+    options: unknown,
+    id: string,
+  ) => void;
+  registerLineTool: (
+    type: string,
+    toolClass: new (...args: unknown[]) => unknown,
+  ) => void;
+};
+
+function getDrawingToolHelpText(tool: BacktestDrawingTool) {
+  switch (tool) {
+    case "cursor":
+      return "Select tools, pan the chart, drag trade lines, or use keyboard shortcuts.";
+    case "horizontalLine":
+      return "Click the chart to place a horizontal line.";
+    case "trendLine":
+      return "Click twice to place a trend line.";
+    case "ray":
+      return "Click twice to place a ray.";
+    case "extendedLine":
+      return "Click twice to place an extended line.";
+    case "rectangle":
+      return "Click twice to place a rectangle zone.";
+    case "brush":
+      return "Click and drag to draw a brush stroke.";
+    case "circle":
+      return "Click twice to place a circle.";
+    case "fibRetracement":
+      return "Click twice to place a fib retracement.";
+    case "text":
+      return "Click once to place a text note. Double-click to edit it.";
+    case "triangle":
+      return "Click three times to place a triangle.";
+    case "parallelChannel":
+      return "Click three times to place a parallel channel.";
+    case "priceRange":
+      return "Click twice to place a price range tool.";
+    case "longShortPosition":
+      return "Click twice to place a long/short position tool.";
+  }
 }
 
 export function BacktestChart({
+  activeDrawingTool,
   candles,
+  drawingStorageKey,
   direction,
   editableFields,
   execution,
@@ -79,6 +341,7 @@ export function BacktestChart({
   isLoading,
   lineValues,
   onLineChange,
+  onToolChange,
   canEditLines,
   windowKey,
 }: BacktestChartProps) {
@@ -92,28 +355,619 @@ export function BacktestChart({
   const lastWindowKeyRef = useRef<string | null>(null);
   const dragFieldRef = useRef<BacktestLineField | null>(null);
   const activePointerIdRef = useRef<number | null>(null);
+  const dragStartClientYRef = useRef<number | null>(null);
+  const dragPointerOffsetRef = useRef(0);
+  const dragActivatedRef = useRef(false);
+  const lineToolsRef = useRef<ILineToolsPlugin | null>(null);
+  const drawingHistoryRef = useRef<string[]>(["[]"]);
+  const drawingHistoryIndexRef = useRef(0);
+  const drawingClipboardRef = useRef<ExportedLineTool[] | null>(null);
+  const isApplyingSnapshotRef = useRef(false);
+  const pendingToolIdRef = useRef<string | null>(null);
+  const pendingToolTypeRef =
+    useRef<Exclude<BacktestDrawingTool, "cursor"> | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [lineCoordinates, setLineCoordinates] = useState<LineCoordinateState>({
     entry: null,
     stop: null,
     target: null,
   });
+  const [hasLineTools, setHasLineTools] = useState(false);
+  const [hasSelectedLineTools, setHasSelectedLineTools] = useState(false);
+
+  const chartCandles = useMemo<ChartCandle[]>(
+    () => candles.map((candle) => ({ ...candle, time: candle.time as Time })),
+    [candles],
+  );
+
+  const markers = useMemo(
+    () => buildChartMarkers({ candles: chartCandles, direction, execution }),
+    [chartCandles, direction, execution],
+  );
+
+  const syncLineToolsState = useCallback((plugin = lineToolsRef.current) => {
+    if (!plugin) {
+      setHasLineTools(false);
+      setHasSelectedLineTools(false);
+      return;
+    }
+
+    try {
+      const exported = JSON.parse(plugin.exportLineTools()) as unknown[];
+      const selected = JSON.parse(plugin.getSelectedLineTools()) as unknown[];
+      setHasLineTools(exported.length > 0);
+      setHasSelectedLineTools(selected.length > 0);
+    } catch {
+      setHasLineTools(false);
+      setHasSelectedLineTools(false);
+    }
+  }, []);
+
+  const getLineToolsSnapshot = useCallback((plugin = lineToolsRef.current) => {
+    if (!plugin) {
+      return "[]";
+    }
+
+    try {
+      return plugin.exportLineTools();
+    } catch {
+      return "[]";
+    }
+  }, []);
+
+  const persistLineToolsSnapshot = useCallback(
+    (snapshot: string) => {
+      if (typeof window === "undefined") {
+        return;
+      }
+
+      if (snapshot === "[]") {
+        window.localStorage.removeItem(drawingStorageKey);
+        return;
+      }
+
+      window.localStorage.setItem(drawingStorageKey, snapshot);
+    },
+    [drawingStorageKey],
+  );
+
+  const resetDrawingHistory = useCallback((snapshot: string) => {
+    drawingHistoryRef.current = [snapshot];
+    drawingHistoryIndexRef.current = 0;
+  }, []);
+
+  const commitLineToolsSnapshot = useCallback(
+    (plugin = lineToolsRef.current) => {
+      if (!plugin || isApplyingSnapshotRef.current) {
+        return;
+      }
+
+      const snapshot = getLineToolsSnapshot(plugin);
+      persistLineToolsSnapshot(snapshot);
+
+      const history = drawingHistoryRef.current;
+      const currentIndex = drawingHistoryIndexRef.current;
+      if (history[currentIndex] === snapshot) {
+        syncLineToolsState(plugin);
+        return;
+      }
+
+      const nextHistory = history.slice(0, currentIndex + 1);
+      nextHistory.push(snapshot);
+      drawingHistoryRef.current = nextHistory;
+      drawingHistoryIndexRef.current = nextHistory.length - 1;
+      syncLineToolsState(plugin);
+    },
+    [getLineToolsSnapshot, persistLineToolsSnapshot, syncLineToolsState],
+  );
+
+  const deselectAllLineTools = useCallback((plugin = lineToolsRef.current) => {
+    const runtimePlugin = plugin as LineToolsPluginRuntime | null;
+    runtimePlugin?._interactionManager?.deselectAllTools();
+    if (plugin) {
+      syncLineToolsState(plugin);
+    }
+  }, [syncLineToolsState]);
+
+  const applyLineToolsSnapshot = useCallback(
+    (snapshot: string, { updateHistory = false }: { updateHistory?: boolean } = {}) => {
+      const plugin = lineToolsRef.current;
+      if (!plugin) {
+        return;
+      }
+
+      const safeSnapshot = stringifyExportedLineTools(parseExportedLineTools(snapshot));
+      isApplyingSnapshotRef.current = true;
+      plugin.removeAllLineTools();
+      if (safeSnapshot !== "[]") {
+        plugin.importLineTools(safeSnapshot);
+      }
+      deselectAllLineTools(plugin);
+      syncLineToolsState(plugin);
+      persistLineToolsSnapshot(safeSnapshot);
+      if (updateHistory) {
+        resetDrawingHistory(safeSnapshot);
+      }
+      window.requestAnimationFrame(() => {
+        isApplyingSnapshotRef.current = false;
+      });
+    },
+    [
+      deselectAllLineTools,
+      persistLineToolsSnapshot,
+      resetDrawingHistory,
+      syncLineToolsState,
+    ],
+  );
+
+  const loadPersistedLineToolsSnapshot = useCallback(() => {
+    if (typeof window === "undefined") {
+      return "[]";
+    }
+
+    return stringifyExportedLineTools(
+      parseExportedLineTools(window.localStorage.getItem(drawingStorageKey)),
+    );
+  }, [drawingStorageKey]);
+
+  const getTimeStep = useCallback(() => {
+    if (chartCandles.length < 2) {
+      return 60;
+    }
+
+    const first = Number(chartCandles[0]?.time ?? 0);
+    const second = Number(chartCandles[1]?.time ?? first + 60);
+    const delta = Math.abs(second - first);
+    return Number.isFinite(delta) && delta > 0 ? delta : 60;
+  }, [chartCandles]);
+
+  const cancelPendingTool = useCallback(() => {
+    const plugin = lineToolsRef.current;
+    const pendingId = pendingToolIdRef.current;
+    if (!plugin || !pendingId) {
+      pendingToolIdRef.current = null;
+      pendingToolTypeRef.current = null;
+      return;
+    }
+
+    plugin.removeLineToolsById([pendingId]);
+    pendingToolIdRef.current = null;
+    pendingToolTypeRef.current = null;
+    syncLineToolsState(plugin);
+  }, [syncLineToolsState]);
+
+  const finalizePendingTool = useCallback((plugin = lineToolsRef.current) => {
+    if (!plugin || !pendingToolIdRef.current || !pendingToolTypeRef.current) {
+      return false;
+    }
+
+    try {
+      const exported = JSON.parse(
+        plugin.getLineToolByID(pendingToolIdRef.current),
+      ) as Array<{ points?: unknown[] }>;
+      const tool = exported[0];
+      const points = Array.isArray(tool?.points) ? tool.points : [];
+      const requiredPoints =
+        TOOL_POINT_REQUIREMENTS[pendingToolTypeRef.current];
+
+      if (points.length < requiredPoints) {
+        return false;
+      }
+
+      if (pendingToolTypeRef.current === "fibRetracement") {
+        deselectAllLineTools(plugin);
+      }
+
+      pendingToolIdRef.current = null;
+      pendingToolTypeRef.current = null;
+      onToolChange("cursor");
+      syncLineToolsState(plugin);
+      return true;
+    } catch {
+      return false;
+    }
+  }, [deselectAllLineTools, onToolChange, syncLineToolsState]);
+
+  const deleteSelectedTool = useCallback(() => {
+    const plugin = lineToolsRef.current;
+    if (!plugin) {
+      return;
+    }
+
+    plugin.removeSelectedLineTools();
+    pendingToolIdRef.current = null;
+    pendingToolTypeRef.current = null;
+    window.requestAnimationFrame(() => commitLineToolsSnapshot(plugin));
+  }, [commitLineToolsSnapshot]);
+
+  const clearAllTools = useCallback(() => {
+    const plugin = lineToolsRef.current;
+    if (!plugin) {
+      return;
+    }
+
+    plugin.removeAllLineTools();
+    pendingToolIdRef.current = null;
+    pendingToolTypeRef.current = null;
+    onToolChange("cursor");
+    window.requestAnimationFrame(() => commitLineToolsSnapshot(plugin));
+  }, [commitLineToolsSnapshot, onToolChange]);
+
+  const startTool = useCallback(
+    (tool: Exclude<BacktestDrawingTool, "cursor">) => {
+      const plugin = lineToolsRef.current;
+      if (!plugin) {
+        return;
+      }
+
+      cancelPendingTool();
+      const id = (plugin as LineToolsPluginRuntime).addLineTool(
+        TOOL_NAME_MAP[tool],
+        undefined,
+        TOOL_OPTIONS[tool],
+      );
+      pendingToolIdRef.current = id || null;
+      pendingToolTypeRef.current = id ? tool : null;
+      onToolChange(tool);
+      window.requestAnimationFrame(() => syncLineToolsState(plugin));
+    },
+    [cancelPendingTool, onToolChange, syncLineToolsState],
+  );
+
+  const activateCursor = useCallback(() => {
+    cancelPendingTool();
+    deselectAllLineTools();
+    onToolChange("cursor");
+  }, [cancelPendingTool, deselectAllLineTools, onToolChange]);
+
+  const promptForTextToolValue = useCallback(
+    (
+      selectedLineTool: {
+        id: string;
+        toolType: string;
+        points: unknown[];
+        options?: Record<string, unknown>;
+      },
+      promptLabel: string,
+      plugin = lineToolsRef.current,
+    ) => {
+      if (!plugin || selectedLineTool.toolType !== "Text") {
+        return false;
+      }
+
+      const currentText =
+        typeof selectedLineTool.options?.text === "object" &&
+        selectedLineTool.options?.text !== null &&
+        typeof (
+          selectedLineTool.options.text as { value?: unknown }
+        ).value === "string"
+          ? ((selectedLineTool.options.text as { value: string }).value ?? "")
+          : "";
+
+      const nextText = window.prompt(promptLabel, currentText);
+      if (nextText === null || nextText === currentText) {
+        return false;
+      }
+
+      const applied = plugin.applyLineToolOptions({
+        ...selectedLineTool,
+        options: {
+          ...(selectedLineTool.options ?? {}),
+          text: {
+            ...((selectedLineTool.options?.text as Record<string, unknown> | undefined) ?? {}),
+            value: nextText.trim() || "Note",
+          },
+        },
+      } as never);
+
+      if (applied) {
+        window.requestAnimationFrame(() => commitLineToolsSnapshot(plugin));
+      }
+
+      return applied;
+    },
+    [commitLineToolsSnapshot],
+  );
+
+  const undoLineTools = useCallback(() => {
+    const plugin = lineToolsRef.current;
+    if (!plugin) {
+      return;
+    }
+
+    const currentIndex = drawingHistoryIndexRef.current;
+    if (currentIndex <= 0) {
+      return;
+    }
+
+    const nextIndex = currentIndex - 1;
+    drawingHistoryIndexRef.current = nextIndex;
+    pendingToolIdRef.current = null;
+    pendingToolTypeRef.current = null;
+    onToolChange("cursor");
+    applyLineToolsSnapshot(drawingHistoryRef.current[nextIndex] ?? "[]");
+  }, [applyLineToolsSnapshot, onToolChange]);
+
+  const redoLineTools = useCallback(() => {
+    const plugin = lineToolsRef.current;
+    if (!plugin) {
+      return;
+    }
+
+    const history = drawingHistoryRef.current;
+    const currentIndex = drawingHistoryIndexRef.current;
+    if (currentIndex >= history.length - 1) {
+      return;
+    }
+
+    const nextIndex = currentIndex + 1;
+    drawingHistoryIndexRef.current = nextIndex;
+    pendingToolIdRef.current = null;
+    pendingToolTypeRef.current = null;
+    onToolChange("cursor");
+    applyLineToolsSnapshot(history[nextIndex] ?? "[]");
+  }, [applyLineToolsSnapshot, onToolChange]);
+
+  const copySelectedLineTools = useCallback(() => {
+    const plugin = lineToolsRef.current;
+    if (!plugin) {
+      return false;
+    }
+
+    const selectedTools = parseExportedLineTools(plugin.getSelectedLineTools());
+    if (selectedTools.length === 0) {
+      return false;
+    }
+
+    drawingClipboardRef.current = parseExportedLineTools(
+      stringifyExportedLineTools(selectedTools),
+    );
+    return true;
+  }, []);
+
+  const pasteCopiedLineTools = useCallback(() => {
+    const plugin = lineToolsRef.current as LineToolsPluginRuntime | null;
+    const clipboard = drawingClipboardRef.current;
+    if (!plugin || !clipboard || clipboard.length === 0) {
+      return false;
+    }
+
+    const pasted = shiftExportedLineToolPoints(clipboard, {
+      timestampDelta: getTimeStep(),
+      priceDelta: instrument.tickSize * 2,
+    });
+
+    for (const tool of pasted) {
+      if (!tool.toolType || !Array.isArray(tool.points)) {
+        continue;
+      }
+
+      plugin.addLineTool(tool.toolType, tool.points, tool.options);
+    }
+
+    pendingToolIdRef.current = null;
+    pendingToolTypeRef.current = null;
+    onToolChange("cursor");
+    window.requestAnimationFrame(() => commitLineToolsSnapshot(plugin));
+    return true;
+  }, [commitLineToolsSnapshot, getTimeStep, instrument.tickSize, onToolChange]);
+
+  const nudgeSelectedLineTools = useCallback(
+    (direction: "left" | "right" | "up" | "down", multiplier = 1) => {
+      const plugin = lineToolsRef.current as LineToolsPluginRuntime | null;
+      if (!plugin) {
+        return false;
+      }
+
+      const selectedTools = parseExportedLineTools(plugin.getSelectedLineTools());
+      if (selectedTools.length === 0) {
+        return false;
+      }
+
+      const timestampDelta =
+        direction === "left"
+          ? -getTimeStep() * multiplier
+          : direction === "right"
+            ? getTimeStep() * multiplier
+            : 0;
+      const priceDelta =
+        direction === "up"
+          ? instrument.tickSize * multiplier
+          : direction === "down"
+            ? -instrument.tickSize * multiplier
+            : 0;
+      const shifted = shiftExportedLineToolPoints(selectedTools, {
+        timestampDelta,
+        priceDelta,
+      });
+
+      for (const tool of shifted) {
+        if (!tool.id || !tool.toolType || !Array.isArray(tool.points)) {
+          continue;
+        }
+
+        plugin.createOrUpdateLineTool(
+          tool.toolType,
+          tool.points,
+          tool.options ?? {},
+          tool.id,
+        );
+      }
+
+      window.requestAnimationFrame(() => commitLineToolsSnapshot(plugin));
+      return true;
+    },
+    [commitLineToolsSnapshot, getTimeStep, instrument.tickSize],
+  );
+
+  const handleShortcutKeyDown = useCallback(
+    (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      const isEditableTarget =
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target instanceof HTMLSelectElement ||
+        target?.isContentEditable === true ||
+        target?.closest?.("[contenteditable='true']") !== null;
+      const key = event.key.toLowerCase();
+      const hasSelectedDrawings = hasSelectedLineTools;
+      const modKey = event.metaKey || event.ctrlKey;
+
+      if (event.key === "Escape") {
+        event.preventDefault();
+        if (pendingToolIdRef.current || activeDrawingTool !== "cursor") {
+          activateCursor();
+        } else {
+          deselectAllLineTools();
+        }
+        return;
+      }
+
+      if (isEditableTarget) {
+        return;
+      }
+
+      if ((event.key === "Delete" || event.key === "Backspace") && hasSelectedDrawings) {
+        event.preventDefault();
+        deleteSelectedTool();
+        return;
+      }
+
+      if (modKey && !event.altKey && key === "z") {
+        event.preventDefault();
+        if (event.shiftKey) {
+          redoLineTools();
+        } else {
+          undoLineTools();
+        }
+        return;
+      }
+
+      if (event.ctrlKey && !event.metaKey && !event.altKey && key === "y") {
+        event.preventDefault();
+        redoLineTools();
+        return;
+      }
+
+      if (modKey && !event.altKey && key === "c") {
+        if (copySelectedLineTools()) {
+          event.preventDefault();
+        }
+        return;
+      }
+
+      if (modKey && !event.altKey && key === "v") {
+        if (pasteCopiedLineTools()) {
+          event.preventDefault();
+        }
+        return;
+      }
+
+      if (hasSelectedDrawings && key.startsWith("arrow")) {
+        const multiplier = event.shiftKey ? 5 : 1;
+        const moved =
+          key === "arrowleft"
+            ? nudgeSelectedLineTools("left", multiplier)
+            : key === "arrowright"
+              ? nudgeSelectedLineTools("right", multiplier)
+              : key === "arrowup"
+                ? nudgeSelectedLineTools("up", multiplier)
+                : key === "arrowdown"
+                  ? nudgeSelectedLineTools("down", multiplier)
+                  : false;
+
+        if (moved) {
+          event.preventDefault();
+        }
+        return;
+      }
+
+      if (!event.altKey || modKey) {
+        return;
+      }
+
+      switch (key) {
+        case "h":
+          event.preventDefault();
+          startTool("horizontalLine");
+          return;
+        case "t":
+          event.preventDefault();
+          if (event.shiftKey) {
+            startTool("triangle");
+          } else {
+            startTool("trendLine");
+          }
+          return;
+        case "r":
+          event.preventDefault();
+          if (event.shiftKey) {
+            startTool("rectangle");
+          } else {
+            startTool("ray");
+          }
+          return;
+        case "e":
+          event.preventDefault();
+          startTool("extendedLine");
+          return;
+        case "b":
+          event.preventDefault();
+          startTool("brush");
+          return;
+        case "c":
+          event.preventDefault();
+          startTool("circle");
+          return;
+        case "f":
+          event.preventDefault();
+          startTool("fibRetracement");
+          return;
+        case "x":
+          event.preventDefault();
+          startTool("text");
+          return;
+        case "l":
+          event.preventDefault();
+          startTool("longShortPosition");
+          return;
+        case "p":
+          event.preventDefault();
+          if (event.shiftKey) {
+            startTool("parallelChannel");
+          } else {
+            startTool("priceRange");
+          }
+          return;
+        default:
+          return;
+      }
+    },
+    [
+      activateCursor,
+      activeDrawingTool,
+      copySelectedLineTools,
+      deleteSelectedTool,
+      deselectAllLineTools,
+      hasSelectedLineTools,
+      nudgeSelectedLineTools,
+      pasteCopiedLineTools,
+      redoLineTools,
+      startTool,
+      undoLineTools,
+    ],
+  );
 
   useEffect(() => {
     if (typeof document === "undefined") {
       return;
     }
 
-    document.body.style.cursor = isDragging ? "ns-resize" : "";
+    document.body.style.cursor = isDragging ? "grabbing" : "";
     return () => {
       document.body.style.cursor = "";
     };
   }, [isDragging]);
-
-  const chartCandles = useMemo<ChartCandle[]>(
-    () => candles.map((candle) => ({ ...candle, time: candle.time as Time })),
-    [candles],
-  );
 
   useEffect(() => {
     if (!containerRef.current) {
@@ -182,9 +1036,23 @@ export function BacktestChart({
       lastValueVisible: true,
     });
 
+    const lineTools = createLineToolsPlugin(chart, series) as LineToolsPluginRuntime;
+    registerLinesPlugin(lineTools);
+    registerFreehandPlugin(lineTools);
+    registerFibRetracementPlugin(lineTools);
+    registerTextPlugin(lineTools);
+    registerTrianglePlugin(lineTools);
+    registerParallelChannelPlugin(lineTools);
+    registerPriceRangePlugin(lineTools);
+    registerLongShortPositionPlugin(lineTools);
+    lineTools.registerLineTool("Rectangle", LineToolRectangle);
+    lineTools.registerLineTool("Circle", LineToolCircle);
+
     chartRef.current = chart;
     seriesRef.current = series;
     markersRef.current = createSeriesMarkers(series, []);
+    lineToolsRef.current = lineTools;
+    syncLineToolsState(lineTools);
 
     const handleVisibleRangeChange = () => {
       if (!applyingRangeRef.current && lastWindowKeyRef.current) {
@@ -192,7 +1060,71 @@ export function BacktestChart({
       }
     };
 
+    const handleAfterEdit = (params: LineToolsAfterEditEventParams) => {
+      const shouldPromptForText =
+        params.stage === "lineToolFinished" &&
+        params.selectedLineTool.toolType === "Text";
+
+      if (
+        params.stage === "lineToolFinished" ||
+        params.stage === "pathFinished"
+      ) {
+        if (pendingToolTypeRef.current === "fibRetracement") {
+          deselectAllLineTools(lineTools);
+        }
+        pendingToolIdRef.current = null;
+        pendingToolTypeRef.current = null;
+        onToolChange("cursor");
+      }
+
+      window.requestAnimationFrame(() => {
+        finalizePendingTool(lineTools);
+        if (shouldPromptForText) {
+          promptForTextToolValue(
+            params.selectedLineTool as {
+              id: string;
+              toolType: string;
+              points: unknown[];
+              options?: Record<string, unknown>;
+            },
+            "Text note",
+            lineTools,
+          );
+        }
+        commitLineToolsSnapshot(lineTools);
+      });
+    };
+
+    const handleDoubleClick = (params: LineToolsDoubleClickEventParams) => {
+      if (params.selectedLineTool.toolType !== "Text") {
+        return;
+      }
+
+      promptForTextToolValue(
+        params.selectedLineTool as {
+          id: string;
+          toolType: string;
+          points: unknown[];
+          options?: Record<string, unknown>;
+        },
+        "Edit text note",
+        lineTools,
+      );
+    };
+
+    const handleGlobalPointerUp = () => {
+      window.requestAnimationFrame(() => {
+        if (!finalizePendingTool(lineTools)) {
+          window.requestAnimationFrame(() => finalizePendingTool(lineTools));
+        }
+        commitLineToolsSnapshot(lineTools);
+      });
+    };
+
     chart.timeScale().subscribeVisibleLogicalRangeChange(handleVisibleRangeChange);
+    lineTools.subscribeLineToolsDoubleClick(handleDoubleClick);
+    lineTools.subscribeLineToolsAfterEdit(handleAfterEdit);
+    window.addEventListener("pointerup", handleGlobalPointerUp, true);
 
     const resizeObserver = new ResizeObserver((entries) => {
       const entry = entries[0];
@@ -214,42 +1146,55 @@ export function BacktestChart({
 
     return () => {
       resizeObserver.disconnect();
+      window.removeEventListener("pointerup", handleGlobalPointerUp, true);
+      lineTools.unsubscribeLineToolsDoubleClick(handleDoubleClick);
+      lineTools.unsubscribeLineToolsAfterEdit(handleAfterEdit);
       chart.timeScale().unsubscribeVisibleLogicalRangeChange(handleVisibleRangeChange);
       if (resizeFrameRef.current !== null) {
         window.cancelAnimationFrame(resizeFrameRef.current);
       }
+      pendingToolIdRef.current = null;
+      pendingToolTypeRef.current = null;
+      setHasLineTools(false);
+      setHasSelectedLineTools(false);
+      lineToolsRef.current = null;
       markersRef.current = null;
       seriesRef.current = null;
       chart.remove();
       chartRef.current = null;
     };
-  }, [instrument.pricePrecision]);
+  }, [
+    commitLineToolsSnapshot,
+    deselectAllLineTools,
+    finalizePendingTool,
+    instrument.pricePrecision,
+    onToolChange,
+    promptForTextToolValue,
+    syncLineToolsState,
+  ]);
 
-  const markers = useMemo(() => {
-    const nextMarkers: ChartMarker[] = [];
-
-    if (execution.openedAtIndex !== null && chartCandles[execution.openedAtIndex]) {
-      nextMarkers.push({
-        time: chartCandles[execution.openedAtIndex].time,
-        position: direction === "Long" ? "belowBar" : "aboveBar",
-        color: "#3b82f6",
-        shape: direction === "Long" ? "arrowUp" : "arrowDown",
-        text: direction === "Long" ? "Buy filled" : "Sell filled",
-      });
+  useEffect(() => {
+    if (!lineToolsRef.current) {
+      return;
     }
 
-    if (execution.closedAtIndex !== null && chartCandles[execution.closedAtIndex]) {
-      nextMarkers.push({
-        time: chartCandles[execution.closedAtIndex].time,
-        position: direction === "Long" ? "aboveBar" : "belowBar",
-        color: execution.status === "target_hit" ? "#22c55e" : "#ef4444",
-        shape: "circle",
-        text: execution.status.replace("_", " "),
-      });
-    }
+    pendingToolIdRef.current = null;
+    pendingToolTypeRef.current = null;
+    onToolChange("cursor");
+    applyLineToolsSnapshot(loadPersistedLineToolsSnapshot(), { updateHistory: true });
+  }, [
+    applyLineToolsSnapshot,
+    drawingStorageKey,
+    loadPersistedLineToolsSnapshot,
+    onToolChange,
+  ]);
 
-    return nextMarkers;
-  }, [chartCandles, direction, execution.closedAtIndex, execution.openedAtIndex, execution.status]);
+  useEffect(() => {
+    window.addEventListener("keydown", handleShortcutKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleShortcutKeyDown);
+    };
+  }, [handleShortcutKeyDown]);
 
   useEffect(() => {
     if (!seriesRef.current || !chartRef.current) {
@@ -272,6 +1217,9 @@ export function BacktestChart({
     if (isNewWindow) {
       lastWindowKeyRef.current = windowKey;
       followReplayRef.current = true;
+      pendingToolIdRef.current = null;
+      pendingToolTypeRef.current = null;
+      onToolChange("cursor");
     }
 
     if (isNewWindow || followReplayRef.current) {
@@ -284,7 +1232,7 @@ export function BacktestChart({
         applyingRangeRef.current = false;
       });
     }
-  }, [chartCandles, markers, windowKey]);
+  }, [chartCandles, markers, onToolChange, syncLineToolsState, windowKey]);
 
   useEffect(() => {
     let frame = 0;
@@ -340,7 +1288,8 @@ export function BacktestChart({
     }
 
     const rect = container.getBoundingClientRect();
-    const y = Math.min(Math.max(clientY - rect.top, 0), rect.height);
+    const adjustedClientY = clientY - dragPointerOffsetRef.current;
+    const y = Math.min(Math.max(adjustedClientY - rect.top, 0), rect.height);
     const price = series.coordinateToPrice(y);
 
     if (typeof price !== "number") {
@@ -353,11 +1302,15 @@ export function BacktestChart({
   function stopDragging() {
     dragFieldRef.current = null;
     activePointerIdRef.current = null;
+    dragStartClientYRef.current = null;
+    dragPointerOffsetRef.current = 0;
+    dragActivatedRef.current = false;
     setIsDragging(false);
   }
 
   function beginDragging(
     field: BacktestLineField,
+    coordinate: number,
     clientY: number,
     pointerId: number,
     target: HTMLDivElement,
@@ -368,21 +1321,114 @@ export function BacktestChart({
 
     dragFieldRef.current = field;
     activePointerIdRef.current = pointerId;
-    setIsDragging(true);
+    dragStartClientYRef.current = clientY;
+    dragPointerOffsetRef.current =
+      clientY - (containerRef.current?.getBoundingClientRect().top ?? 0) - coordinate;
+    dragActivatedRef.current = false;
     target.setPointerCapture(pointerId);
-    updateDraggedLine(clientY);
   }
 
   return (
     <div className="relative flex h-full min-h-0 flex-col rounded-[var(--radius-xl)] bg-[linear-gradient(180deg,#080c11_0%,#0a0f15_100%)] p-1.5 sm:p-2">
       <div className="absolute inset-0 opacity-[0.08] [background-image:linear-gradient(rgba(203,213,225,0.07)_1px,transparent_1px),linear-gradient(90deg,rgba(203,213,225,0.07)_1px,transparent_1px)] [background-size:28px_18px]" />
-      <div className="relative h-full min-h-[20rem] overflow-hidden rounded-[var(--radius-lg)] bg-[#060a0f]">
-        <div className="h-full w-full" ref={containerRef} />
+      <div className="relative flex h-full min-h-[20rem] gap-2.5">
+        <aside className="relative z-[100] flex h-full w-[3.4rem] shrink-0 flex-col border border-white/6 bg-[#070b10]">
+          <div className="flex-1 overflow-y-auto px-1.5 py-1.5">
+            <div className="flex flex-col gap-0.5">
+              {TOOL_ITEMS.map((item, index) => {
+                const Icon = item.icon;
+                const active = activeDrawingTool === item.tool;
+                const needsDivider =
+                  item.tool === "cursor" ||
+                  item.tool === "extendedLine" ||
+                  item.tool === "parallelChannel" ||
+                  item.tool === "longShortPosition";
 
-        <div
-          className="pointer-events-none absolute inset-y-0 left-0"
-          style={{ right: `${PRICE_SCALE_GUTTER_PX}px` }}
-        >
+                return (
+                  <div className="relative" key={item.tool}>
+                    <button
+                      aria-label={item.label}
+                      className={`group relative flex h-9 w-full items-center justify-center text-slate-400 transition ${
+                        active
+                          ? "bg-[#11161d] text-slate-100"
+                          : "hover:bg-white/[0.025] hover:text-slate-200"
+                      }`}
+                      onClick={() => {
+                        if (item.tool === "cursor") {
+                          activateCursor();
+                          return;
+                        }
+
+                        startTool(item.tool as Exclude<BacktestDrawingTool, "cursor">);
+                      }}
+                      title={
+                        TOOL_SHORTCUTS[item.tool]
+                          ? `${item.label} (${TOOL_SHORTCUTS[item.tool]})`
+                          : item.label
+                      }
+                      type="button"
+                    >
+                      {active ? (
+                        <span className="absolute left-0 top-1/2 h-5 w-px -translate-y-1/2 bg-slate-200" />
+                      ) : null}
+                      <Icon className="h-[16.5px] w-[16.5px]" strokeWidth={2} />
+                      <span className="pointer-events-none absolute left-[calc(100%+0.6rem)] top-1/2 hidden -translate-y-1/2 whitespace-nowrap border border-white/8 bg-[#0b1015] px-2 py-1 text-[10px] font-medium text-slate-200 shadow-[0_10px_24px_rgba(0,0,0,0.32)] group-hover:block">
+                        {item.label}
+                        {TOOL_SHORTCUTS[item.tool] ? (
+                          <span className="ml-2 text-slate-500">
+                            {TOOL_SHORTCUTS[item.tool]}
+                          </span>
+                        ) : null}
+                      </span>
+                    </button>
+                    {needsDivider && index < TOOL_ITEMS.length - 1 ? (
+                      <span className="pointer-events-none mx-auto my-1.5 block h-px w-4 bg-white/6" />
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          <div className="border-t border-white/6 px-1.5 py-1.5">
+            <div className="flex flex-col gap-0.5">
+              <button
+                aria-label="Delete selected drawing"
+                className="group relative flex h-9 w-full items-center justify-center text-slate-400 transition hover:bg-white/[0.025] hover:text-slate-200 disabled:opacity-35"
+                disabled={!hasSelectedLineTools}
+                onClick={deleteSelectedTool}
+                title="Delete selected drawing (Delete / Backspace)"
+                type="button"
+              >
+                <ToolDeleteIcon className="h-[16px] w-[16px]" strokeWidth={2} />
+                <span className="pointer-events-none absolute left-[calc(100%+0.6rem)] top-1/2 hidden -translate-y-1/2 whitespace-nowrap border border-white/8 bg-[#0b1015] px-2 py-1 text-[10px] font-medium text-slate-200 shadow-[0_10px_24px_rgba(0,0,0,0.32)] group-hover:block">
+                  Delete selected
+                  <span className="ml-2 text-slate-500">Del</span>
+                </span>
+              </button>
+              <button
+                aria-label="Clear drawings"
+                className="group relative flex h-9 w-full items-center justify-center text-slate-400 transition hover:bg-white/[0.025] hover:text-slate-200 disabled:opacity-35"
+                disabled={!hasLineTools}
+                onClick={clearAllTools}
+                title="Clear drawings"
+                type="button"
+              >
+                <ToolClearIcon className="h-[16px] w-[16px]" strokeWidth={2} />
+                <span className="pointer-events-none absolute left-[calc(100%+0.6rem)] top-1/2 hidden -translate-y-1/2 whitespace-nowrap border border-white/8 bg-[#0b1015] px-2 py-1 text-[10px] font-medium text-slate-200 shadow-[0_10px_24px_rgba(0,0,0,0.32)] group-hover:block">
+                  Clear drawings
+                </span>
+              </button>
+            </div>
+          </div>
+        </aside>
+
+        <div className="relative min-w-0 flex-1 overflow-hidden rounded-[var(--radius-lg)] bg-[#060a0f]">
+          <div className="h-full w-full" ref={containerRef} />
+
+          <div
+            className="pointer-events-none absolute inset-y-0 left-0"
+            style={{ right: `${PRICE_SCALE_GUTTER_PX}px` }}
+          >
           {(Object.keys(LINE_STYLES) as BacktestLineField[]).map((field) => {
             const coordinate = lineCoordinates[field];
             const price = lineValues[field];
@@ -395,7 +1441,7 @@ export function BacktestChart({
             return (
               <div
                 aria-label={`Drag ${style.title.toLowerCase()} line`}
-                className={`pointer-events-auto absolute inset-x-0 z-10 h-12 bg-transparent ${
+                className={`pointer-events-auto absolute inset-x-0 z-[70] bg-transparent ${
                   editableFields[field] ? "cursor-ns-resize" : "cursor-default"
                 }`}
                 key={field}
@@ -407,6 +1453,7 @@ export function BacktestChart({
                   event.stopPropagation();
                   beginDragging(
                     field,
+                    coordinate,
                     event.clientY,
                     event.pointerId,
                     event.currentTarget,
@@ -418,6 +1465,21 @@ export function BacktestChart({
                     activePointerIdRef.current !== event.pointerId
                   ) {
                     return;
+                  }
+
+                  const startClientY = dragStartClientYRef.current;
+                  if (startClientY === null) {
+                    return;
+                  }
+
+                  const distance = Math.abs(event.clientY - startClientY);
+                  if (!dragActivatedRef.current) {
+                    if (distance < LINE_DRAG_ACTIVATION_THRESHOLD_PX) {
+                      return;
+                    }
+
+                    dragActivatedRef.current = true;
+                    setIsDragging(true);
                   }
 
                   event.preventDefault();
@@ -436,6 +1498,7 @@ export function BacktestChart({
                 onLostPointerCapture={stopDragging}
                 style={{
                   top: coordinate,
+                  height: `${LINE_HIT_AREA_HEIGHT_PX}px`,
                   transform: "translateY(-50%)",
                   touchAction: "none",
                 }}
@@ -445,7 +1508,7 @@ export function BacktestChart({
                   style={{ backgroundColor: style.color }}
                 />
                 <span
-                  className={`pointer-events-none absolute right-2 top-1/2 z-20 inline-flex min-h-7 -translate-y-1/2 items-center gap-1 rounded-md border px-2 py-1 text-[10px] font-semibold shadow-[0_8px_18px_rgba(0,0,0,0.24)] transition ${style.pillClassName}`}
+                  className={`pointer-events-none absolute right-2 top-1/2 z-[80] inline-flex min-h-7 -translate-y-1/2 items-center gap-1 rounded-md border px-2 py-1 text-[10px] font-semibold shadow-[0_8px_18px_rgba(0,0,0,0.24)] transition ${style.pillClassName}`}
                 >
                   <span>{style.title}</span>
                   <span className="text-white/85">
@@ -457,23 +1520,35 @@ export function BacktestChart({
           })}
         </div>
 
-        {isLoading ? (
-          <div className="absolute inset-0 flex items-center justify-center bg-[#060a0f]/88">
-            <div className="flex flex-col items-center gap-3 text-slate-300">
-              <div className="relative h-10 w-10">
-                <span className="absolute inset-0 rounded-full border-2 border-white/10" />
-                <span className="absolute inset-0 animate-spin rounded-full border-2 border-transparent border-t-[#3b82f6] border-r-[#3b82f6]" />
+          {isLoading ? (
+            <div className="absolute inset-0 flex items-center justify-center bg-[#060a0f]/88">
+              <div className="flex flex-col items-center gap-3 text-slate-300">
+                <div className="relative h-10 w-10">
+                  <span className="absolute inset-0 rounded-full border-2 border-white/10" />
+                  <span className="absolute inset-0 animate-spin rounded-full border-2 border-transparent border-t-[#3b82f6] border-r-[#3b82f6]" />
+                </div>
+                <p className="text-sm font-medium text-slate-300">
+                  Loading chart...
+                </p>
               </div>
-              <p className="text-sm font-medium text-slate-300">
-                Loading chart...
-              </p>
             </div>
+          ) : candles.length === 0 ? (
+            <div className="absolute inset-0 flex items-center justify-center bg-[#060a0f]/88 text-sm text-slate-400">
+              No candles are available for this replay window.
+            </div>
+          ) : null}
+
+          <div className="pointer-events-none absolute bottom-3 left-3 z-[90] flex items-center gap-2 border border-white/6 bg-[#0b1117]/72 px-2.5 py-1.5 text-[10px] shadow-[0_8px_20px_rgba(0,0,0,0.24)] backdrop-blur">
+            <span className="border border-white/8 bg-[#0e141b] px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.2em] text-slate-300">
+              {activeDrawingTool === "cursor"
+                ? "Select"
+                : TOOL_ITEMS.find((item) => item.tool === activeDrawingTool)?.label ?? "Tool"}
+            </span>
+            <span className="max-w-[18rem] text-slate-500">
+              {getDrawingToolHelpText(activeDrawingTool)}
+            </span>
           </div>
-        ) : candles.length === 0 ? (
-          <div className="absolute inset-0 flex items-center justify-center bg-[#060a0f]/88 text-sm text-slate-400">
-            No candles are available for this replay window.
-          </div>
-        ) : null}
+        </div>
       </div>
     </div>
   );

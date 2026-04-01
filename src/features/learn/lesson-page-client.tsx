@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useEffect, type ReactNode } from "react";
-import { ArrowLeft } from "lucide-react";
 
 import { isLessonBookmarked } from "@/features/learn/bookmark-state";
 import { BookmarkButton } from "@/features/learn/bookmark-button";
@@ -10,7 +9,12 @@ import {
   BookmarkFeedbackToast,
   useBookmarkFeedback,
 } from "@/features/learn/bookmark-feedback";
+import { LearnDetailHeader } from "@/features/learn/components/learn-detail-header";
 import { getLessonProgress } from "@/features/learn/progress-state";
+import {
+  formatProgressStatus,
+  getDisplayStatus,
+} from "@/features/learn/learn-shared";
 import { useLearnProgress } from "@/features/learn/learn-progress-provider";
 import { cn } from "@/lib/utils";
 import type { LessonFrontmatter, ModuleSummary } from "@/types/content";
@@ -21,22 +25,6 @@ type LessonPageClientProps = {
   lessons: LessonFrontmatter[];
   children: ReactNode;
 };
-
-function formatStatus(status: "in_progress" | "completed" | null) {
-  if (status === "completed") {
-    return "Completed";
-  }
-
-  if (status === "in_progress") {
-    return "In Progress";
-  }
-
-  return null;
-}
-
-function getDisplayStatus(status: "In Progress" | "Completed" | null) {
-  return status ?? "Not started";
-}
 
 export function LessonPageClient({
   learningModule,
@@ -69,74 +57,43 @@ export function LessonPageClient({
   ]);
 
   const currentProgress = getLessonProgress(state, learningModule.slug, lesson.slug);
-  const currentStatus = formatStatus(currentProgress?.status ?? null);
+  const currentStatus = formatProgressStatus(currentProgress?.status ?? null);
   const lessonBookmarked = isLessonBookmarked(bookmarkState, learningModule.slug, lesson.slug);
 
   return (
     <div className="learn-tv-screen space-y-3.5 pb-5 sm:space-y-4 sm:pb-7">
       <div className="grid gap-3.5 xl:grid-cols-[minmax(0,1fr)_17.25rem]">
         <article className="learn-tv-panel overflow-hidden rounded-[0.9rem]">
-          <div className="border-b border-outline-variant/70 px-3.5 py-3.5 sm:px-5 sm:py-5">
-            <div className="flex flex-wrap items-center gap-2 text-[12px] text-muted sm:gap-3 sm:text-sm">
-              <Link
-                className="inline-flex items-center gap-2 font-semibold text-foreground transition hover:text-primary"
-                href={`/app/learn/${learningModule.slug}`}
-              >
-                <ArrowLeft className="h-4 w-4" strokeWidth={2} />
-                {learningModule.title}
-              </Link>
-              <span className="text-outline">/</span>
-              <span>Lesson {lesson.order}</span>
-              {currentStatus ? (
-                <>
-                  <span className="text-outline">/</span>
-                  <span
-                    className={cn(
-                      currentStatus === "Completed" ? "learn-tv-positive" : "text-primary",
-                    )}
-                  >
-                    {currentStatus}
-                  </span>
-                </>
-              ) : null}
-            </div>
-
-            <div className="mt-3.5 sm:mt-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="space-y-2 sm:space-y-2.5">
-                  <p className="learn-tv-kicker">Lesson view</p>
-                  <h1 className="break-words font-heading text-[1.35rem] font-extrabold leading-[1.06] tracking-tight text-foreground sm:text-[2.15rem]">
-                    {lesson.title}
-                  </h1>
-                  <p className="max-w-[38rem] text-[12px] leading-5 text-[#b3b7c2] sm:text-[13px] sm:leading-6">
-                    {lesson.summary}
-                  </p>
-                </div>
-
-                <div className="flex shrink-0 items-center">
-                  <BookmarkButton
-                    active={lessonBookmarked}
-                    label={
-                      lessonBookmarked
-                        ? `Remove ${lesson.title} bookmark`
-                        : `Bookmark ${lesson.title}`
-                    }
-                    onClick={() => {
-                      const nextValue = !lessonBookmarked;
-                      setLessonBookmarked(learningModule.slug, lesson.slug, nextValue);
-                      pushToast(
-                        nextValue
-                          ? "Added lesson to bookmarks"
-                          : "Removed lesson from bookmarks",
-                      );
-                    }}
-                    size="md"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-4 grid grid-cols-2 gap-3 border-y border-outline-variant/70 py-3 sm:grid-cols-5 sm:gap-4 sm:py-3.5">
+          <LearnDetailHeader
+            action={
+              <BookmarkButton
+                active={lessonBookmarked}
+                label={
+                  lessonBookmarked
+                    ? `Remove ${lesson.title} bookmark`
+                    : `Bookmark ${lesson.title}`
+                }
+                onClick={() => {
+                  const nextValue = !lessonBookmarked;
+                  setLessonBookmarked(learningModule.slug, lesson.slug, nextValue);
+                  pushToast(
+                    nextValue
+                      ? "Added lesson to bookmarks"
+                      : "Removed lesson from bookmarks",
+                  );
+                }}
+                size="md"
+              />
+            }
+            backHref={`/app/learn/${learningModule.slug}`}
+            backLabel={learningModule.title}
+            kicker="Lesson view"
+            statusLabel={currentStatus}
+            summary={lesson.summary}
+            title={lesson.title}
+            trailItems={[`Lesson ${lesson.order}`]}
+          >
+            <div className="grid grid-cols-2 gap-3 border-y border-outline-variant/70 py-3 sm:grid-cols-5 sm:gap-4 sm:py-3.5">
               <div className="min-w-0">
                 <p className="learn-tv-kicker">Module</p>
                 <p className="mt-1 text-[13px] font-semibold text-foreground">{learningModule.title}</p>
@@ -169,7 +126,7 @@ export function LessonPageClient({
                 </p>
               </div>
             </div>
-          </div>
+          </LearnDetailHeader>
 
           <div className="px-3.5 py-3.5 sm:px-5 sm:py-5">
             <div className="prose-localtradings max-w-none">{children}</div>
@@ -218,7 +175,7 @@ export function LessonPageClient({
             <p className="learn-tv-kicker">Lesson list</p>
             <div className="mt-2.5 divide-y divide-outline-variant/60">
               {lessons.map((item) => {
-                const statusLabel = formatStatus(
+                const statusLabel = formatProgressStatus(
                   getLessonProgress(state, learningModule.slug, item.slug)?.status ?? null,
                 );
                 const isCurrent = item.slug === lesson.slug;
