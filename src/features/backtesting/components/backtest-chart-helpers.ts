@@ -21,7 +21,7 @@ export type ExportedLineTool = {
   points?: ExportedLineToolPoint[];
 };
 
-export const PRICE_SCALE_GUTTER_PX = 92;
+export const PRICE_SCALE_GUTTER_PX = 84;
 export const REPLAY_VIEW_BAR_COUNT = 180;
 
 export const LINE_STYLES: Record<

@@ -322,8 +322,6 @@ export function BacktestingToolbar({
 
 type BacktestingHistoryPanelProps = {
   onDeleteSession: (sessionId: string) => void;
-  onDuplicateSession: (sessionId: string) => void;
-  onLoadSession: (sessionId: string) => void;
   onShareSession: (session: BacktestSessionRecord) => void;
   pendingSessionActionId: string | null;
   sessions: BacktestSessionRecord[];
@@ -334,8 +332,6 @@ type BacktestingHistoryPanelProps = {
 
 export function BacktestingHistoryPanel({
   onDeleteSession,
-  onDuplicateSession,
-  onLoadSession,
   onShareSession,
   pendingSessionActionId,
   sessions,
@@ -435,26 +431,6 @@ export function BacktestingHistoryPanel({
                   </div>
                 </div>
                 <div className="mt-2 flex flex-wrap gap-1.5">
-                  <Button
-                    className="h-7 rounded-sm px-2.5 text-[10px]"
-                    disabled={pendingSessionActionId === item.id || sharingSessionId === item.id}
-                    onClick={() => onLoadSession(item.id)}
-                    size="sm"
-                    type="button"
-                    variant="secondary"
-                  >
-                    Load
-                  </Button>
-                  <Button
-                    className="h-7 rounded-sm px-2.5 text-[10px] text-slate-300 hover:text-white"
-                    disabled={pendingSessionActionId === item.id || sharingSessionId === item.id}
-                    onClick={() => onDuplicateSession(item.id)}
-                    size="sm"
-                    type="button"
-                    variant="ghost"
-                  >
-                    Duplicate
-                  </Button>
                   {canShareSession(item.status) ? (
                     <Button
                       className="h-7 rounded-sm px-2.5 text-[10px]"

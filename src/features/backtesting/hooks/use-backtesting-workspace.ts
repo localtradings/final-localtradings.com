@@ -4,8 +4,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   deleteBacktestSession,
-  duplicateBacktestSession,
-  loadBacktestSessionWorkspace,
 } from "@/server/backtesting/actions";
 
 import {
@@ -53,12 +51,11 @@ import {
 import {
   buildOrderAwareValidation,
   buildStatusNotice,
-  COMPLETED_HISTORY_STATUSES,
+  createSettledExecutionKey,
   derivePrimaryValidation,
   formatPrice,
   getReplayLoadErrorMessage,
   isBacktestCandlesResponse,
-  mergeSessions,
   parseDraftPrice,
   parsePositiveNumber,
   removeSession,
@@ -143,6 +140,7 @@ export function useBacktestingWorkspace(
   const settledExecutionKeyRef = useRef<string | null>(null);
   const pendingSaveExecutionKeyRef = useRef<string | null>(null);
   const sessionStartedAtRef = useRef(new Date().toISOString());
+  const resetCompletedTradeKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
     datasetRef.current = dataset;
@@ -218,16 +216,23 @@ export function useBacktestingWorkspace(
     execution.status === "unfinished" ||
     execution.status === "manual_close" ||
     execution.status === "breakeven";
+  const isExecutionLive =
+    execution.status === "armed" || execution.status === "active";
+  const canConfigureDraft = !isExecutionLive;
+  const canAdjustActiveExitLines =
+    execution.status === "armed" || execution.status === "active";
+  const hasStop = isExecutionLive ? execution.stop !== null : tradeDraft.hasStop;
+  const hasTarget = isExecutionLive ? execution.target !== null : tradeDraft.hasTarget;
 
   const lineValues = useMemo<BacktestLineValues>(() => {
-    if (execution.status === "draft") {
+    if (canConfigureDraft) {
       return {
         entry:
           tradeDraft.orderType === "market"
             ? null
             : parseDraftPrice(tradeDraft.entry),
-        stop: tradeDraft.hasStop ? parseDraftPrice(tradeDraft.stop) : null,
-        target: tradeDraft.hasTarget ? parseDraftPrice(tradeDraft.target) : null,
+        stop: hasStop ? parseDraftPrice(tradeDraft.stop) : null,
+        target: hasTarget ? parseDraftPrice(tradeDraft.target) : null,
       };
     }
 
@@ -238,9 +243,10 @@ export function useBacktestingWorkspace(
     };
   }, [
     execution,
+    canConfigureDraft,
+    hasStop,
+    hasTarget,
     tradeDraft.entry,
-    tradeDraft.hasStop,
-    tradeDraft.hasTarget,
     tradeDraft.orderType,
     tradeDraft.stop,
     tradeDraft.target,
@@ -396,6 +402,7 @@ export function useBacktestingWorkspace(
         };
 
         settledExecutionKeyRef.current = null;
+        resetCompletedTradeKeyRef.current = null;
         sessionStartedAtRef.current = new Date().toISOString();
         setDataset(data);
         setSelectionDraft(selection);
@@ -529,6 +536,48 @@ export function useBacktestingWorkspace(
     settledExecutionKeyRef,
   });
 
+  useEffect(() => {
+    if (!isTradeFinished) {
+      return;
+    }
+
+    const executionKey = createSettledExecutionKey(execution);
+    if (!executionKey || resetCompletedTradeKeyRef.current === executionKey) {
+      return;
+    }
+
+    resetCompletedTradeKeyRef.current = executionKey;
+
+    const instrument = datasetRef.current?.instrument ?? currentInstrument;
+    const referencePrice =
+      execution.exitPrice ??
+      currentCandle?.close ??
+      (typeof execution.entry === "number" ? execution.entry : instrument.basePrice);
+    const resetDraft = buildTradeDraftFromPrice(
+      instrument,
+      selectionRef.current.timeframe,
+      referencePrice,
+      draftRef.current.direction,
+      "market",
+      draftRef.current.volume || defaultDraft.volume,
+    );
+
+    setTradeDraft({
+      ...resetDraft,
+      orderType: "market",
+      hasStop: false,
+      hasTarget: false,
+      volume: draftRef.current.volume || defaultDraft.volume,
+    });
+    setReplay((current) => ({ ...current, isPlaying: false }));
+  }, [
+    currentCandle?.close,
+    currentInstrument,
+    defaultDraft.volume,
+    execution,
+    isTradeFinished,
+  ]);
+
   function togglePlayback() {
     if (!canStepForward) {
       return;
@@ -538,35 +587,55 @@ export function useBacktestingWorkspace(
   }
 
   function updateDraftField(field: BacktestLineField, nextValue: string) {
-    if (executionRef.current.status !== "draft") {
-      return;
-    }
+    if (canConfigureDraft) {
+      if (field === "entry" && draftRef.current.orderType === "market") {
+        return;
+      }
 
-    if (field === "entry" && draftRef.current.orderType === "market") {
-      return;
+      setTradeDraft((current) => replaceDraftPrice(current, field, nextValue));
     }
-
-    setTradeDraft((current) => replaceDraftPrice(current, field, nextValue));
   }
 
   function setLineValue(field: BacktestLineField, nextPrice: number) {
-    if (executionRef.current.status !== "draft") {
+    if (canConfigureDraft) {
+      if (field === "entry" && draftRef.current.orderType === "market") {
+        return;
+      }
+
+      if (field === "stop" && !draftRef.current.hasStop) {
+        return;
+      }
+
+      if (field === "target" && !draftRef.current.hasTarget) {
+        return;
+      }
+
+      updateDraftField(field, nextPrice.toFixed(currentInstrument.pricePrecision));
       return;
     }
 
-    if (field === "entry" && draftRef.current.orderType === "market") {
+    if (!canAdjustActiveExitLines || field === "entry") {
       return;
     }
 
-    if (field === "stop" && !draftRef.current.hasStop) {
-      return;
-    }
+    setExecution((current) => {
+      if (current.status !== "armed" && current.status !== "active") {
+        return current;
+      }
 
-    if (field === "target" && !draftRef.current.hasTarget) {
-      return;
-    }
+      if (field === "stop" && current.stop === null) {
+        return current;
+      }
 
-    updateDraftField(field, nextPrice.toFixed(currentInstrument.pricePrecision));
+      if (field === "target" && current.target === null) {
+        return current;
+      }
+
+      return {
+        ...current,
+        [field]: nextPrice,
+      };
+    });
   }
 
   function updateOrderType(nextOrderType: BacktestOrderType) {
@@ -598,51 +667,96 @@ export function useBacktestingWorkspace(
   }
 
   function addDraftLine(field: Extract<BacktestLineField, "stop" | "target">) {
-    if (executionRef.current.status !== "draft") {
+    if (canConfigureDraft) {
+      setTradeDraft((current) => {
+        if ((field === "stop" && current.hasStop) || (field === "target" && current.hasTarget)) {
+          return current;
+        }
+
+        const seededDraft = buildTradeDraftFromPrice(
+          currentInstrument,
+          selectionRef.current.timeframe,
+          current.orderType === "market"
+            ? referenceEntryPrice
+            : parseDraftPrice(current.entry) ?? referenceEntryPrice,
+          current.direction,
+          current.orderType,
+          current.volume,
+        );
+
+        return field === "stop"
+          ? {
+              ...current,
+              hasStop: true,
+              stop: parseDraftPrice(current.stop) !== null ? current.stop : seededDraft.stop,
+            }
+          : {
+              ...current,
+              hasTarget: true,
+              target:
+                parseDraftPrice(current.target) !== null ? current.target : seededDraft.target,
+            };
+      });
       return;
     }
 
-    setTradeDraft((current) => {
-      if ((field === "stop" && current.hasStop) || (field === "target" && current.hasTarget)) {
+    if (!canAdjustActiveExitLines) {
+      return;
+    }
+
+    setExecution((current) => {
+      if (current.status !== "armed" && current.status !== "active") {
+        return current;
+      }
+
+      if ((field === "stop" && current.stop !== null) || (field === "target" && current.target !== null)) {
         return current;
       }
 
       const seededDraft = buildTradeDraftFromPrice(
         currentInstrument,
         selectionRef.current.timeframe,
-        current.orderType === "market"
-          ? referenceEntryPrice
-          : parseDraftPrice(current.entry) ?? referenceEntryPrice,
-        current.direction,
-        current.orderType,
-        current.volume,
+        current.entry ?? referenceEntryPrice,
+        draftRef.current.direction,
+        current.orderType ?? draftRef.current.orderType,
+        draftRef.current.volume,
       );
 
       return field === "stop"
         ? {
             ...current,
-            hasStop: true,
-            stop: parseDraftPrice(current.stop) !== null ? current.stop : seededDraft.stop,
+            stop: parseDraftPrice(seededDraft.stop),
           }
         : {
             ...current,
-            hasTarget: true,
-            target:
-              parseDraftPrice(current.target) !== null ? current.target : seededDraft.target,
+            target: parseDraftPrice(seededDraft.target),
           };
     });
   }
 
   function removeDraftLine(field: Extract<BacktestLineField, "stop" | "target">) {
-    if (executionRef.current.status !== "draft") {
+    if (canConfigureDraft) {
+      setTradeDraft((current) =>
+        field === "stop"
+          ? { ...current, hasStop: false }
+          : { ...current, hasTarget: false },
+      );
       return;
     }
 
-    setTradeDraft((current) =>
-      field === "stop"
-        ? { ...current, hasStop: false }
-        : { ...current, hasTarget: false },
-    );
+    if (!canAdjustActiveExitLines) {
+      return;
+    }
+
+    setExecution((current) => {
+      if (current.status !== "armed" && current.status !== "active") {
+        return current;
+      }
+
+      return field === "stop"
+        ? { ...current, stop: null }
+        : { ...current, target: null };
+    });
   }
 
   function updateVolume(nextValue: number) {
@@ -796,7 +910,7 @@ export function useBacktestingWorkspace(
   }
 
   function resetTradeLines() {
-    if (executionRef.current.status !== "draft") {
+    if (!canConfigureDraft) {
       setNotice("Reset Setup is only available before a trade is active.");
       return;
     }
@@ -834,30 +948,6 @@ export function useBacktestingWorkspace(
     setSelectionDraft((current) => ({ ...current, [field]: value }));
   }
 
-  function hydrateWorkspaceFromSessionData(
-    nextDataset: BacktestCandlesResponse,
-    session: BacktestSessionRecord,
-  ) {
-    settledExecutionKeyRef.current = null;
-    pendingSaveExecutionKeyRef.current = null;
-    setDataset(nextDataset);
-    setSelectionDraft({
-      symbol: session.symbol,
-      timeframe: session.timeframe,
-    });
-    setActiveSelection({
-      symbol: session.symbol,
-      timeframe: session.timeframe,
-    });
-    setTradeDraft(session.sessionStateJson.tradeDraft);
-    setExecution(session.sessionStateJson.execution);
-    setReplay({
-      ...session.sessionStateJson.replay,
-      isPlaying: false,
-    });
-    sessionStartedAtRef.current = session.startedAt;
-  }
-
   async function removeSavedSession(sessionId: string) {
     setPendingSessionActionId(sessionId);
     const result = await deleteBacktestSession(sessionId);
@@ -875,67 +965,17 @@ export function useBacktestingWorkspace(
     setNotice("History item deleted.");
   }
 
-  async function loadSavedSession(sessionId: string) {
-    setPendingSessionActionId(sessionId);
-    setIsLoading(true);
-    setLoadError(null);
-    setNotice(null);
-    setReplay((current) => ({ ...current, isPlaying: false }));
-
-    const result = await loadBacktestSessionWorkspace(sessionId);
-
-    if (!result.ok) {
-      setPendingSessionActionId(null);
-      setIsLoading(false);
-      setLoadError("Unable to load that saved session right now.");
-      return;
-    }
-
-    hydrateWorkspaceFromSessionData(result.workspace.dataset, result.workspace.session);
-    setPendingSessionActionId(null);
-    setIsLoading(false);
-    setNotice("Saved session loaded.");
-  }
-
-  async function duplicateSavedSession(sessionId: string) {
-    setPendingSessionActionId(sessionId);
-    setLoadError(null);
-    setNotice(null);
-
-    const duplicateResult = await duplicateBacktestSession(sessionId);
-
-    if (!duplicateResult.ok) {
-      setPendingSessionActionId(null);
-      setNotice("Unable to duplicate that session right now.");
-      return;
-    }
-
-    const loadResult = await loadBacktestSessionWorkspace(duplicateResult.session.id);
-
-    if (!loadResult.ok) {
-      setPendingSessionActionId(null);
-      setNotice("Session duplicated, but the new draft could not be opened.");
-      return;
-    }
-
-    hydrateWorkspaceFromSessionData(loadResult.workspace.dataset, loadResult.workspace.session);
-
-    if (COMPLETED_HISTORY_STATUSES.includes(duplicateResult.session.status)) {
-      setSessions((current) => mergeSessions(current, duplicateResult.session));
-    }
-
-    setPendingSessionActionId(null);
-    setNotice("Session duplicated into a fresh draft.");
-  }
-
   return {
     account,
     activeSelection,
     activeWindowStartAt: dataset?.selection.windowStartAt ?? null,
-    canArmBuy: execution.status === "draft" && buyValidation.isValid && draftVolume !== null,
-    canArmSell: execution.status === "draft" && sellValidation.isValid && draftVolume !== null,
+    canArmBuy: canConfigureDraft && buyValidation.isValid && draftVolume !== null,
+    canArmSell: canConfigureDraft && sellValidation.isValid && draftVolume !== null,
+    canAdjustActiveExitLines,
+    canConfigureDraft,
     canCloseTrade: execution.status === "active",
-    canDragLines: execution.status === "draft",
+    canDragLines: canConfigureDraft,
+    canManageTradeLines: canConfigureDraft || canAdjustActiveExitLines,
     canStepForward,
     currentCandle,
     currentInstrument,
@@ -967,8 +1007,8 @@ export function useBacktestingWorkspace(
     removeDraftLine,
     selectionDraft,
     sessions,
-    hasStop: tradeDraft.hasStop,
-    hasTarget: tradeDraft.hasTarget,
+    hasStop,
+    hasTarget,
     setLineValue,
     setReplay,
     stagedSelectionChanged:
@@ -987,8 +1027,6 @@ export function useBacktestingWorkspace(
     armSell: () => armPendingOrder("Short"),
     closeTrade,
     deleteSession: removeSavedSession,
-    duplicateSession: duplicateSavedSession,
-    loadSession: loadSavedSession,
     windowKey:
       dataset?.selection.windowStartAt ??
       `${activeSelection.symbol}:${activeSelection.timeframe}`,

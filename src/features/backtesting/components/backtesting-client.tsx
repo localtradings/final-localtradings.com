@@ -89,6 +89,23 @@ export function BacktestingClient({
     workspace.liveResultAmount,
   ]);
 
+  const resultAccentClassName = useMemo(() => {
+    const resultValue =
+      workspace.execution.status === "active"
+        ? workspace.liveResultAmount
+        : workspace.execution.resultAmount;
+
+    if (typeof resultValue !== "number" || Number.isNaN(resultValue) || resultValue === 0) {
+      return undefined;
+    }
+
+    return resultValue > 0 ? "text-[#86efac]" : "text-[#fca5a5]";
+  }, [
+    workspace.execution.resultAmount,
+    workspace.execution.status,
+    workspace.liveResultAmount,
+  ]);
+
   const priceInputValues = {
     entry:
       workspace.execution.status === "draft"
@@ -187,35 +204,41 @@ export function BacktestingClient({
         userId={userId}
       />
 
-      <div className="grid min-h-0 flex-1 grid-cols-1 gap-1 px-2 py-2 lg:grid-cols-[minmax(0,1fr)_18rem]">
-        <section className="flex min-h-0 min-w-0 flex-col">
-          <BacktestChart
-            activeDrawingTool={activeDrawingTool}
-            candles={workspace.revealedCandles}
-            drawingStorageKey={`backtest-drawings:${userId ?? "local"}:${workspace.windowKey}`}
-            direction={workspace.tradeDraft.direction}
-            editableFields={{
-              entry:
-                activeDrawingTool === "cursor" &&
-                workspace.canDragLines &&
-                workspace.orderType !== "market",
-              stop: activeDrawingTool === "cursor" && workspace.canDragLines,
-              target: activeDrawingTool === "cursor" && workspace.canDragLines,
-            }}
-            execution={workspace.execution}
-            instrument={workspace.currentInstrument}
-            isLoading={workspace.isLoading}
-            lineValues={workspace.lineValues}
-            onLineChange={workspace.setLineValue}
-            onToolChange={setActiveDrawingTool}
-            canEditLines={workspace.canDragLines}
-            hasStopLine={workspace.hasStop}
-            hasTargetLine={workspace.hasTarget}
-            onAddOptionalLine={workspace.addDraftLine}
-            onRemoveOptionalLine={workspace.removeDraftLine}
-            windowKey={workspace.windowKey}
-          />
-          <p className="mt-1.5 px-1 text-[10px] text-slate-500">
+      <div className="grid min-h-0 flex-1 grid-cols-1 gap-0.5 px-1 pt-1 pb-0.5 lg:grid-cols-[minmax(0,1fr)_18rem]">
+        <section className="grid min-h-0 min-w-0 grid-rows-[minmax(0,1fr)_auto] gap-0.5">
+          <div className="min-h-0">
+            <BacktestChart
+              activeDrawingTool={activeDrawingTool}
+              candles={workspace.revealedCandles}
+              drawingStorageKey={`backtest-drawings:${userId ?? "local"}:${workspace.windowKey}`}
+              direction={workspace.tradeDraft.direction}
+              editableFields={{
+                entry:
+                  activeDrawingTool === "cursor" &&
+                  workspace.canConfigureDraft &&
+                  workspace.orderType !== "market",
+                stop:
+                  activeDrawingTool === "cursor" &&
+                  (workspace.canConfigureDraft || workspace.canAdjustActiveExitLines),
+                target:
+                  activeDrawingTool === "cursor" &&
+                  (workspace.canConfigureDraft || workspace.canAdjustActiveExitLines),
+              }}
+              execution={workspace.execution}
+              instrument={workspace.currentInstrument}
+              isLoading={workspace.isLoading}
+              lineValues={workspace.lineValues}
+              onLineChange={workspace.setLineValue}
+              onToolChange={setActiveDrawingTool}
+              canEditLines={workspace.canManageTradeLines}
+              hasStopLine={workspace.hasStop}
+              hasTargetLine={workspace.hasTarget}
+              onAddOptionalLine={workspace.addDraftLine}
+              onRemoveOptionalLine={workspace.removeDraftLine}
+              windowKey={workspace.windowKey}
+            />
+          </div>
+          <p className="px-0.5 text-[11px] text-slate-500">
             Charts by{" "}
             <Link
               className="text-slate-300 underline decoration-white/20 underline-offset-2 transition hover:text-white"
@@ -228,7 +251,7 @@ export function BacktestingClient({
           </p>
         </section>
 
-        <aside className="flex min-h-0 flex-col gap-2 overflow-y-auto overflow-x-hidden rounded-[0.6rem] bg-[#090d12] p-1">
+        <aside className="flex min-h-0 flex-col gap-1.5 overflow-y-auto overflow-x-hidden rounded-[0.6rem] bg-[#090d12] p-0.5">
           <div className="rounded-[0.55rem] border border-white/5 bg-[#0c1117] px-2.5 py-2">
             <div className="flex items-center justify-between gap-2">
               <ToolbarLabel>Loaded Chart</ToolbarLabel>
@@ -252,7 +275,11 @@ export function BacktestingClient({
           </div>
 
           <div className="grid grid-cols-2 gap-1.5">
-            <CompactStat label="Result" value={resultBadge} />
+            <CompactStat
+              accentClassName={resultAccentClassName}
+              label="Result"
+              value={resultBadge}
+            />
             <CompactStat
               accentClassName={cn(
                 workspace.execution.status === "target_hit" && "text-[#86efac]",
@@ -268,7 +295,7 @@ export function BacktestingClient({
             <ToolbarLabel>Order Type</ToolbarLabel>
             <Select
               className={SELECT_CLASS}
-              disabled={!workspace.canDragLines}
+              disabled={!workspace.canConfigureDraft}
               id="backtest-order-type"
               name="backtest_order_type"
               onChange={(event) =>
@@ -284,7 +311,7 @@ export function BacktestingClient({
 
           <div className="grid grid-cols-1 gap-1.5 rounded-[0.55rem] border border-white/5 bg-[#0c1117] p-1.5">
             <InlineField
-              disabled={!workspace.canDragLines || workspace.orderType === "market"}
+              disabled={!workspace.canConfigureDraft || workspace.orderType === "market"}
               fieldId="backtest-entry"
               label="Entry"
               name="backtest_entry"
@@ -294,7 +321,7 @@ export function BacktestingClient({
             />
             {workspace.hasStop ? (
               <InlineField
-                disabled={!workspace.canDragLines}
+                disabled={!workspace.canConfigureDraft}
                 fieldId="backtest-stop-loss"
                 label="Stop Loss"
                 name="backtest_stop_loss"
@@ -304,7 +331,7 @@ export function BacktestingClient({
             ) : null}
             {workspace.hasTarget ? (
               <InlineField
-                disabled={!workspace.canDragLines}
+                disabled={!workspace.canConfigureDraft}
                 fieldId="backtest-take-profit"
                 label="Take Profit"
                 name="backtest_take_profit"
@@ -328,7 +355,7 @@ export function BacktestingClient({
               value={formatEditableNumber(workspace.account.startingBalance)}
             />
             <InlineField
-              disabled={!workspace.canDragLines}
+              disabled={!workspace.canConfigureDraft}
               fieldId="backtest-position-size"
               label="Position Size"
               name="backtest_position_size"
@@ -366,7 +393,7 @@ export function BacktestingClient({
             </Button>
             <Button
               className="h-8 min-h-8 rounded-sm border border-white/8 bg-[#0d1319] px-3 text-xs font-semibold text-slate-200 hover:bg-[#121922]"
-              disabled={!workspace.canDragLines}
+              disabled={!workspace.canConfigureDraft}
               onClick={workspace.resetTradeLines}
               type="button"
               variant="ghost"
@@ -398,8 +425,6 @@ export function BacktestingClient({
 
           <BacktestingHistoryPanel
             onDeleteSession={(sessionId) => void workspace.deleteSession(sessionId)}
-            onDuplicateSession={(sessionId) => void workspace.duplicateSession(sessionId)}
-            onLoadSession={(sessionId) => void workspace.loadSession(sessionId)}
             onShareSession={(session) => void handleShareSession(session)}
             pendingSessionActionId={workspace.pendingSessionActionId}
             sessions={workspace.sessions}

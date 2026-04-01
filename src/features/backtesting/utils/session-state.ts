@@ -1,5 +1,4 @@
 import {
-  BACKTEST_INITIAL_REVEAL_COUNT,
   DEFAULT_REPLAY_SPEED_ID,
 } from "../constants";
 import type {
@@ -140,19 +139,6 @@ export function sanitizeSnapshot(
       durationBars:
         typeof execution.durationBars === "number" ? execution.durationBars : null,
     },
-  };
-}
-
-export function createDuplicateSnapshot(
-  session: BacktestSessionRecord,
-): BacktestSessionSnapshot {
-  return {
-    replay: createDefaultReplayState(BACKTEST_INITIAL_REVEAL_COUNT),
-    tradeDraft: {
-      ...session.sessionStateJson.tradeDraft,
-      reviewNotes: "",
-    },
-    execution: createDraftExecution(),
   };
 }
 

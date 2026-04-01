@@ -1330,8 +1330,8 @@ export function BacktestChart({
   }
 
   return (
-    <div className="relative flex h-full min-h-0 flex-col pr-0.5">
-      <div className="relative flex h-full min-h-[20rem] gap-2">
+    <div className="relative flex h-full min-h-0 flex-col">
+      <div className="relative flex h-full min-h-[20rem] gap-1.5">
         <aside className="relative z-[100] flex h-full w-[2.5rem] shrink-0 flex-col py-1">
           <div className="pointer-events-none absolute bottom-1 right-0 top-1 w-px bg-white/8" />
           <div className="flex flex-1 flex-col gap-0.5">
@@ -1388,7 +1388,7 @@ export function BacktestChart({
                 );
               })}
           </div>
-          <div className="mt-1 flex flex-col gap-0.5 border-t border-white/8 pt-1.5">
+          <div className="mt-0.5 flex flex-col gap-0.5 border-t border-white/8 pt-1">
               <button
                 aria-label="Delete selected drawing"
                 className="group relative mx-auto flex h-8 w-8 items-center justify-center rounded-sm border border-transparent text-slate-500 transition hover:bg-white/[0.025] hover:text-slate-200 disabled:opacity-35"
@@ -1397,7 +1397,7 @@ export function BacktestChart({
                 title="Delete selected drawing (Delete / Backspace)"
                 type="button"
               >
-                <ToolDeleteIcon className="h-[15px] w-[15px]" strokeWidth={1.55} />
+                <ToolDeleteIcon className="h-4 w-4" strokeWidth={1.5} />
                 <span className="pointer-events-none absolute left-[calc(100%+0.55rem)] top-1/2 hidden -translate-y-1/2 whitespace-nowrap bg-[#060a0f] px-2 py-1 text-[10px] font-medium text-slate-300 group-hover:block">
                   Delete selected
                   <span className="ml-2 text-slate-500">Del</span>
@@ -1411,7 +1411,7 @@ export function BacktestChart({
                 title="Clear drawings"
                 type="button"
               >
-                <ToolClearIcon className="h-[15px] w-[15px]" strokeWidth={1.55} />
+                <ToolClearIcon className="h-4 w-4" strokeWidth={1.5} />
                 <span className="pointer-events-none absolute left-[calc(100%+0.55rem)] top-1/2 hidden -translate-y-1/2 whitespace-nowrap bg-[#060a0f] px-2 py-1 text-[10px] font-medium text-slate-300 group-hover:block">
                   Clear drawings
                 </span>
@@ -1559,10 +1559,10 @@ export function BacktestChart({
                 <span
                   className={`pointer-events-none absolute right-1.5 top-1/2 z-[80] inline-flex min-h-8 -translate-y-1/2 flex-col items-end justify-center rounded-sm border px-2 py-1 text-right shadow-[0_8px_18px_rgba(0,0,0,0.24)] transition ${style.pillClassName}`}
                 >
-                  <span className="text-[8px] font-semibold uppercase tracking-[0.08em] text-white/70">
+                  <span className="text-[8px] font-semibold uppercase tracking-[0.08em] opacity-70">
                     {style.title}
                   </span>
-                  <span className="mt-0.5 text-[10px] font-semibold text-white/90">
+                  <span className="mt-0.5 text-[10px] font-semibold">
                     {price.toFixed(instrument.pricePrecision)}
                   </span>
                 </span>

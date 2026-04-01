@@ -5,5 +5,9 @@ export default function ProductBacktestingLayout({
 }: {
   children: ReactNode;
 }) {
-  return <div className="h-full min-h-0 overflow-hidden lg:-mt-2">{children}</div>;
+  return (
+    <div className="flex h-full min-h-0 flex-col overflow-hidden lg:-mt-2 lg:-mb-4">
+      {children}
+    </div>
+  );
 }

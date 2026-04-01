@@ -9,22 +9,14 @@ import {
   BACKTEST_TIMEFRAMES,
   getBacktestInstrument,
 } from "@/features/backtesting/constants";
-import { createDuplicateSnapshot } from "@/features/backtesting/utils/session-state";
 import { sanitizeSnapshot } from "@/features/backtesting/utils/session-state";
 import type {
   BacktestSessionRecord,
   BacktestSessionSaveInput,
-  BacktestSessionWorkspaceData,
 } from "@/features/backtesting/types";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
-import {
-  getHistoricalBacktestCandlesForWindow,
-} from "./provider-candles";
-import {
-  getBacktestSessionById,
-  normalizeBacktestSession,
-} from "./queries";
+import { normalizeBacktestSession } from "./queries";
 
 type BacktestActionFailure = {
   ok: false;
@@ -38,11 +30,6 @@ type BacktestSaveActionSuccess = {
 
 type BacktestDeleteActionSuccess = {
   ok: true;
-};
-
-type BacktestLoadActionSuccess = {
-  ok: true;
-  workspace: BacktestSessionWorkspaceData;
 };
 
 const MAX_BACKTEST_SESSIONS_PER_USER = 25;
@@ -258,122 +245,6 @@ export async function saveBacktestSession(
   };
 }
 
-export async function duplicateBacktestSession(
-  sessionId: string,
-): Promise<BacktestSaveActionSuccess | BacktestActionFailure> {
-  const supabase = await createSupabaseServerClient();
-  if (!supabase) {
-    return { ok: false, reason: "supabase_not_configured" as const };
-  }
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { ok: false, reason: "not_authenticated" as const };
-  }
-
-  const existing = await getBacktestSessionById(sessionId, user.id);
-  if (!existing) {
-    return { ok: false, reason: "session_not_found" as const };
-  }
-
-  const snapshot = createDuplicateSnapshot(existing);
-  const now = new Date().toISOString();
-  const duplicateEntry = Number.parseFloat(snapshot.tradeDraft.entry);
-  const duplicateStop = snapshot.tradeDraft.hasStop
-    ? Number.parseFloat(snapshot.tradeDraft.stop)
-    : Number.NaN;
-  const duplicateTarget = snapshot.tradeDraft.hasTarget
-    ? Number.parseFloat(snapshot.tradeDraft.target)
-    : Number.NaN;
-  const duplicateDraft = {
-    ...snapshot.tradeDraft,
-    reviewNotes: "",
-  };
-  const sanitizedSnapshot = sanitizeSnapshot(
-    snapshot,
-    duplicateDraft,
-    BACKTEST_INITIAL_REVEAL_COUNT,
-  );
-  const payload = {
-    user_id: user.id,
-    symbol: existing.symbol,
-    timeframe: existing.timeframe,
-    scenario_id: buildScenarioId({
-      symbol: existing.symbol,
-      timeframe: existing.timeframe,
-      windowStartAt: existing.windowStartAt,
-    }),
-    window_start_at: existing.windowStartAt,
-    bars_requested: existing.barsRequested,
-    direction: duplicateDraft.direction,
-    entry: Number.isFinite(duplicateEntry) ? duplicateEntry : existing.entry,
-    stop: Number.isFinite(duplicateStop) ? duplicateStop : existing.stop,
-    target: Number.isFinite(duplicateTarget) ? duplicateTarget : existing.target,
-    status: "draft" as const,
-    result_r: null,
-    started_at: now,
-    finished_at: null,
-    thesis: duplicateDraft.thesis,
-    review_notes: "",
-    session_state_json: sanitizedSnapshot,
-  };
-  const legacyPayload = {
-    user_id: user.id,
-    symbol: existing.symbol,
-    timeframe: existing.timeframe,
-    scenario_id: buildScenarioId({
-      symbol: existing.symbol,
-      timeframe: existing.timeframe,
-      windowStartAt: existing.windowStartAt,
-    }),
-    direction: duplicateDraft.direction,
-    entry: Number.isFinite(duplicateEntry) ? duplicateEntry : existing.entry,
-    stop: Number.isFinite(duplicateStop) ? duplicateStop : existing.stop,
-    target: Number.isFinite(duplicateTarget) ? duplicateTarget : existing.target,
-    status: "draft" as const,
-    result_r: null,
-    started_at: now,
-    finished_at: null,
-    thesis: duplicateDraft.thesis,
-    review_notes: "",
-    session_state_json: sanitizedSnapshot,
-  };
-
-  const primaryResult = await supabase
-    .from("backtest_sessions")
-    .insert(payload)
-    .select(FULL_BACKTEST_SESSION_SELECT)
-    .single();
-
-  let data: unknown = primaryResult.data;
-  let error = primaryResult.error;
-
-  if (error && isLegacyBacktestSchemaError(error)) {
-    const legacyResult = await supabase
-      .from("backtest_sessions")
-      .insert(legacyPayload)
-      .select(LEGACY_BACKTEST_SESSION_SELECT)
-      .single();
-
-    data = legacyResult.data;
-    error = legacyResult.error;
-  }
-
-  if (error || !data) {
-    return { ok: false, reason: error?.message ?? "duplicate_failed" };
-  }
-
-  await pruneBacktestSessionsForUser(user.id);
-
-  return {
-    ok: true,
-    session: normalizeBacktestSession(data as Parameters<typeof normalizeBacktestSession>[0]),
-  };
-}
-
 export async function deleteBacktestSession(
   sessionId: string,
 ): Promise<BacktestDeleteActionSuccess | BacktestActionFailure> {
@@ -401,47 +272,4 @@ export async function deleteBacktestSession(
   }
 
   return { ok: true };
-}
-
-export async function loadBacktestSessionWorkspace(
-  sessionId: string,
-): Promise<BacktestLoadActionSuccess | BacktestActionFailure> {
-  const supabase = await createSupabaseServerClient();
-  if (!supabase) {
-    return { ok: false, reason: "supabase_not_configured" as const };
-  }
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { ok: false, reason: "not_authenticated" as const };
-  }
-
-  const session = await getBacktestSessionById(sessionId, user.id);
-  if (!session) {
-    return { ok: false, reason: "session_not_found" as const };
-  }
-
-  try {
-    const dataset = await getHistoricalBacktestCandlesForWindow(
-      {
-        symbol: session.symbol,
-        timeframe: session.timeframe,
-      },
-      session.windowStartAt,
-      session.barsRequested,
-    );
-
-    return {
-      ok: true,
-      workspace: {
-        session,
-        dataset,
-      },
-    };
-  } catch {
-    return { ok: false, reason: "session_window_unavailable" as const };
-  }
 }

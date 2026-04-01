@@ -252,11 +252,6 @@ export type BacktestCandlesResponse = {
   candles: BacktestCandle[];
 };
 
-export type BacktestSessionWorkspaceData = {
-  session: BacktestSessionRecord;
-  dataset: BacktestCandlesResponse;
-};
-
 export type BacktestTradeValidation = {
   isValid: boolean;
   message?: string;

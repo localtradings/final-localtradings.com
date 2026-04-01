@@ -1,14 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import { BACKTEST_INITIAL_REVEAL_COUNT } from "@/features/backtesting/constants";
-import type {
-  BacktestSessionRecord,
-  BacktestTradeDraft,
-} from "@/features/backtesting/types";
+import type { BacktestTradeDraft } from "@/features/backtesting/types";
 import {
   buildSavePayload,
   createDefaultReplayState,
-  createDuplicateSnapshot,
   sanitizeSnapshot,
 } from "@/features/backtesting/utils/session-state";
 
@@ -73,66 +69,6 @@ describe("session-state", () => {
     expect(snapshot.tradeDraft.direction).toBe("Short");
     expect(snapshot.execution.status).toBe("active");
     expect(snapshot.execution.riskAmount).toBe(500);
-  });
-
-  it("creates duplicate snapshots with a fresh draft execution and cleared review notes", () => {
-    const session: BacktestSessionRecord = {
-      id: "session-1",
-      symbol: "XAUUSD",
-      timeframe: "15min",
-      windowStartAt: "2025-01-01T00:00:00.000Z",
-      barsRequested: 1000,
-      direction: "Long",
-      entry: 2358,
-      stop: 2352,
-      target: 2368.8,
-      status: "target_hit",
-      resultR: 1.8,
-      startedAt: "2025-01-01T00:00:00.000Z",
-      finishedAt: "2025-01-01T01:00:00.000Z",
-      thesis: "Captured continuation",
-      reviewNotes: "Keep this setup",
-      sessionStateJson: {
-        replay: {
-          replayIndex: 500,
-          isPlaying: false,
-          speedId: "4x",
-        },
-        tradeDraft: {
-          ...fallbackDraft,
-          reviewNotes: "Keep this setup",
-        },
-        execution: {
-          status: "target_hit",
-          orderType: "limit",
-          entry: 2358,
-          stop: 2352,
-          target: 2368.8,
-          riskPercent: 1,
-          riskAmount: 1000,
-          volume: 166.66,
-          balanceBeforeTrade: 100000,
-          openedAtIndex: 260,
-          openedAtTime: 1735689600000,
-          closedAtIndex: 280,
-          closedAtTime: 1735690800000,
-          exitPrice: 2368.8,
-          resultR: 1.8,
-          resultAmount: 1800,
-          balanceAfterTrade: 101800,
-          maxFavorableR: 1.9,
-          maxAdverseR: 0.2,
-          durationBars: 20,
-        },
-      },
-    };
-
-    const duplicate = createDuplicateSnapshot(session);
-
-    expect(duplicate.replay.replayIndex).toBe(BACKTEST_INITIAL_REVEAL_COUNT - 1);
-    expect(duplicate.tradeDraft.reviewNotes).toBe("");
-    expect(duplicate.execution.status).toBe("draft");
-    expect(duplicate.execution.entry).toBeNull();
   });
 
   it("builds the exact save payload shape expected by persistence", () => {
