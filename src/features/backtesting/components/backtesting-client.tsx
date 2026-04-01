@@ -187,7 +187,7 @@ export function BacktestingClient({
         userId={userId}
       />
 
-      <div className="grid min-h-0 flex-1 grid-cols-1 gap-2 px-3 py-2 lg:grid-cols-[minmax(0,1fr)_18rem]">
+      <div className="grid min-h-0 flex-1 grid-cols-1 gap-1 px-2 py-2 lg:grid-cols-[minmax(0,1fr)_18rem]">
         <section className="flex min-h-0 min-w-0 flex-col">
           <BacktestChart
             activeDrawingTool={activeDrawingTool}
@@ -228,7 +228,7 @@ export function BacktestingClient({
           </p>
         </section>
 
-        <aside className="flex min-h-0 flex-col gap-2 overflow-y-auto overflow-x-hidden rounded-[0.6rem] bg-[#090d12] p-1.5">
+        <aside className="flex min-h-0 flex-col gap-2 overflow-y-auto overflow-x-hidden rounded-[0.6rem] bg-[#090d12] p-1">
           <div className="rounded-[0.55rem] border border-white/5 bg-[#0c1117] px-2.5 py-2">
             <div className="flex items-center justify-between gap-2">
               <ToolbarLabel>Loaded Chart</ToolbarLabel>

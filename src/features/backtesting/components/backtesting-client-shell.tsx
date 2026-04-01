@@ -57,7 +57,7 @@ export function BacktestingClientShell({
             </div>
           </div>
         </div>
-        <div className="grid min-h-0 flex-1 grid-cols-1 gap-2 px-3 py-2 lg:grid-cols-[minmax(0,1fr)_18rem]">
+        <div className="grid min-h-0 flex-1 grid-cols-1 gap-1 px-2 py-2 lg:grid-cols-[minmax(0,1fr)_18rem]">
           <div className="min-h-[24rem] bg-[#060a0f]" />
           <div className="rounded-[0.6rem] bg-[#090d12]" />
         </div>

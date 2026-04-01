@@ -1330,8 +1330,8 @@ export function BacktestChart({
   }
 
   return (
-    <div className="relative flex h-full min-h-0 flex-col px-1">
-      <div className="relative flex h-full min-h-[20rem] gap-4">
+    <div className="relative flex h-full min-h-0 flex-col pr-0.5">
+      <div className="relative flex h-full min-h-[20rem] gap-2">
         <aside className="relative z-[100] flex h-full w-[2.5rem] shrink-0 flex-col py-1">
           <div className="pointer-events-none absolute bottom-1 right-0 top-1 w-px bg-white/8" />
           <div className="flex flex-1 flex-col gap-0.5">
