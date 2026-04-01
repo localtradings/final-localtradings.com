@@ -56,8 +56,12 @@ export function BacktestingClient({
     useState<BacktestDrawingTool>("cursor");
 
   const riskRewardLabel = useMemo(() => {
-    if (!workspace.primaryValidation.isValid || !workspace.primaryValidation.riskReward) {
+    if (!workspace.primaryValidation.isValid) {
       return "Invalid";
+    }
+
+    if (typeof workspace.primaryValidation.riskReward !== "number") {
+      return "N/A";
     }
 
     return `${workspace.primaryValidation.riskReward.toFixed(2)}R`;
@@ -183,7 +187,7 @@ export function BacktestingClient({
         userId={userId}
       />
 
-      <div className="grid min-h-0 flex-1 grid-cols-1 gap-2 p-1.5 lg:grid-cols-[minmax(0,1fr)_18rem]">
+      <div className="grid min-h-0 flex-1 grid-cols-1 gap-2 px-3 py-2 lg:grid-cols-[minmax(0,1fr)_18rem]">
         <section className="flex min-h-0 min-w-0 flex-col">
           <BacktestChart
             activeDrawingTool={activeDrawingTool}
@@ -205,6 +209,10 @@ export function BacktestingClient({
             onLineChange={workspace.setLineValue}
             onToolChange={setActiveDrawingTool}
             canEditLines={workspace.canDragLines}
+            hasStopLine={workspace.hasStop}
+            hasTargetLine={workspace.hasTarget}
+            onAddOptionalLine={workspace.addDraftLine}
+            onRemoveOptionalLine={workspace.removeDraftLine}
             windowKey={workspace.windowKey}
           />
           <p className="mt-1.5 px-1 text-[10px] text-slate-500">
@@ -274,7 +282,7 @@ export function BacktestingClient({
             </Select>
           </label>
 
-          <div className="grid grid-cols-3 gap-1.5 rounded-[0.55rem] border border-white/5 bg-[#0c1117] p-1.5">
+          <div className="grid grid-cols-1 gap-1.5 rounded-[0.55rem] border border-white/5 bg-[#0c1117] p-1.5">
             <InlineField
               disabled={!workspace.canDragLines || workspace.orderType === "market"}
               fieldId="backtest-entry"
@@ -284,22 +292,31 @@ export function BacktestingClient({
               readOnly={workspace.orderType === "market"}
               value={priceInputValues.entry}
             />
-            <InlineField
-              disabled={!workspace.canDragLines}
-              fieldId="backtest-stop-loss"
-              label="Stop Loss"
-              name="backtest_stop_loss"
-              onChange={(value) => workspace.updateDraftField("stop", value)}
-              value={priceInputValues.stop}
-            />
-            <InlineField
-              disabled={!workspace.canDragLines}
-              fieldId="backtest-take-profit"
-              label="Take Profit"
-              name="backtest_take_profit"
-              onChange={(value) => workspace.updateDraftField("target", value)}
-              value={priceInputValues.target}
-            />
+            {workspace.hasStop ? (
+              <InlineField
+                disabled={!workspace.canDragLines}
+                fieldId="backtest-stop-loss"
+                label="Stop Loss"
+                name="backtest_stop_loss"
+                onChange={(value) => workspace.updateDraftField("stop", value)}
+                value={priceInputValues.stop}
+              />
+            ) : null}
+            {workspace.hasTarget ? (
+              <InlineField
+                disabled={!workspace.canDragLines}
+                fieldId="backtest-take-profit"
+                label="Take Profit"
+                name="backtest_take_profit"
+                onChange={(value) => workspace.updateDraftField("target", value)}
+                value={priceInputValues.target}
+              />
+            ) : null}
+            {!workspace.hasStop && !workspace.hasTarget ? (
+              <p className="px-1 py-1 text-[10px] text-slate-500">
+                Add TP or SL from the chart pills.
+              </p>
+            ) : null}
           </div>
 
           <div className="grid grid-cols-2 gap-1.5 rounded-[0.55rem] border border-white/5 bg-[#0c1117] p-1.5">

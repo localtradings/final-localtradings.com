@@ -15,14 +15,17 @@ import type {
 } from "@/features/backtesting/types";
 
 export const SELECT_CLASS =
-  "h-8 min-h-8 rounded-sm border border-white/8 bg-[#0d1319] px-2.5 py-1 text-xs text-slate-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] focus:border-white/16 focus:ring-2 focus:ring-white/6";
+  "h-8 min-h-8 rounded-sm border border-white/10 bg-[#0a0f14] px-2.5 py-1 text-xs font-medium text-slate-100 transition hover:border-white/16 focus:border-white/25 focus:ring-2 focus:ring-white/8";
 
 export const INPUT_CLASS =
-  "h-8 min-h-8 rounded-sm border border-white/8 bg-[#0d1319] px-2.5 py-1 text-xs text-slate-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] focus:border-white/16 focus:ring-2 focus:ring-white/6";
+  "h-8 min-h-8 rounded-sm border border-white/10 bg-[#0a0f14] px-2.5 py-1 text-xs font-medium text-slate-100 transition hover:border-white/16 focus:border-white/25 focus:ring-2 focus:ring-white/8";
+
+const TOOLBAR_ACTION_BUTTON_CLASS =
+  "h-8 min-h-8 rounded-sm border border-white/10 bg-[#0a0f14] px-3 text-xs font-semibold text-slate-100 transition hover:border-white/16 hover:bg-[#0d1319] disabled:opacity-45";
 
 export function ToolbarLabel({ children }: { children: string }) {
   return (
-    <span className="text-[9px] font-medium uppercase tracking-[0.16em] text-slate-500">
+    <span className="text-[9px] font-semibold uppercase tracking-[0.18em] text-slate-500">
       {children}
     </span>
   );
@@ -223,69 +226,69 @@ export function BacktestingToolbar({
   userId,
 }: BacktestingToolbarProps) {
   return (
-    <div className="shrink-0 border-b border-white/5 px-2 py-2">
+    <div className="shrink-0 border-b border-white/8 px-3 py-2">
       <div className="grid gap-2 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
         <div className="flex flex-wrap items-end gap-2">
-          <label className="grid w-[8.5rem] min-w-0 gap-1">
-            <ToolbarLabel>Symbol</ToolbarLabel>
-            <Select
-              className={SELECT_CLASS}
-              id="backtest-symbol"
-              name="backtest_symbol"
-              onChange={(event) => onSelectionFieldChange("symbol", event.target.value)}
-              value={selectionDraft.symbol}
-            >
-              {initialCatalog.instruments.map((item) => (
-                <option key={item.symbol} value={item.symbol}>
-                  {item.label}
-                </option>
-              ))}
-            </Select>
-          </label>
+            <label className="grid w-[8.5rem] min-w-0 gap-1">
+              <ToolbarLabel>Symbol</ToolbarLabel>
+              <Select
+                className={SELECT_CLASS}
+                id="backtest-symbol"
+                name="backtest_symbol"
+                onChange={(event) => onSelectionFieldChange("symbol", event.target.value)}
+                value={selectionDraft.symbol}
+              >
+                {initialCatalog.instruments.map((item) => (
+                  <option key={item.symbol} value={item.symbol}>
+                    {item.label}
+                  </option>
+                ))}
+              </Select>
+            </label>
 
-          <label className="grid w-[5.75rem] min-w-0 gap-1">
-            <ToolbarLabel>Timeframe</ToolbarLabel>
-            <Select
-              className={SELECT_CLASS}
-              id="backtest-timeframe"
-              name="backtest_timeframe"
-              onChange={(event) => onSelectionFieldChange("timeframe", event.target.value)}
-              value={selectionDraft.timeframe}
-            >
-              {initialCatalog.timeframes.map((item) => (
-                <option key={item} value={item}>
-                  {item}
-                </option>
-              ))}
-            </Select>
-          </label>
+            <label className="grid w-[5.75rem] min-w-0 gap-1">
+              <ToolbarLabel>Timeframe</ToolbarLabel>
+              <Select
+                className={SELECT_CLASS}
+                id="backtest-timeframe"
+                name="backtest_timeframe"
+                onChange={(event) => onSelectionFieldChange("timeframe", event.target.value)}
+                value={selectionDraft.timeframe}
+              >
+                {initialCatalog.timeframes.map((item) => (
+                  <option key={item} value={item}>
+                    {item}
+                  </option>
+                ))}
+              </Select>
+            </label>
 
-          <label className="grid w-[5rem] min-w-0 gap-1">
-            <ToolbarLabel>Speed</ToolbarLabel>
-            <Select
-              className={SELECT_CLASS}
-              id="backtest-speed"
-              name="backtest_speed"
-              onChange={(event) => onReplaySpeedChange(event.target.value)}
-              value={replay.speedId}
-            >
-              {REPLAY_SPEEDS.map((speed) => (
-                <option key={speed.id} value={speed.id}>
-                  {speed.label}
-                </option>
-              ))}
-            </Select>
-          </label>
+            <label className="grid w-[5rem] min-w-0 gap-1">
+              <ToolbarLabel>Speed</ToolbarLabel>
+              <Select
+                className={SELECT_CLASS}
+                id="backtest-speed"
+                name="backtest_speed"
+                onChange={(event) => onReplaySpeedChange(event.target.value)}
+                value={replay.speedId}
+              >
+                {REPLAY_SPEEDS.map((speed) => (
+                  <option key={speed.id} value={speed.id}>
+                    {speed.label}
+                  </option>
+                ))}
+              </Select>
+            </label>
         </div>
 
         <div className="grid grid-cols-3 gap-1.5 sm:flex sm:flex-wrap sm:items-center sm:justify-end lg:ml-auto">
           <BacktestBalancePill
-            className="col-span-3 h-8 rounded-sm border-white/8 bg-[#0d1319] px-2.5 text-[11px] text-slate-100 sm:col-auto"
+            className="col-span-3 h-8 rounded-sm border-white/10 bg-[#0a0f14] px-2.5 text-[11px] text-slate-200 sm:col-auto"
             initialBalance={initialAccount?.currentBalance}
             userId={userId}
           />
           <Button
-            className="h-8 min-h-8 rounded-sm border border-white/8 bg-[#0d1319] px-3 text-xs font-semibold text-slate-100 hover:bg-[#121922] sm:w-auto"
+            className={TOOLBAR_ACTION_BUTTON_CLASS}
             disabled={isLoading}
             onClick={onRandomizeWindow}
             type="button"
@@ -294,7 +297,7 @@ export function BacktestingToolbar({
             {loadButtonLabel}
           </Button>
           <Button
-            className="h-8 min-h-8 rounded-sm border border-white/8 bg-[#0d1319] px-3 text-xs font-semibold text-slate-100 hover:bg-[#121922] sm:w-auto"
+            className={TOOLBAR_ACTION_BUTTON_CLASS}
             disabled={!canStepForward || isLoading}
             onClick={onTogglePlayback}
             type="button"
@@ -303,7 +306,7 @@ export function BacktestingToolbar({
             {replay.isPlaying ? "Pause" : "Play"}
           </Button>
           <Button
-            className="h-8 min-h-8 rounded-sm border border-white/8 bg-[#0d1319] px-3 text-xs font-semibold text-slate-100 hover:bg-[#121922] sm:w-auto"
+            className={TOOLBAR_ACTION_BUTTON_CLASS}
             disabled={!canStepForward || isLoading}
             onClick={onStepReplayForward}
             type="button"

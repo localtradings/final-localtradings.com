@@ -20,7 +20,7 @@ export function buildTradeDraftFromPrice(
   timeframe: BacktestTimeframe,
   referencePrice: number,
   direction: BacktestDirection,
-  orderType: BacktestOrderType = "limit",
+  orderType: BacktestOrderType = "market",
   volume = "",
 ): BacktestTradeDraft {
   const multiplier =
@@ -48,7 +48,9 @@ export function buildTradeDraftFromPrice(
     direction,
     orderType,
     entry: formatPrice(entry, instrument),
+    hasStop: false,
     stop: formatPrice(stop, instrument),
+    hasTarget: false,
     target: formatPrice(target, instrument),
     volume,
     thesis:
@@ -63,13 +65,13 @@ export function validateTradeDraft(
   draft: BacktestTradeDraft,
 ): BacktestTradeValidation {
   const entry = Number(draft.entry);
-  const stop = Number(draft.stop);
-  const target = Number(draft.target);
+  const stop = draft.hasStop ? Number(draft.stop) : null;
+  const target = draft.hasTarget ? Number(draft.target) : null;
 
-  if ([entry, stop, target].some(Number.isNaN)) {
+  if (Number.isNaN(entry)) {
     return {
       isValid: false,
-      message: "Entry, stop, and target all need valid numeric prices.",
+      message: "Entry needs a valid numeric price.",
       entry: null,
       stop: null,
       target: null,
@@ -79,12 +81,12 @@ export function validateTradeDraft(
     };
   }
 
-  if (draft.direction === "Long" && !(stop < entry && target > entry)) {
+  if (draft.hasStop && (stop === null || Number.isNaN(stop))) {
     return {
       isValid: false,
-      message: "For a long setup, stop must be below entry and target must be above entry.",
+      message: "Stop needs a valid numeric price.",
       entry,
-      stop,
+      stop: null,
       target,
       riskPerUnit: null,
       rewardPerUnit: null,
@@ -92,21 +94,75 @@ export function validateTradeDraft(
     };
   }
 
-  if (draft.direction === "Short" && !(stop > entry && target < entry)) {
+  if (draft.hasTarget && (target === null || Number.isNaN(target))) {
     return {
       isValid: false,
-      message: "For a short setup, stop must be above entry and target must be below entry.",
+      message: "Take profit needs a valid numeric price.",
       entry,
       stop,
-      target,
+      target: null,
       riskPerUnit: null,
       rewardPerUnit: null,
       riskReward: null,
     };
   }
 
-  const riskPerUnit = Math.abs(entry - stop);
-  const rewardPerUnit = Math.abs(target - entry);
+  if (draft.direction === "Long") {
+    if (typeof stop === "number" && stop >= entry) {
+      return {
+        isValid: false,
+        message: "For a long setup, stop must be below entry.",
+        entry,
+        stop,
+        target,
+        riskPerUnit: null,
+        rewardPerUnit: null,
+        riskReward: null,
+      };
+    }
+
+    if (typeof target === "number" && target <= entry) {
+      return {
+        isValid: false,
+        message: "For a long setup, target must be above entry.",
+        entry,
+        stop,
+        target,
+        riskPerUnit: null,
+        rewardPerUnit: null,
+        riskReward: null,
+      };
+    }
+  } else {
+    if (typeof stop === "number" && stop <= entry) {
+      return {
+        isValid: false,
+        message: "For a short setup, stop must be above entry.",
+        entry,
+        stop,
+        target,
+        riskPerUnit: null,
+        rewardPerUnit: null,
+        riskReward: null,
+      };
+    }
+
+    if (typeof target === "number" && target >= entry) {
+      return {
+        isValid: false,
+        message: "For a short setup, target must be below entry.",
+        entry,
+        stop,
+        target,
+        riskPerUnit: null,
+        rewardPerUnit: null,
+        riskReward: null,
+      };
+    }
+  }
+
+  const riskPerUnit = typeof stop === "number" ? Math.abs(entry - stop) : null;
+  const rewardPerUnit = typeof target === "number" ? Math.abs(target - entry) : null;
 
   if (riskPerUnit === 0) {
     return {
@@ -128,7 +184,12 @@ export function validateTradeDraft(
     target,
     riskPerUnit,
     rewardPerUnit,
-    riskReward: rewardPerUnit / riskPerUnit,
+    riskReward:
+      typeof riskPerUnit === "number" &&
+      riskPerUnit > 0 &&
+      typeof rewardPerUnit === "number"
+        ? rewardPerUnit / riskPerUnit
+        : null,
   };
 }
 
@@ -161,9 +222,10 @@ export function deriveRiskSettings(
   account: BacktestAccountState,
   input: Partial<Pick<BacktestTradeMoneySummary, "riskPercent" | "riskAmount">>,
 ) {
-  const currentBalance = Number.isFinite(account.currentBalance) && account.currentBalance > 0
-    ? account.currentBalance
-    : 100000;
+  const currentBalance =
+    Number.isFinite(account.currentBalance) && account.currentBalance > 0
+      ? account.currentBalance
+      : 100000;
   const requestedPercent = Number(input.riskPercent);
   const requestedAmount = Number(input.riskAmount);
 
@@ -235,12 +297,14 @@ export function armPendingTradeExecution(
   validation: BacktestTradeValidation,
   money: {
     orderType: BacktestOrderType;
-    riskPercent: number;
-    riskAmount: number;
+    riskPercent: number | null;
+    riskAmount: number | null;
     volume: number | null;
     balanceBeforeTrade: number;
   },
 ): BacktestTradeExecution {
+  const hasRiskAnchor = typeof validation.stop === "number";
+
   return {
     status: "armed",
     orderType: money.orderType,
@@ -259,8 +323,8 @@ export function armPendingTradeExecution(
     resultR: null,
     resultAmount: null,
     balanceAfterTrade: null,
-    maxFavorableR: 0,
-    maxAdverseR: 0,
+    maxFavorableR: hasRiskAnchor ? 0 : null,
+    maxAdverseR: hasRiskAnchor ? 0 : null,
     durationBars: null,
   };
 }
@@ -274,6 +338,8 @@ export function activateTradeExecution(
     "orderType" | "riskPercent" | "riskAmount" | "volume" | "balanceBeforeTrade"
   >,
 ): BacktestTradeExecution {
+  const hasRiskAnchor = typeof validation.stop === "number";
+
   return {
     status: "active",
     orderType: money.orderType ?? null,
@@ -292,8 +358,8 @@ export function activateTradeExecution(
     resultR: null,
     resultAmount: null,
     balanceAfterTrade: null,
-    maxFavorableR: 0,
-    maxAdverseR: 0,
+    maxFavorableR: hasRiskAnchor ? 0 : null,
+    maxAdverseR: hasRiskAnchor ? 0 : null,
     durationBars: null,
   };
 }
@@ -302,16 +368,34 @@ function getResultR(
   direction: BacktestDirection,
   entry: number,
   exitPrice: number,
-  riskPerUnit: number,
+  riskPerUnit: number | null,
 ) {
-  if (riskPerUnit === 0) {
-    return 0;
+  if (typeof riskPerUnit !== "number" || riskPerUnit === 0) {
+    return null;
   }
 
-  const signedMove =
-    direction === "Long" ? exitPrice - entry : entry - exitPrice;
-
+  const signedMove = direction === "Long" ? exitPrice - entry : entry - exitPrice;
   return signedMove / riskPerUnit;
+}
+
+function getSignedMove(
+  direction: BacktestDirection,
+  entry: number,
+  exitPrice: number,
+) {
+  return direction === "Long" ? exitPrice - entry : entry - exitPrice;
+}
+
+function getResultAmount(
+  execution: BacktestTradeExecution,
+  direction: BacktestDirection,
+  exitPrice: number,
+) {
+  if (execution.entry === null || typeof execution.volume !== "number") {
+    return null;
+  }
+
+  return getSignedMove(direction, execution.entry, exitPrice) * execution.volume;
 }
 
 export function advanceTradeExecution(
@@ -323,59 +407,112 @@ export function advanceTradeExecution(
   if (
     execution.status !== "active" ||
     execution.entry === null ||
-    execution.stop === null ||
-    execution.target === null ||
     execution.openedAtIndex === null
   ) {
     return execution;
   }
 
-  const riskPerUnit = Math.abs(execution.entry - execution.stop);
+  const riskPerUnit =
+    execution.stop === null ? null : Math.abs(execution.entry - execution.stop);
   const favorableR =
-    direction === "Long"
-      ? (candle.high - execution.entry) / riskPerUnit
-      : (execution.entry - candle.low) / riskPerUnit;
+    typeof riskPerUnit === "number" && riskPerUnit > 0
+      ? direction === "Long"
+        ? (candle.high - execution.entry) / riskPerUnit
+        : (execution.entry - candle.low) / riskPerUnit
+      : null;
   const adverseR =
-    direction === "Long"
-      ? (execution.entry - candle.low) / riskPerUnit
-      : (candle.high - execution.entry) / riskPerUnit;
+    typeof riskPerUnit === "number" && riskPerUnit > 0
+      ? direction === "Long"
+        ? (execution.entry - candle.low) / riskPerUnit
+        : (candle.high - execution.entry) / riskPerUnit
+      : null;
 
   const baseExecution: BacktestTradeExecution = {
     ...execution,
-    maxFavorableR: Math.max(execution.maxFavorableR ?? 0, favorableR),
-    maxAdverseR: Math.max(execution.maxAdverseR ?? 0, adverseR),
+    maxFavorableR:
+      favorableR === null
+        ? execution.maxFavorableR
+        : Math.max(execution.maxFavorableR ?? 0, favorableR),
+    maxAdverseR:
+      adverseR === null
+        ? execution.maxAdverseR
+        : Math.max(execution.maxAdverseR ?? 0, adverseR),
     durationBars: candleIndex - execution.openedAtIndex,
   };
 
   if (direction === "Long") {
-    const hitStop = candle.low <= execution.stop;
-    const hitTarget = candle.high >= execution.target;
+    const hitStop = execution.stop !== null ? candle.low <= execution.stop : false;
+    const hitTarget =
+      execution.target !== null ? candle.high >= execution.target : false;
 
     if (hitStop && hitTarget) {
-      return resolveTrade(baseExecution, "stop_hit", execution.stop, candleIndex, candle.time, direction);
+      return resolveTrade(
+        baseExecution,
+        "stop_hit",
+        execution.stop as number,
+        candleIndex,
+        candle.time,
+        direction,
+      );
     }
 
     if (hitStop) {
-      return resolveTrade(baseExecution, "stop_hit", execution.stop, candleIndex, candle.time, direction);
+      return resolveTrade(
+        baseExecution,
+        "stop_hit",
+        execution.stop as number,
+        candleIndex,
+        candle.time,
+        direction,
+      );
     }
 
     if (hitTarget) {
-      return resolveTrade(baseExecution, "target_hit", execution.target, candleIndex, candle.time, direction);
+      return resolveTrade(
+        baseExecution,
+        "target_hit",
+        execution.target as number,
+        candleIndex,
+        candle.time,
+        direction,
+      );
     }
   } else {
-    const hitStop = candle.high >= execution.stop;
-    const hitTarget = candle.low <= execution.target;
+    const hitStop = execution.stop !== null ? candle.high >= execution.stop : false;
+    const hitTarget =
+      execution.target !== null ? candle.low <= execution.target : false;
 
     if (hitStop && hitTarget) {
-      return resolveTrade(baseExecution, "stop_hit", execution.stop, candleIndex, candle.time, direction);
+      return resolveTrade(
+        baseExecution,
+        "stop_hit",
+        execution.stop as number,
+        candleIndex,
+        candle.time,
+        direction,
+      );
     }
 
     if (hitStop) {
-      return resolveTrade(baseExecution, "stop_hit", execution.stop, candleIndex, candle.time, direction);
+      return resolveTrade(
+        baseExecution,
+        "stop_hit",
+        execution.stop as number,
+        candleIndex,
+        candle.time,
+        direction,
+      );
     }
 
     if (hitTarget) {
-      return resolveTrade(baseExecution, "target_hit", execution.target, candleIndex, candle.time, direction);
+      return resolveTrade(
+        baseExecution,
+        "target_hit",
+        execution.target as number,
+        candleIndex,
+        candle.time,
+        direction,
+      );
     }
   }
 
@@ -388,12 +525,7 @@ export function advancePendingTradeExecution(
   candleIndex: number,
   direction: BacktestDirection,
 ): BacktestTradeExecution {
-  if (
-    execution.status !== "armed" ||
-    execution.entry === null ||
-    execution.stop === null ||
-    execution.target === null
-  ) {
+  if (execution.status !== "armed" || execution.entry === null) {
     return execution;
   }
 
@@ -411,19 +543,25 @@ export function advancePendingTradeExecution(
     return execution;
   }
 
+  const riskPerUnit =
+    execution.stop === null ? null : Math.abs(execution.entry - execution.stop);
+  const rewardPerUnit =
+    execution.target === null ? null : Math.abs(execution.target - execution.entry);
+
   const activated = activateTradeExecution(
     {
       isValid: true,
       entry: execution.entry,
       stop: execution.stop,
       target: execution.target,
-      riskPerUnit: Math.abs(execution.entry - execution.stop),
-      rewardPerUnit: Math.abs(execution.target - execution.entry),
+      riskPerUnit,
+      rewardPerUnit,
       riskReward:
-        Math.abs(execution.entry - execution.stop) === 0
-          ? null
-          : Math.abs(execution.target - execution.entry) /
-            Math.abs(execution.entry - execution.stop),
+        typeof riskPerUnit === "number" &&
+        riskPerUnit > 0 &&
+        typeof rewardPerUnit === "number"
+          ? rewardPerUnit / riskPerUnit
+          : null,
     },
     candleIndex,
     candle.time,
@@ -447,10 +585,12 @@ function resolveTrade(
   candleTime: number,
   direction: BacktestDirection,
 ): BacktestTradeExecution {
-  const riskPerUnit = Math.abs((execution.entry ?? 0) - (execution.stop ?? 0));
+  const riskPerUnit =
+    execution.entry === null || execution.stop === null
+      ? null
+      : Math.abs(execution.entry - execution.stop);
   const resultR = getResultR(direction, execution.entry ?? 0, exitPrice, riskPerUnit);
-  const resultAmount =
-    typeof execution.riskAmount === "number" ? execution.riskAmount * resultR : null;
+  const resultAmount = getResultAmount(execution, direction, exitPrice);
   const balanceAfterTrade =
     typeof execution.balanceBeforeTrade === "number" && typeof resultAmount === "number"
       ? execution.balanceBeforeTrade + resultAmount
@@ -476,29 +616,26 @@ export function manuallyCloseTrade(
   candleIndex: number,
   direction: BacktestDirection,
 ): BacktestTradeExecution {
-  if (
-    execution.status !== "active" ||
-    execution.entry === null ||
-    execution.stop === null
-  ) {
+  if (execution.status !== "active" || execution.entry === null) {
     return execution;
   }
 
-  const riskPerUnit = Math.abs(execution.entry - execution.stop);
+  const riskPerUnit =
+    execution.stop === null ? null : Math.abs(execution.entry - execution.stop);
   const resultR = getResultR(direction, execution.entry, candle.close, riskPerUnit);
-  const status = Math.abs(resultR) < 0.05 ? "breakeven" : "manual_close";
+  const resultAmount = getResultAmount(execution, direction, candle.close);
+  const status =
+    resultR !== null && Math.abs(resultR) < 0.05 ? "breakeven" : "manual_close";
 
   return {
     ...execution,
     status,
     exitPrice: candle.close,
     resultR,
-    resultAmount:
-      typeof execution.riskAmount === "number" ? execution.riskAmount * resultR : null,
+    resultAmount,
     balanceAfterTrade:
-      typeof execution.balanceBeforeTrade === "number" &&
-      typeof execution.riskAmount === "number"
-        ? execution.balanceBeforeTrade + execution.riskAmount * resultR
+      typeof execution.balanceBeforeTrade === "number" && typeof resultAmount === "number"
+        ? execution.balanceBeforeTrade + resultAmount
         : null,
     closedAtIndex: candleIndex,
     closedAtTime: candle.time,
@@ -513,28 +650,24 @@ export function finalizeUnfinishedTrade(
   candleIndex: number,
   direction: BacktestDirection,
 ): BacktestTradeExecution {
-  if (
-    execution.status !== "active" ||
-    execution.entry === null ||
-    execution.stop === null
-  ) {
+  if (execution.status !== "active" || execution.entry === null) {
     return execution;
   }
 
-  const riskPerUnit = Math.abs(execution.entry - execution.stop);
+  const riskPerUnit =
+    execution.stop === null ? null : Math.abs(execution.entry - execution.stop);
   const resultR = getResultR(direction, execution.entry, candle.close, riskPerUnit);
+  const resultAmount = getResultAmount(execution, direction, candle.close);
 
   return {
     ...execution,
     status: "unfinished",
     exitPrice: candle.close,
     resultR,
-    resultAmount:
-      typeof execution.riskAmount === "number" ? execution.riskAmount * resultR : null,
+    resultAmount,
     balanceAfterTrade:
-      typeof execution.balanceBeforeTrade === "number" &&
-      typeof execution.riskAmount === "number"
-        ? execution.balanceBeforeTrade + execution.riskAmount * resultR
+      typeof execution.balanceBeforeTrade === "number" && typeof resultAmount === "number"
+        ? execution.balanceBeforeTrade + resultAmount
         : null,
     closedAtIndex: candleIndex,
     closedAtTime: candle.time,

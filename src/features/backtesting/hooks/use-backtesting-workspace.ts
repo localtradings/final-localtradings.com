@@ -221,14 +221,13 @@ export function useBacktestingWorkspace(
 
   const lineValues = useMemo<BacktestLineValues>(() => {
     if (execution.status === "draft") {
-      const draftEntry =
-        tradeDraft.orderType === "market"
-          ? referenceEntryPrice
-          : parseDraftPrice(tradeDraft.entry);
       return {
-        entry: draftEntry,
-        stop: parseDraftPrice(tradeDraft.stop),
-        target: parseDraftPrice(tradeDraft.target),
+        entry:
+          tradeDraft.orderType === "market"
+            ? null
+            : parseDraftPrice(tradeDraft.entry),
+        stop: tradeDraft.hasStop ? parseDraftPrice(tradeDraft.stop) : null,
+        target: tradeDraft.hasTarget ? parseDraftPrice(tradeDraft.target) : null,
       };
     }
 
@@ -239,8 +238,9 @@ export function useBacktestingWorkspace(
     };
   }, [
     execution,
-    referenceEntryPrice,
     tradeDraft.entry,
+    tradeDraft.hasStop,
+    tradeDraft.hasTarget,
     tradeDraft.orderType,
     tradeDraft.stop,
     tradeDraft.target,
@@ -289,12 +289,28 @@ export function useBacktestingWorkspace(
       return execution.resultAmount;
     }
 
-    if (typeof liveResultR === "number" && typeof execution.riskAmount === "number") {
-      return liveResultR * execution.riskAmount;
+    if (
+      execution.status === "active" &&
+      execution.entry !== null &&
+      currentCandle &&
+      typeof execution.volume === "number"
+    ) {
+      const priceMove =
+        draftRef.current.direction === "Long"
+          ? currentCandle.close - execution.entry
+          : execution.entry - currentCandle.close;
+
+      return priceMove * execution.volume;
     }
 
     return null;
-  }, [execution.resultAmount, execution.riskAmount, liveResultR]);
+  }, [
+    currentCandle,
+    execution.entry,
+    execution.resultAmount,
+    execution.status,
+    execution.volume,
+  ]);
 
   const displayBalance = useMemo(() => {
     if (execution.status === "active" && typeof liveResultAmount === "number") {
@@ -542,18 +558,91 @@ export function useBacktestingWorkspace(
       return;
     }
 
+    if (field === "stop" && !draftRef.current.hasStop) {
+      return;
+    }
+
+    if (field === "target" && !draftRef.current.hasTarget) {
+      return;
+    }
+
     updateDraftField(field, nextPrice.toFixed(currentInstrument.pricePrecision));
   }
 
   function updateOrderType(nextOrderType: BacktestOrderType) {
-    setTradeDraft((current) => ({
-      ...current,
-      orderType: nextOrderType,
-      entry:
+    setTradeDraft((current) => {
+      const seededDraft = buildTradeDraftFromPrice(
+        currentInstrument,
+        selectionRef.current.timeframe,
         nextOrderType === "market"
-          ? formatPrice(referenceEntryPrice, currentInstrument)
-          : current.entry,
-    }));
+          ? referenceEntryPrice
+          : parseDraftPrice(current.entry) ?? referenceEntryPrice,
+        current.direction,
+        nextOrderType,
+        current.volume,
+      );
+
+      return {
+        ...current,
+        orderType: nextOrderType,
+        entry:
+          nextOrderType === "market"
+            ? formatPrice(referenceEntryPrice, currentInstrument)
+            : parseDraftPrice(current.entry) !== null
+              ? current.entry
+              : seededDraft.entry,
+        stop: current.hasStop ? current.stop : seededDraft.stop,
+        target: current.hasTarget ? current.target : seededDraft.target,
+      };
+    });
+  }
+
+  function addDraftLine(field: Extract<BacktestLineField, "stop" | "target">) {
+    if (executionRef.current.status !== "draft") {
+      return;
+    }
+
+    setTradeDraft((current) => {
+      if ((field === "stop" && current.hasStop) || (field === "target" && current.hasTarget)) {
+        return current;
+      }
+
+      const seededDraft = buildTradeDraftFromPrice(
+        currentInstrument,
+        selectionRef.current.timeframe,
+        current.orderType === "market"
+          ? referenceEntryPrice
+          : parseDraftPrice(current.entry) ?? referenceEntryPrice,
+        current.direction,
+        current.orderType,
+        current.volume,
+      );
+
+      return field === "stop"
+        ? {
+            ...current,
+            hasStop: true,
+            stop: parseDraftPrice(current.stop) !== null ? current.stop : seededDraft.stop,
+          }
+        : {
+            ...current,
+            hasTarget: true,
+            target:
+              parseDraftPrice(current.target) !== null ? current.target : seededDraft.target,
+          };
+    });
+  }
+
+  function removeDraftLine(field: Extract<BacktestLineField, "stop" | "target">) {
+    if (executionRef.current.status !== "draft") {
+      return;
+    }
+
+    setTradeDraft((current) =>
+      field === "stop"
+        ? { ...current, hasStop: false }
+        : { ...current, hasTarget: false },
+    );
   }
 
   function updateVolume(nextValue: number) {
@@ -604,14 +693,6 @@ export function useBacktestingWorkspace(
 
     if (!volume) {
       setNotice("Enter a valid volume first.");
-      return;
-    }
-
-    if (
-      typeof riskSettings.riskAmount !== "number" ||
-      typeof riskSettings.riskPercent !== "number"
-    ) {
-      setNotice("Move the lines into a valid setup first.");
       return;
     }
 
@@ -726,7 +807,9 @@ export function useBacktestingWorkspace(
       instrument,
       selectionRef.current.timeframe,
       referencePrice,
-      "Long",
+      draftRef.current.direction,
+      draftRef.current.orderType,
+      draftRef.current.volume,
     );
     const nextValidation = validateTradeDraft(nextDraft);
     const seededRisk = deriveRiskSettings(account, {
@@ -849,8 +932,8 @@ export function useBacktestingWorkspace(
     account,
     activeSelection,
     activeWindowStartAt: dataset?.selection.windowStartAt ?? null,
-    canArmBuy: execution.status === "draft" && buyValidation.isValid,
-    canArmSell: execution.status === "draft" && sellValidation.isValid,
+    canArmBuy: execution.status === "draft" && buyValidation.isValid && draftVolume !== null,
+    canArmSell: execution.status === "draft" && sellValidation.isValid && draftVolume !== null,
     canCloseTrade: execution.status === "active",
     canDragLines: execution.status === "draft",
     canStepForward,
@@ -880,8 +963,12 @@ export function useBacktestingWorkspace(
     resetTradeLines,
     revealedCandles,
     riskSettings,
+    addDraftLine,
+    removeDraftLine,
     selectionDraft,
     sessions,
+    hasStop: tradeDraft.hasStop,
+    hasTarget: tradeDraft.hasTarget,
     setLineValue,
     setReplay,
     stagedSelectionChanged:

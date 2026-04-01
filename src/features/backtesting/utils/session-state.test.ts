@@ -14,9 +14,11 @@ import {
 
 const fallbackDraft: BacktestTradeDraft = {
   direction: "Long",
-  orderType: "limit",
+  orderType: "market",
   entry: "2358.0",
+  hasStop: true,
   stop: "2352.0",
+  hasTarget: true,
   target: "2368.8",
   volume: "",
   thesis: "Test thesis",
@@ -44,7 +46,9 @@ describe("session-state", () => {
           direction: "Short",
           orderType: "stop",
           entry: "2400",
+          hasStop: true,
           stop: "2410",
+          hasTarget: true,
           target: "2380",
           volume: "1.2",
           thesis: "Short setup",

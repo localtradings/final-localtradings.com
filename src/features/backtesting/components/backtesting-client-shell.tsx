@@ -42,7 +42,7 @@ export function BacktestingClientShell({
   if (!mounted) {
     return (
       <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-[0.75rem] bg-[#080d12] ring-1 ring-white/5">
-        <div className="shrink-0 border-b border-white/5 px-2 py-2">
+        <div className="shrink-0 border-b border-white/8 px-3 py-2">
           <div className="grid gap-2 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
             <div className="flex flex-wrap gap-2">
               <div className="h-8 w-[8.5rem] rounded-sm bg-[#0d1319]" />
@@ -50,15 +50,15 @@ export function BacktestingClientShell({
               <div className="h-8 w-[5rem] rounded-sm bg-[#0d1319]" />
             </div>
             <div className="grid grid-cols-3 gap-1.5 sm:flex">
-              <div className="col-span-3 h-8 w-full rounded-sm bg-[#0d1319] sm:w-[7.5rem]" />
-              <div className="h-8 rounded-sm bg-[#0d1319] sm:w-[6.5rem]" />
-              <div className="h-8 rounded-sm bg-[#0d1319] sm:w-[4rem]" />
-              <div className="h-8 rounded-sm bg-[#0d1319] sm:w-[7.5rem]" />
+              <div className="col-span-3 h-8 w-full rounded-sm bg-[#0d1319] sm:w-[8rem]" />
+              <div className="h-8 rounded-sm bg-[#0d1319] sm:w-[7rem]" />
+              <div className="h-8 rounded-sm bg-[#0d1319] sm:w-[4.5rem]" />
+              <div className="h-8 rounded-sm bg-[#0d1319] sm:w-[8rem]" />
             </div>
           </div>
         </div>
-        <div className="grid min-h-0 flex-1 grid-cols-1 gap-2 p-1.5 lg:grid-cols-[minmax(0,1fr)_18rem]">
-          <div className="min-h-[24rem] rounded-[0.75rem] bg-[#060a0f]" />
+        <div className="grid min-h-0 flex-1 grid-cols-1 gap-2 px-3 py-2 lg:grid-cols-[minmax(0,1fr)_18rem]">
+          <div className="min-h-[24rem] bg-[#060a0f]" />
           <div className="rounded-[0.6rem] bg-[#090d12]" />
         </div>
       </div>

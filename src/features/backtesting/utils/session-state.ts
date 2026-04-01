@@ -56,17 +56,26 @@ export function sanitizeSnapshot(
         snapshot.tradeDraft?.direction === "Short" ? "Short" : fallbackDraft.direction,
       orderType:
         snapshot.tradeDraft?.orderType === "market" ||
-        snapshot.tradeDraft?.orderType === "stop"
+        snapshot.tradeDraft?.orderType === "stop" ||
+        snapshot.tradeDraft?.orderType === "limit"
           ? snapshot.tradeDraft.orderType
           : fallbackDraft.orderType,
       entry:
         typeof snapshot.tradeDraft?.entry === "string"
           ? snapshot.tradeDraft.entry
           : fallbackDraft.entry,
+      hasStop:
+        typeof snapshot.tradeDraft?.hasStop === "boolean"
+          ? snapshot.tradeDraft.hasStop
+          : fallbackDraft.hasStop,
       stop:
         typeof snapshot.tradeDraft?.stop === "string"
           ? snapshot.tradeDraft.stop
           : fallbackDraft.stop,
+      hasTarget:
+        typeof snapshot.tradeDraft?.hasTarget === "boolean"
+          ? snapshot.tradeDraft.hasTarget
+          : fallbackDraft.hasTarget,
       target:
         typeof snapshot.tradeDraft?.target === "string"
           ? snapshot.tradeDraft.target

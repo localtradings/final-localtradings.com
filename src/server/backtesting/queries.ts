@@ -63,11 +63,13 @@ export function normalizeBacktestSession(
   const pricePrecision = instrument.pricePrecision;
   const fallbackDraft = {
     direction,
-    orderType: "limit" as const,
+    orderType: "market" as const,
     entry:
       typeof row.entry === "number" ? row.entry.toFixed(pricePrecision) : "",
+    hasStop: typeof row.stop === "number",
     stop:
       typeof row.stop === "number" ? row.stop.toFixed(pricePrecision) : "",
+    hasTarget: typeof row.target === "number",
     target:
       typeof row.target === "number" ? row.target.toFixed(pricePrecision) : "",
     volume: "1.00",

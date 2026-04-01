@@ -92,7 +92,7 @@ export function buildStatusNotice(
           : "Order filled";
     const entryLabel =
       typeof options?.entry === "number" ? ` @ ${options.entry}` : "";
-    return `${sideLabel}${entryLabel}. TP and stop are now live.`;
+    return `${sideLabel}${entryLabel}. Trade is now live.`;
   }
 
   return null;

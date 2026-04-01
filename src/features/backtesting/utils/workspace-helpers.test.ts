@@ -21,7 +21,7 @@ describe("workspace-helpers", () => {
       "Pending order armed. Price must touch entry first.",
     );
     expect(buildStatusNotice("active", null, { direction: "Long", entry: 2358 })).toBe(
-      "Bought @ 2358. TP and stop are now live.",
+      "Bought @ 2358. Trade is now live.",
     );
     expect(buildStatusNotice("target_hit", 1800)).toBe("Target hit +$1800.00. Replay paused.");
   });
@@ -32,7 +32,9 @@ describe("workspace-helpers", () => {
         direction: "Long",
         orderType: "market",
         entry: "",
+        hasStop: true,
         stop: "2352",
+        hasTarget: true,
         target: "2368.8",
         volume: "",
         thesis: "",
@@ -70,7 +72,9 @@ describe("workspace-helpers", () => {
           direction: "Long",
           orderType: "limit",
           entry: "2358",
+          hasStop: true,
           stop: "2352",
+          hasTarget: true,
           target: "2368.8",
           volume: "",
           thesis: "",

@@ -78,10 +78,14 @@ type BacktestChartProps = {
   direction: BacktestDirection;
   editableFields: Record<BacktestLineField, boolean>;
   execution: BacktestTradeExecution;
+  hasStopLine: boolean;
+  hasTargetLine: boolean;
   instrument: BacktestInstrument;
   isLoading: boolean;
   lineValues: BacktestLineValues;
+  onAddOptionalLine: (field: Extract<BacktestLineField, "stop" | "target">) => void;
   onLineChange: (field: BacktestLineField, price: number) => void;
+  onRemoveOptionalLine: (field: Extract<BacktestLineField, "stop" | "target">) => void;
   onToolChange: (tool: BacktestDrawingTool) => void;
   canEditLines: boolean;
   windowKey: string;
@@ -162,30 +166,53 @@ const TOOL_SHORTCUTS: Partial<Record<BacktestDrawingTool, string>> = {
 
 const LINE_DRAG_ACTIVATION_THRESHOLD_PX = 4;
 const LINE_HIT_AREA_HEIGHT_PX = 24;
+const TRADE_CONTROL_BASE_CLASS =
+  "inline-flex h-6 items-center border border-[#ffe447] bg-[#ffe447] pl-0.5 pr-0 text-[9px] font-semibold tracking-[0.08em] text-black shadow-[0_8px_18px_rgba(0,0,0,0.16)]";
+const TRADE_CONTROL_ADD_CLASS =
+  `${TRADE_CONTROL_BASE_CLASS} rounded-sm transition hover:bg-[#f5da3f] hover:border-[#f5da3f]`;
+const TRADE_CONTROL_ACTIVE_CLASS =
+  `${TRADE_CONTROL_BASE_CLASS} rounded-sm`;
+const TRADE_CONTROL_REMOVE_CLASS =
+  "ml-2 inline-flex h-6 min-w-8 items-center justify-center border-l border-black/15 bg-black/12 px-2 text-[9px] font-semibold text-black transition hover:bg-black/20";
 
 const TOOL_OPTIONS: Partial<
   Record<Exclude<BacktestDrawingTool, "cursor">, Record<string, unknown>>
 > = {
   horizontalLine: {
+    showPriceAxisLabels: true,
+    showTimeAxisLabels: true,
+    priceAxisLabelAlwaysVisible: true,
     line: { color: "#60a5fa", width: 2 },
   },
   trendLine: {
+    showPriceAxisLabels: true,
+    showTimeAxisLabels: true,
     line: { color: "#38bdf8", width: 2 },
   },
   ray: {
+    showPriceAxisLabels: true,
+    showTimeAxisLabels: true,
     line: { color: "#22d3ee", width: 2 },
   },
   extendedLine: {
+    showPriceAxisLabels: true,
+    showTimeAxisLabels: true,
     line: { color: "#67e8f9", width: 2 },
   },
   rectangle: {
+    showPriceAxisLabels: false,
+    showTimeAxisLabels: false,
     line: { color: "#f59e0b", width: 2 },
     background: { color: "rgba(245, 158, 11, 0.12)" },
   },
   brush: {
+    showPriceAxisLabels: false,
+    showTimeAxisLabels: false,
     line: { color: "#c084fc", width: 2 },
   },
   circle: {
+    showPriceAxisLabels: false,
+    showTimeAxisLabels: false,
     line: { color: "#f97316", width: 2 },
     background: { color: "rgba(249, 115, 22, 0.1)" },
   },
@@ -203,6 +230,8 @@ const TOOL_OPTIONS: Partial<
     ],
   },
   text: {
+    showPriceAxisLabels: false,
+    showTimeAxisLabels: false,
     text: {
       value: "Note",
       font: {
@@ -297,39 +326,6 @@ type LineToolsPluginRuntime = ILineToolsPlugin & {
   ) => void;
 };
 
-function getDrawingToolHelpText(tool: BacktestDrawingTool) {
-  switch (tool) {
-    case "cursor":
-      return "Select tools, pan the chart, drag trade lines, or use keyboard shortcuts.";
-    case "horizontalLine":
-      return "Click the chart to place a horizontal line.";
-    case "trendLine":
-      return "Click twice to place a trend line.";
-    case "ray":
-      return "Click twice to place a ray.";
-    case "extendedLine":
-      return "Click twice to place an extended line.";
-    case "rectangle":
-      return "Click twice to place a rectangle zone.";
-    case "brush":
-      return "Click and drag to draw a brush stroke.";
-    case "circle":
-      return "Click twice to place a circle.";
-    case "fibRetracement":
-      return "Click twice to place a fib retracement.";
-    case "text":
-      return "Click once to place a text note. Double-click to edit it.";
-    case "triangle":
-      return "Click three times to place a triangle.";
-    case "parallelChannel":
-      return "Click three times to place a parallel channel.";
-    case "priceRange":
-      return "Click twice to place a price range tool.";
-    case "longShortPosition":
-      return "Click twice to place a long/short position tool.";
-  }
-}
-
 export function BacktestChart({
   activeDrawingTool,
   candles,
@@ -337,10 +333,14 @@ export function BacktestChart({
   direction,
   editableFields,
   execution,
+  hasStopLine,
+  hasTargetLine,
   instrument,
   isLoading,
   lineValues,
+  onAddOptionalLine,
   onLineChange,
+  onRemoveOptionalLine,
   onToolChange,
   canEditLines,
   windowKey,
@@ -1010,6 +1010,7 @@ export function BacktestChart({
       rightPriceScale: {
         borderColor: "rgba(148,163,184,0.14)",
         autoScale: true,
+        minimumWidth: PRICE_SCALE_GUTTER_PX,
         ticksVisible: true,
         scaleMargins: {
           top: 0.16,
@@ -1329,12 +1330,11 @@ export function BacktestChart({
   }
 
   return (
-    <div className="relative flex h-full min-h-0 flex-col rounded-[var(--radius-xl)] bg-[linear-gradient(180deg,#080c11_0%,#0a0f15_100%)] p-1.5 sm:p-2">
-      <div className="absolute inset-0 opacity-[0.08] [background-image:linear-gradient(rgba(203,213,225,0.07)_1px,transparent_1px),linear-gradient(90deg,rgba(203,213,225,0.07)_1px,transparent_1px)] [background-size:28px_18px]" />
-      <div className="relative flex h-full min-h-[20rem] gap-2.5">
-        <aside className="relative z-[100] flex h-full w-[3.4rem] shrink-0 flex-col border border-white/6 bg-[#070b10]">
-          <div className="flex-1 overflow-y-auto px-1.5 py-1.5">
-            <div className="flex flex-col gap-0.5">
+    <div className="relative flex h-full min-h-0 flex-col px-1">
+      <div className="relative flex h-full min-h-[20rem] gap-4">
+        <aside className="relative z-[100] flex h-full w-[2.5rem] shrink-0 flex-col py-1">
+          <div className="pointer-events-none absolute bottom-1 right-0 top-1 w-px bg-white/8" />
+          <div className="flex flex-1 flex-col gap-0.5">
               {TOOL_ITEMS.map((item, index) => {
                 const Icon = item.icon;
                 const active = activeDrawingTool === item.tool;
@@ -1348,10 +1348,10 @@ export function BacktestChart({
                   <div className="relative" key={item.tool}>
                     <button
                       aria-label={item.label}
-                      className={`group relative flex h-9 w-full items-center justify-center text-slate-400 transition ${
+                      className={`group relative mx-auto flex h-8 w-8 items-center justify-center rounded-sm border border-transparent transition ${
                         active
-                          ? "bg-[#11161d] text-slate-100"
-                          : "hover:bg-white/[0.025] hover:text-slate-200"
+                          ? "border-white/12 bg-[#0a0f14] text-slate-100"
+                          : "text-slate-500 hover:bg-white/[0.025] hover:text-slate-200"
                       }`}
                       onClick={() => {
                         if (item.tool === "cursor") {
@@ -1369,10 +1369,10 @@ export function BacktestChart({
                       type="button"
                     >
                       {active ? (
-                        <span className="absolute left-0 top-1/2 h-5 w-px -translate-y-1/2 bg-slate-200" />
+                        <span className="absolute -left-[5px] top-1/2 h-4 w-px -translate-y-1/2 bg-white/70" />
                       ) : null}
-                      <Icon className="h-[16.5px] w-[16.5px]" strokeWidth={2} />
-                      <span className="pointer-events-none absolute left-[calc(100%+0.6rem)] top-1/2 hidden -translate-y-1/2 whitespace-nowrap border border-white/8 bg-[#0b1015] px-2 py-1 text-[10px] font-medium text-slate-200 shadow-[0_10px_24px_rgba(0,0,0,0.32)] group-hover:block">
+                      <Icon className="h-[15px] w-[15px]" strokeWidth={1.55} />
+                      <span className="pointer-events-none absolute left-[calc(100%+0.55rem)] top-1/2 hidden -translate-y-1/2 whitespace-nowrap bg-[#060a0f] px-2 py-1 text-[10px] font-medium text-slate-300 group-hover:block">
                         {item.label}
                         {TOOL_SHORTCUTS[item.tool] ? (
                           <span className="ml-2 text-slate-500">
@@ -1382,48 +1382,97 @@ export function BacktestChart({
                       </span>
                     </button>
                     {needsDivider && index < TOOL_ITEMS.length - 1 ? (
-                      <span className="pointer-events-none mx-auto my-1.5 block h-px w-4 bg-white/6" />
+                      <span className="pointer-events-none mx-auto my-1 block h-px w-3 bg-white/8" />
                     ) : null}
                   </div>
                 );
               })}
-            </div>
           </div>
-          <div className="border-t border-white/6 px-1.5 py-1.5">
-            <div className="flex flex-col gap-0.5">
+          <div className="mt-1 flex flex-col gap-0.5 border-t border-white/8 pt-1.5">
               <button
                 aria-label="Delete selected drawing"
-                className="group relative flex h-9 w-full items-center justify-center text-slate-400 transition hover:bg-white/[0.025] hover:text-slate-200 disabled:opacity-35"
+                className="group relative mx-auto flex h-8 w-8 items-center justify-center rounded-sm border border-transparent text-slate-500 transition hover:bg-white/[0.025] hover:text-slate-200 disabled:opacity-35"
                 disabled={!hasSelectedLineTools}
                 onClick={deleteSelectedTool}
                 title="Delete selected drawing (Delete / Backspace)"
                 type="button"
               >
-                <ToolDeleteIcon className="h-[16px] w-[16px]" strokeWidth={2} />
-                <span className="pointer-events-none absolute left-[calc(100%+0.6rem)] top-1/2 hidden -translate-y-1/2 whitespace-nowrap border border-white/8 bg-[#0b1015] px-2 py-1 text-[10px] font-medium text-slate-200 shadow-[0_10px_24px_rgba(0,0,0,0.32)] group-hover:block">
+                <ToolDeleteIcon className="h-[15px] w-[15px]" strokeWidth={1.55} />
+                <span className="pointer-events-none absolute left-[calc(100%+0.55rem)] top-1/2 hidden -translate-y-1/2 whitespace-nowrap bg-[#060a0f] px-2 py-1 text-[10px] font-medium text-slate-300 group-hover:block">
                   Delete selected
                   <span className="ml-2 text-slate-500">Del</span>
                 </span>
               </button>
               <button
                 aria-label="Clear drawings"
-                className="group relative flex h-9 w-full items-center justify-center text-slate-400 transition hover:bg-white/[0.025] hover:text-slate-200 disabled:opacity-35"
+                className="group relative mx-auto flex h-8 w-8 items-center justify-center rounded-sm border border-transparent text-slate-500 transition hover:bg-white/[0.025] hover:text-slate-200 disabled:opacity-35"
                 disabled={!hasLineTools}
                 onClick={clearAllTools}
                 title="Clear drawings"
                 type="button"
               >
-                <ToolClearIcon className="h-[16px] w-[16px]" strokeWidth={2} />
-                <span className="pointer-events-none absolute left-[calc(100%+0.6rem)] top-1/2 hidden -translate-y-1/2 whitespace-nowrap border border-white/8 bg-[#0b1015] px-2 py-1 text-[10px] font-medium text-slate-200 shadow-[0_10px_24px_rgba(0,0,0,0.32)] group-hover:block">
+                <ToolClearIcon className="h-[15px] w-[15px]" strokeWidth={1.55} />
+                <span className="pointer-events-none absolute left-[calc(100%+0.55rem)] top-1/2 hidden -translate-y-1/2 whitespace-nowrap bg-[#060a0f] px-2 py-1 text-[10px] font-medium text-slate-300 group-hover:block">
                   Clear drawings
                 </span>
               </button>
-            </div>
           </div>
         </aside>
 
-        <div className="relative min-w-0 flex-1 overflow-hidden rounded-[var(--radius-lg)] bg-[#060a0f]">
+        <div className="relative min-w-0 flex-1 overflow-hidden bg-[#05090e]">
           <div className="h-full w-full" ref={containerRef} />
+
+          {canEditLines ? (
+            <div className="absolute left-3 top-3 z-[95]">
+              {hasTargetLine ? (
+                <div className={TRADE_CONTROL_ACTIVE_CLASS}>
+                  <span>TP</span>
+                  <button
+                    aria-label="Remove take profit"
+                    className={TRADE_CONTROL_REMOVE_CLASS}
+                    onClick={() => onRemoveOptionalLine("target")}
+                    type="button"
+                  >
+                    X
+                  </button>
+                </div>
+              ) : (
+                <button
+                  className={TRADE_CONTROL_ADD_CLASS}
+                  onClick={() => onAddOptionalLine("target")}
+                  type="button"
+                >
+                  + TP
+                </button>
+              )}
+            </div>
+          ) : null}
+
+          {canEditLines ? (
+            <div className="absolute bottom-16 left-3 z-[95]">
+              {hasStopLine ? (
+                <div className={TRADE_CONTROL_ACTIVE_CLASS}>
+                  <span>SL</span>
+                  <button
+                    aria-label="Remove stop loss"
+                    className={TRADE_CONTROL_REMOVE_CLASS}
+                    onClick={() => onRemoveOptionalLine("stop")}
+                    type="button"
+                  >
+                    X
+                  </button>
+                </div>
+              ) : (
+                <button
+                  className={TRADE_CONTROL_ADD_CLASS}
+                  onClick={() => onAddOptionalLine("stop")}
+                  type="button"
+                >
+                  + SL
+                </button>
+              )}
+            </div>
+          ) : null}
 
           <div
             className="pointer-events-none absolute inset-y-0 left-0"
@@ -1508,10 +1557,12 @@ export function BacktestChart({
                   style={{ backgroundColor: style.color }}
                 />
                 <span
-                  className={`pointer-events-none absolute right-2 top-1/2 z-[80] inline-flex min-h-7 -translate-y-1/2 items-center gap-1 rounded-md border px-2 py-1 text-[10px] font-semibold shadow-[0_8px_18px_rgba(0,0,0,0.24)] transition ${style.pillClassName}`}
+                  className={`pointer-events-none absolute right-1.5 top-1/2 z-[80] inline-flex min-h-8 -translate-y-1/2 flex-col items-end justify-center rounded-sm border px-2 py-1 text-right shadow-[0_8px_18px_rgba(0,0,0,0.24)] transition ${style.pillClassName}`}
                 >
-                  <span>{style.title}</span>
-                  <span className="text-white/85">
+                  <span className="text-[8px] font-semibold uppercase tracking-[0.08em] text-white/70">
+                    {style.title}
+                  </span>
+                  <span className="mt-0.5 text-[10px] font-semibold text-white/90">
                     {price.toFixed(instrument.pricePrecision)}
                   </span>
                 </span>
@@ -1537,17 +1588,6 @@ export function BacktestChart({
               No candles are available for this replay window.
             </div>
           ) : null}
-
-          <div className="pointer-events-none absolute bottom-3 left-3 z-[90] flex items-center gap-2 border border-white/6 bg-[#0b1117]/72 px-2.5 py-1.5 text-[10px] shadow-[0_8px_20px_rgba(0,0,0,0.24)] backdrop-blur">
-            <span className="border border-white/8 bg-[#0e141b] px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.2em] text-slate-300">
-              {activeDrawingTool === "cursor"
-                ? "Select"
-                : TOOL_ITEMS.find((item) => item.tool === activeDrawingTool)?.label ?? "Tool"}
-            </span>
-            <span className="max-w-[18rem] text-slate-500">
-              {getDrawingToolHelpText(activeDrawingTool)}
-            </span>
-          </div>
         </div>
       </div>
     </div>

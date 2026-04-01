@@ -95,9 +95,11 @@ function buildFallbackDraft(input: z.infer<typeof backtestSessionSchema>) {
 
   return {
     direction: input.direction,
-    orderType: "limit" as const,
+    orderType: "market" as const,
     entry: typeof input.entry === "number" ? input.entry.toFixed(pricePrecision) : "",
+    hasStop: typeof input.stop === "number",
     stop: typeof input.stop === "number" ? input.stop.toFixed(pricePrecision) : "",
+    hasTarget: typeof input.target === "number",
     target: typeof input.target === "number" ? input.target.toFixed(pricePrecision) : "",
     volume: "1.00",
     thesis: input.thesis,
@@ -280,8 +282,12 @@ export async function duplicateBacktestSession(
   const snapshot = createDuplicateSnapshot(existing);
   const now = new Date().toISOString();
   const duplicateEntry = Number.parseFloat(snapshot.tradeDraft.entry);
-  const duplicateStop = Number.parseFloat(snapshot.tradeDraft.stop);
-  const duplicateTarget = Number.parseFloat(snapshot.tradeDraft.target);
+  const duplicateStop = snapshot.tradeDraft.hasStop
+    ? Number.parseFloat(snapshot.tradeDraft.stop)
+    : Number.NaN;
+  const duplicateTarget = snapshot.tradeDraft.hasTarget
+    ? Number.parseFloat(snapshot.tradeDraft.target)
+    : Number.NaN;
   const duplicateDraft = {
     ...snapshot.tradeDraft,
     reviewNotes: "",

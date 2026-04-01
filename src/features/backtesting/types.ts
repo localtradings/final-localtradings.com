@@ -179,7 +179,9 @@ export type BacktestTradeDraft = {
   direction: BacktestDirection;
   orderType: BacktestOrderType;
   entry: string;
+  hasStop: boolean;
   stop: string;
+  hasTarget: boolean;
   target: string;
   volume: string;
   thesis: string;
