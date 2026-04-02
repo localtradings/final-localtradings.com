@@ -2,18 +2,13 @@ import "server-only";
 
 import type {
   BacktestDirection,
+  BacktestOrderType,
   BacktestSessionRecord,
   BacktestTimeframe,
 } from "@/features/backtesting/types";
-import {
-  BACKTEST_BARS_REQUESTED,
-  BACKTEST_INITIAL_REVEAL_COUNT,
-  getBacktestInstrument,
-} from "@/features/backtesting/constants";
-import { sanitizeSnapshot } from "@/features/backtesting/utils/session-state";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
-const MAX_BACKTEST_SESSIONS_PER_USER = 25;
+const MAX_BACKTEST_SESSIONS_PER_USER = 5;
 const COMPLETED_HISTORY_STATUSES = [
   "target_hit",
   "stop_hit",
@@ -26,81 +21,54 @@ const INCOMPLETE_SESSION_STATUSES = [
   "active",
   "unfinished",
 ] as const;
-const FULL_BACKTEST_SESSION_SELECT =
-  "id, symbol, timeframe, window_start_at, bars_requested, direction, entry, stop, target, status, result_r, started_at, finished_at, thesis, review_notes, session_state_json";
-const LEGACY_BACKTEST_SESSION_SELECT =
-  "id, symbol, timeframe, direction, entry, stop, target, status, result_r, started_at, finished_at, thesis, review_notes, session_state_json";
+const BACKTEST_SESSION_SUMMARY_SELECT =
+  "id, symbol, timeframe, direction, order_type, volume, entry, stop, target, exit_price, status, result_r, result_amount, balance_after_trade, started_at, finished_at";
 
 type BacktestSessionRow = {
   id: string;
   symbol: string;
   timeframe: string;
-  window_start_at?: string | null;
-  bars_requested: number | null;
   direction: string;
+  order_type: string | null;
+  volume: number | null;
   entry: number | null;
   stop: number | null;
   target: number | null;
+  exit_price: number | null;
   status: string;
   result_r: number | null;
+  result_amount: number | null;
+  balance_after_trade: number | null;
   started_at: string;
   finished_at: string | null;
-  thesis: string | null;
-  review_notes: string | null;
-  session_state_json: unknown;
 };
-
-function isLegacyBacktestSchemaError(error: { message?: string } | null) {
-  const message = error?.message?.toLowerCase() ?? "";
-  return message.includes("window_start_at") || message.includes("bars_requested");
-}
 
 export function normalizeBacktestSession(
   row: BacktestSessionRow,
 ): BacktestSessionRecord {
   const direction = (row.direction === "Short" ? "Short" : "Long") as BacktestDirection;
-  const instrument = getBacktestInstrument(row.symbol);
-  const pricePrecision = instrument.pricePrecision;
-  const fallbackDraft = {
-    direction,
-    orderType: "market" as const,
-    entry:
-      typeof row.entry === "number" ? row.entry.toFixed(pricePrecision) : "",
-    hasStop: typeof row.stop === "number",
-    stop:
-      typeof row.stop === "number" ? row.stop.toFixed(pricePrecision) : "",
-    hasTarget: typeof row.target === "number",
-    target:
-      typeof row.target === "number" ? row.target.toFixed(pricePrecision) : "",
-    volume: "1.00",
-    thesis: row.thesis ?? "",
-    reviewNotes: row.review_notes ?? "",
-  };
+  const orderType =
+    row.order_type === "market" || row.order_type === "limit" || row.order_type === "stop"
+      ? (row.order_type as BacktestOrderType)
+      : null;
 
   return {
     id: row.id,
     symbol: row.symbol,
     timeframe: row.timeframe as BacktestTimeframe,
-    windowStartAt: row.window_start_at ?? row.started_at,
-    barsRequested:
-      typeof row.bars_requested === "number" && row.bars_requested > 0
-        ? row.bars_requested
-        : BACKTEST_BARS_REQUESTED,
     direction,
+    orderType,
+    volume: row.volume,
     entry: row.entry,
     stop: row.stop,
     target: row.target,
+    exitPrice: row.exit_price,
     status: row.status as BacktestSessionRecord["status"],
     resultR: row.result_r,
+    resultAmount: row.result_amount,
+    balanceAfter: row.balance_after_trade,
     startedAt: row.started_at,
     finishedAt: row.finished_at,
-    thesis: row.thesis ?? "",
-    reviewNotes: row.review_notes ?? "",
-    sessionStateJson: sanitizeSnapshot(
-      row.session_state_json,
-      fallbackDraft,
-      BACKTEST_INITIAL_REVEAL_COUNT,
-    ),
   };
 }
 
@@ -110,29 +78,13 @@ export async function getBacktestSessions(userId: string) {
     return [] as BacktestSessionRecord[];
   }
 
-  const baseQuery = supabase
+  const { data, error } = await supabase
     .from("backtest_sessions")
-    .select(FULL_BACKTEST_SESSION_SELECT)
+    .select(BACKTEST_SESSION_SUMMARY_SELECT)
     .eq("user_id", userId)
     .in("status", [...COMPLETED_HISTORY_STATUSES])
-    .order("started_at", { ascending: false });
-
-  const primaryResult = await baseQuery.limit(MAX_BACKTEST_SESSIONS_PER_USER);
-  let data: unknown = primaryResult.data;
-  let error = primaryResult.error;
-
-  if (error && isLegacyBacktestSchemaError(error)) {
-    const legacyResult = await supabase
-      .from("backtest_sessions")
-      .select(LEGACY_BACKTEST_SESSION_SELECT)
-      .eq("user_id", userId)
-      .in("status", [...COMPLETED_HISTORY_STATUSES])
-      .order("started_at", { ascending: false })
-      .limit(MAX_BACKTEST_SESSIONS_PER_USER);
-
-    data = legacyResult.data;
-    error = legacyResult.error;
-  }
+    .order("started_at", { ascending: false })
+    .limit(MAX_BACKTEST_SESSIONS_PER_USER);
 
   if (error || !data) {
     return [] as BacktestSessionRecord[];

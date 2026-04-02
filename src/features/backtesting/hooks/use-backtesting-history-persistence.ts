@@ -3,17 +3,12 @@
 import { useEffect, useRef } from "react";
 import type { Dispatch, MutableRefObject, SetStateAction } from "react";
 
-import {
-  BACKTEST_INITIAL_REVEAL_COUNT,
-} from "@/features/backtesting/constants";
 import type {
   BacktestAccountState,
   BacktestCandlesResponse,
-  BacktestSelection,
-  BacktestSessionRecord,
   BacktestTradeDraft,
+  BacktestSessionRecord,
   BacktestTradeExecution,
-  ReplayState,
 } from "@/features/backtesting/types";
 import {
   COMPLETED_HISTORY_STATUSES,
@@ -27,8 +22,6 @@ export function useBacktestingHistoryPersistence({
   execution,
   historySaveTick,
   pendingSaveExecutionKeyRef,
-  replayRef,
-  selectionRef,
   sessionStartedAtRef,
   setAccount,
   setHistorySaveTick,
@@ -42,8 +35,6 @@ export function useBacktestingHistoryPersistence({
   execution: BacktestTradeExecution;
   historySaveTick: number;
   pendingSaveExecutionKeyRef: MutableRefObject<string | null>;
-  replayRef: MutableRefObject<ReplayState>;
-  selectionRef: MutableRefObject<BacktestSelection>;
   sessionStartedAtRef: MutableRefObject<string>;
   setAccount: Dispatch<SetStateAction<BacktestAccountState>>;
   setHistorySaveTick: Dispatch<SetStateAction<number>>;
@@ -88,40 +79,31 @@ export function useBacktestingHistoryPersistence({
       return;
     }
 
+    const activeDataset = datasetRef.current;
     const closedAtTime = execution.closedAtTime;
     if (closedAtTime === null) {
       return;
     }
 
-    const snapshot = {
-      replay: {
-        ...replayRef.current,
-        isPlaying: false,
-      },
-      tradeDraft: draftRef.current,
-      execution,
-    };
-
     pendingSaveExecutionKeyRef.current = executionKey;
 
     void (async () => {
       const result = await saveBacktestSession({
-        symbol: datasetRef.current?.selection.symbol ?? selectionRef.current.symbol,
-        timeframe: datasetRef.current?.selection.timeframe ?? selectionRef.current.timeframe,
-        windowStartAt: datasetRef.current?.selection.windowStartAt ?? new Date().toISOString(),
-        barsRequested:
-          datasetRef.current?.selection.barsRequested ?? BACKTEST_INITIAL_REVEAL_COUNT,
+        symbol: activeDataset.selection.symbol,
+        timeframe: activeDataset.selection.timeframe,
         direction: draftRef.current.direction,
+        orderType: execution.orderType,
+        volume: execution.volume,
         entry: execution.entry,
         stop: execution.stop,
         target: execution.target,
+        exitPrice: execution.exitPrice,
         status: execution.status,
         resultR: execution.resultR,
+        resultAmount: execution.resultAmount,
+        balanceAfter: execution.balanceAfterTrade,
         startedAt: sessionStartedAtRef.current,
         finishedAt: new Date(closedAtTime * 1000).toISOString(),
-        thesis: "",
-        reviewNotes: "",
-        sessionStateJson: snapshot,
       });
 
       if (result.ok) {
@@ -152,8 +134,6 @@ export function useBacktestingHistoryPersistence({
     execution,
     historySaveTick,
     pendingSaveExecutionKeyRef,
-    replayRef,
-    selectionRef,
     sessionStartedAtRef,
     setAccount,
     setHistorySaveTick,

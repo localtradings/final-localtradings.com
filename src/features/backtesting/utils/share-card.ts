@@ -180,11 +180,9 @@ function getDirectionColor(direction: "Long" | "Short") {
 }
 
 function getPositionReturnPercent(session: BacktestSessionRecord) {
-  const entry = session.sessionStateJson.execution.entry ?? session.entry;
-  const volume =
-    session.sessionStateJson.execution.volume ??
-    Number.parseFloat(session.sessionStateJson.tradeDraft.volume);
-  const pnl = session.sessionStateJson.execution.resultAmount;
+  const entry = session.entry;
+  const volume = session.volume;
+  const pnl = session.resultAmount;
 
   if (
     typeof entry !== "number" ||
@@ -328,10 +326,10 @@ export async function downloadBacktestShareCard({
   context.fillText("REALIZED PNL", leftColumnX + 32, heroPanelY + 48);
 
   context.fillStyle =
-    (session.sessionStateJson.execution.resultAmount ?? 0) < 0 ? NEGATIVE : POSITIVE;
+    (session.resultAmount ?? 0) < 0 ? NEGATIVE : POSITIVE;
   context.font = '700 120px "Trebuchet MS", "Segoe UI", sans-serif';
   context.fillText(
-    formatMoney(session.sessionStateJson.execution.resultAmount),
+    formatMoney(session.resultAmount),
     leftColumnX + 28,
     heroPanelY + 162,
   );
@@ -347,21 +345,20 @@ export async function downloadBacktestShareCard({
   const statCards = [
     {
       label: "ENTRY",
-      value: formatPrice(session.sessionStateJson.execution.entry ?? session.entry, session.symbol),
+      value: formatPrice(session.entry, session.symbol),
       tone: TEXT_PRIMARY,
     },
     {
       label: "EXIT",
-      value: formatPrice(session.sessionStateJson.execution.exitPrice, session.symbol),
+      value: formatPrice(session.exitPrice, session.symbol),
       tone: TEXT_PRIMARY,
     },
     {
       label: "VOLUME",
       value:
-        session.sessionStateJson.execution.volume !== null &&
-        typeof session.sessionStateJson.execution.volume === "number"
-          ? session.sessionStateJson.execution.volume.toFixed(2)
-          : session.sessionStateJson.tradeDraft.volume,
+        typeof session.volume === "number" && Number.isFinite(session.volume)
+          ? session.volume.toFixed(2)
+          : "N/A",
       tone: TEXT_PRIMARY,
     },
   ];

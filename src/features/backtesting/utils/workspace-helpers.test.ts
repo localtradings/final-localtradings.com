@@ -37,8 +37,6 @@ describe("workspace-helpers", () => {
         hasTarget: true,
         target: "2368.8",
         volume: "",
-        thesis: "",
-        reviewNotes: "",
       },
       "Long",
       2358,
@@ -54,70 +52,34 @@ describe("workspace-helpers", () => {
       id,
       symbol: "XAUUSD",
       timeframe: "15min",
-      windowStartAt: startedAt,
-      barsRequested: 1000,
       direction: "Long",
+      orderType: "limit",
+      volume: 1,
       entry: 2358,
       stop: 2352,
       target: 2368.8,
-      status: "draft",
-      resultR: null,
+      exitPrice: 2368.8,
+      status: "target_hit",
+      resultR: 1.8,
+      resultAmount: 1800,
+      balanceAfter: 101800,
       startedAt,
-      finishedAt: null,
-      thesis: "",
-      reviewNotes: "",
-      sessionStateJson: {
-        replay: { replayIndex: 249, isPlaying: false, speedId: "2x" },
-        tradeDraft: {
-          direction: "Long",
-          orderType: "limit",
-          entry: "2358",
-          hasStop: true,
-          stop: "2352",
-          hasTarget: true,
-          target: "2368.8",
-          volume: "",
-          thesis: "",
-          reviewNotes: "",
-        },
-        execution: {
-          status: "draft",
-          orderType: null,
-          entry: null,
-          stop: null,
-          target: null,
-          riskPercent: null,
-          riskAmount: null,
-          volume: null,
-          balanceBeforeTrade: null,
-          openedAtIndex: null,
-          openedAtTime: null,
-          closedAtIndex: null,
-          closedAtTime: null,
-          exitPrice: null,
-          resultR: null,
-          resultAmount: null,
-          balanceAfterTrade: null,
-          maxFavorableR: null,
-          maxAdverseR: null,
-          durationBars: null,
-        },
-      },
+      finishedAt: startedAt,
     });
 
-    const current = Array.from({ length: 25 }, (_, index) =>
+    const current = Array.from({ length: 5 }, (_, index) =>
       makeSession(
         `session-${index}`,
         `2025-01-${String(index + 1).padStart(2, "0")}T00:00:00.000Z`,
       ),
     );
 
-    const merged = mergeSessions(current, makeSession("session-10", "2025-02-01T00:00:00.000Z"));
+    const merged = mergeSessions(current, makeSession("session-2", "2025-02-01T00:00:00.000Z"));
 
-    expect(merged).toHaveLength(25);
-    expect(merged[0]?.id).toBe("session-10");
-    expect(merged.filter((session) => session.id === "session-10")).toHaveLength(1);
-    expect(removeSession(merged, "session-10").some((session) => session.id === "session-10")).toBe(
+    expect(merged).toHaveLength(5);
+    expect(merged[0]?.id).toBe("session-2");
+    expect(merged.filter((session) => session.id === "session-2")).toHaveLength(1);
+    expect(removeSession(merged, "session-2").some((session) => session.id === "session-2")).toBe(
       false,
     );
   });
@@ -149,9 +111,9 @@ describe("workspace-helpers", () => {
     expect(createSettledExecutionKey(closedExecution)).toBe(
       "manual_close:1735690200000:333",
     );
-    expect(createSettledExecutionKey({ ...closedExecution, status: "active", closedAtTime: null })).toBe(
-      null,
-    );
+    expect(
+      createSettledExecutionKey({ ...closedExecution, status: "active", closedAtTime: null }),
+    ).toBe(null);
     expect(createBalanceKey("user-1")).toBe("backtesting-balance:user-1");
     expect(getReplayLoadErrorMessage(503)).toBe("Backtesting is unavailable right now.");
     expect(

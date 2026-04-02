@@ -526,8 +526,6 @@ export function useBacktestingWorkspace(
     execution,
     historySaveTick,
     pendingSaveExecutionKeyRef,
-    replayRef,
-    selectionRef,
     sessionStartedAtRef,
     setAccount,
     setHistorySaveTick,

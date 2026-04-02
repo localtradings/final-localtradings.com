@@ -39,8 +39,6 @@ describe("trade-engine", () => {
       hasTarget: true,
       target: "2368.8",
       volume: "",
-      thesis: "",
-      reviewNotes: "",
     });
     const invalid = validateTradeDraft({
       direction: "Long",
@@ -51,8 +49,6 @@ describe("trade-engine", () => {
       hasTarget: true,
       target: "2368.8",
       volume: "",
-      thesis: "",
-      reviewNotes: "",
     });
 
     expect(valid.isValid).toBe(true);
@@ -84,8 +80,6 @@ describe("trade-engine", () => {
       hasTarget: true,
       target: "2368.8",
       volume: "",
-      thesis: "",
-      reviewNotes: "",
     });
     const execution = activateTradeExecution(validation, 250, 1735689600000, {
       orderType: "limit",
@@ -159,8 +153,6 @@ describe("trade-engine", () => {
       hasTarget: true,
       target: "2368.8",
       volume: "",
-      thesis: "",
-      reviewNotes: "",
     });
     const execution = activateTradeExecution(validation, 250, 1735689600000, {
       orderType: "limit",
@@ -205,8 +197,6 @@ describe("trade-engine", () => {
       hasTarget: false,
       target: "",
       volume: "",
-      thesis: "",
-      reviewNotes: "",
     });
 
     const execution = activateTradeExecution(validation, 250, 1735689600000, {

@@ -3,13 +3,9 @@
 import { z } from "zod";
 
 import {
-  BACKTEST_BARS_REQUESTED,
-  BACKTEST_INITIAL_REVEAL_COUNT,
   BACKTEST_INSTRUMENTS,
   BACKTEST_TIMEFRAMES,
-  getBacktestInstrument,
 } from "@/features/backtesting/constants";
-import { sanitizeSnapshot } from "@/features/backtesting/utils/session-state";
 import type {
   BacktestSessionRecord,
   BacktestSessionSaveInput,
@@ -32,19 +28,9 @@ type BacktestDeleteActionSuccess = {
   ok: true;
 };
 
-const MAX_BACKTEST_SESSIONS_PER_USER = 25;
-const FULL_BACKTEST_SESSION_SELECT =
-  "id, symbol, timeframe, window_start_at, bars_requested, direction, entry, stop, target, status, result_r, started_at, finished_at, thesis, review_notes, session_state_json";
-const LEGACY_BACKTEST_SESSION_SELECT =
-  "id, symbol, timeframe, direction, entry, stop, target, status, result_r, started_at, finished_at, thesis, review_notes, session_state_json";
-
-function buildScenarioId(input: {
-  symbol: string;
-  timeframe: string;
-  windowStartAt: string;
-}) {
-  return `${input.symbol}:${input.timeframe}:${input.windowStartAt}`;
-}
+const MAX_BACKTEST_SESSIONS_PER_USER = 5;
+const BACKTEST_SESSION_SUMMARY_SELECT =
+  "id, symbol, timeframe, direction, order_type, volume, entry, stop, target, exit_price, status, result_r, result_amount, balance_after_trade, started_at, finished_at";
 
 const backtestSessionSchema = z.object({
   id: z.string().uuid().optional(),
@@ -52,12 +38,13 @@ const backtestSessionSchema = z.object({
     BACKTEST_INSTRUMENTS.map((item) => item.symbol) as [string, ...string[]],
   ),
   timeframe: z.enum(BACKTEST_TIMEFRAMES as [string, ...string[]]),
-  windowStartAt: z.iso.datetime(),
-  barsRequested: z.number().int().positive().max(BACKTEST_BARS_REQUESTED),
   direction: z.enum(["Long", "Short"]),
+  orderType: z.enum(["market", "limit", "stop"]).nullable(),
+  volume: z.number().positive().nullable(),
   entry: z.number().nullable(),
   stop: z.number().nullable(),
   target: z.number().nullable(),
+  exitPrice: z.number().nullable(),
   status: z.enum([
     "draft",
     "armed",
@@ -69,35 +56,11 @@ const backtestSessionSchema = z.object({
     "breakeven",
   ]),
   resultR: z.number().nullable(),
+  resultAmount: z.number().nullable(),
+  balanceAfter: z.number().nullable(),
   startedAt: z.iso.datetime(),
   finishedAt: z.iso.datetime().nullable(),
-  thesis: z.string().max(1200),
-  reviewNotes: z.string().max(2400),
-  sessionStateJson: z.unknown(),
 });
-
-function buildFallbackDraft(input: z.infer<typeof backtestSessionSchema>) {
-  const instrument = getBacktestInstrument(input.symbol);
-  const pricePrecision = instrument.pricePrecision;
-
-  return {
-    direction: input.direction,
-    orderType: "market" as const,
-    entry: typeof input.entry === "number" ? input.entry.toFixed(pricePrecision) : "",
-    hasStop: typeof input.stop === "number",
-    stop: typeof input.stop === "number" ? input.stop.toFixed(pricePrecision) : "",
-    hasTarget: typeof input.target === "number",
-    target: typeof input.target === "number" ? input.target.toFixed(pricePrecision) : "",
-    volume: "1.00",
-    thesis: input.thesis,
-    reviewNotes: input.reviewNotes,
-  };
-}
-
-function isLegacyBacktestSchemaError(error: { message?: string } | null) {
-  const message = error?.message?.toLowerCase() ?? "";
-  return message.includes("window_start_at") || message.includes("bars_requested");
-}
 
 async function pruneBacktestSessionsForUser(userId: string) {
   const supabase = await createSupabaseServerClient();
@@ -117,7 +80,6 @@ async function pruneBacktestSessionsForUser(userId: string) {
   }
 
   const sessionIdsToDelete = data.map((item) => item.id);
-
   if (sessionIdsToDelete.length === 0) {
     return;
   }
@@ -134,7 +96,7 @@ export async function saveBacktestSession(
 ): Promise<BacktestSaveActionSuccess | BacktestActionFailure> {
   const supabase = await createSupabaseServerClient();
   if (!supabase) {
-    return { ok: false, reason: "supabase_not_configured" as const };
+    return { ok: false, reason: "supabase_not_configured" };
   }
 
   const {
@@ -142,97 +104,49 @@ export async function saveBacktestSession(
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return { ok: false, reason: "not_authenticated" as const };
+    return { ok: false, reason: "not_authenticated" };
   }
 
   const parsed = backtestSessionSchema.safeParse(input);
   if (!parsed.success) {
-    return { ok: false, reason: "invalid_session_payload" as const };
+    return { ok: false, reason: "invalid_session_payload" };
   }
-
-  const sanitizedSnapshot = sanitizeSnapshot(
-    parsed.data.sessionStateJson,
-    buildFallbackDraft(parsed.data),
-    BACKTEST_INITIAL_REVEAL_COUNT,
-  );
 
   const payload = {
     user_id: user.id,
     symbol: parsed.data.symbol,
     timeframe: parsed.data.timeframe,
-    scenario_id: buildScenarioId(parsed.data),
-    window_start_at: parsed.data.windowStartAt,
-    bars_requested: parsed.data.barsRequested,
     direction: parsed.data.direction,
+    order_type: parsed.data.orderType,
+    volume: parsed.data.volume,
     entry: parsed.data.entry,
     stop: parsed.data.stop,
     target: parsed.data.target,
+    exit_price: parsed.data.exitPrice,
     status: parsed.data.status,
     result_r: parsed.data.resultR,
+    result_amount: parsed.data.resultAmount,
+    balance_after_trade: parsed.data.balanceAfter,
     started_at: parsed.data.startedAt,
     finished_at: parsed.data.finishedAt,
-    thesis: parsed.data.thesis,
-    review_notes: parsed.data.reviewNotes,
-    session_state_json: sanitizedSnapshot,
-  };
-  const legacyPayload = {
-    user_id: user.id,
-    symbol: parsed.data.symbol,
-    timeframe: parsed.data.timeframe,
-    scenario_id: buildScenarioId(parsed.data),
-    direction: parsed.data.direction,
-    entry: parsed.data.entry,
-    stop: parsed.data.stop,
-    target: parsed.data.target,
-    status: parsed.data.status,
-    result_r: parsed.data.resultR,
-    started_at: parsed.data.startedAt,
-    finished_at: parsed.data.finishedAt,
-    thesis: parsed.data.thesis,
-    review_notes: parsed.data.reviewNotes,
-    session_state_json: sanitizedSnapshot,
   };
 
-  const query = parsed.data.id
-    ? supabase
+  const result = parsed.data.id
+    ? await supabase
         .from("backtest_sessions")
         .update(payload)
         .eq("id", parsed.data.id)
         .eq("user_id", user.id)
-        .select(FULL_BACKTEST_SESSION_SELECT)
+        .select(BACKTEST_SESSION_SUMMARY_SELECT)
         .single()
-    : supabase
+    : await supabase
         .from("backtest_sessions")
         .insert(payload)
-        .select(FULL_BACKTEST_SESSION_SELECT)
+        .select(BACKTEST_SESSION_SUMMARY_SELECT)
         .single();
 
-  const primaryResult = await query;
-  let data: unknown = primaryResult.data;
-  let error = primaryResult.error;
-
-  if (error && isLegacyBacktestSchemaError(error)) {
-    const legacyQuery = parsed.data.id
-      ? supabase
-          .from("backtest_sessions")
-          .update(legacyPayload)
-          .eq("id", parsed.data.id)
-          .eq("user_id", user.id)
-          .select(LEGACY_BACKTEST_SESSION_SELECT)
-          .single()
-      : supabase
-          .from("backtest_sessions")
-          .insert(legacyPayload)
-          .select(LEGACY_BACKTEST_SESSION_SELECT)
-          .single();
-
-    const legacyResult = await legacyQuery;
-    data = legacyResult.data;
-    error = legacyResult.error;
-  }
-
-  if (error || !data) {
-    return { ok: false, reason: error?.message ?? "save_failed" as const };
+  if (result.error || !result.data) {
+    return { ok: false, reason: result.error?.message ?? "save_failed" };
   }
 
   if (!parsed.data.id) {
@@ -241,7 +155,9 @@ export async function saveBacktestSession(
 
   return {
     ok: true,
-    session: normalizeBacktestSession(data as Parameters<typeof normalizeBacktestSession>[0]),
+    session: normalizeBacktestSession(
+      result.data as Parameters<typeof normalizeBacktestSession>[0],
+    ),
   };
 }
 
@@ -250,7 +166,7 @@ export async function deleteBacktestSession(
 ): Promise<BacktestDeleteActionSuccess | BacktestActionFailure> {
   const supabase = await createSupabaseServerClient();
   if (!supabase) {
-    return { ok: false, reason: "supabase_not_configured" as const };
+    return { ok: false, reason: "supabase_not_configured" };
   }
 
   const {
@@ -258,7 +174,7 @@ export async function deleteBacktestSession(
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return { ok: false, reason: "not_authenticated" as const };
+    return { ok: false, reason: "not_authenticated" };
   }
 
   const { error } = await supabase

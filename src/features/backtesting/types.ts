@@ -184,8 +184,6 @@ export type BacktestTradeDraft = {
   hasTarget: boolean;
   target: string;
   volume: string;
-  thesis: string;
-  reviewNotes: string;
 };
 
 export type BacktestTradeExecution = {
@@ -217,29 +215,23 @@ export type ReplayState = {
   speedId: string;
 };
 
-export type BacktestSessionSnapshot = {
-  replay: ReplayState;
-  tradeDraft: BacktestTradeDraft;
-  execution: BacktestTradeExecution;
-};
-
 export type BacktestSessionRecord = {
   id: string;
   symbol: string;
   timeframe: BacktestTimeframe;
-  windowStartAt: string;
-  barsRequested: number;
   direction: BacktestDirection;
+  orderType: BacktestOrderType | null;
+  volume: number | null;
   entry: number | null;
   stop: number | null;
   target: number | null;
+  exitPrice: number | null;
   status: BacktestSessionStatus;
   resultR: number | null;
+  resultAmount: number | null;
+  balanceAfter: number | null;
   startedAt: string;
   finishedAt: string | null;
-  thesis: string;
-  reviewNotes: string;
-  sessionStateJson: BacktestSessionSnapshot;
 };
 
 export type BacktestSessionSaveInput = Omit<BacktestSessionRecord, "id"> & {

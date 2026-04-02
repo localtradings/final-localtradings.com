@@ -53,11 +53,6 @@ export function buildTradeDraftFromPrice(
     hasTarget: false,
     target: formatPrice(target, instrument),
     volume,
-    thesis:
-      direction === "Long"
-        ? "Continuation bias after structure holds and price reclaims momentum."
-        : "Fade the sweep and only stay involved while the invalidation remains intact.",
-    reviewNotes: "",
   };
 }
 

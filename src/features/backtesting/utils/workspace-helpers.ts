@@ -12,7 +12,7 @@ import type {
 } from "@/features/backtesting/types";
 import { formatPrice, validateTradeDraft } from "@/features/backtesting/utils/trade-engine";
 
-const SESSION_LIMIT = 25;
+const SESSION_LIMIT = 5;
 export const COMPLETED_HISTORY_STATUSES: BacktestSessionStatus[] = [
   "target_hit",
   "stop_hit",

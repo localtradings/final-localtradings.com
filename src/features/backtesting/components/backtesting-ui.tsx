@@ -165,11 +165,9 @@ export function formatPercent(value: number | null) {
 }
 
 export function getHistoryPositionReturn(session: BacktestSessionRecord) {
-  const entry = session.sessionStateJson.execution.entry ?? session.entry;
-  const volume =
-    session.sessionStateJson.execution.volume ??
-    Number.parseFloat(session.sessionStateJson.tradeDraft.volume);
-  const pnl = session.sessionStateJson.execution.resultAmount;
+  const entry = session.entry;
+  const volume = session.volume;
+  const pnl = session.resultAmount;
 
   if (
     typeof entry !== "number" ||
@@ -391,11 +389,11 @@ export function BacktestingHistoryPanel({
                 <div className="mt-1.5 grid grid-cols-2 gap-1">
                   <CompactStat
                     accentClassName={cn(
-                      (item.sessionStateJson.execution.resultAmount ?? 0) > 0 && "text-[#86efac]",
-                      (item.sessionStateJson.execution.resultAmount ?? 0) < 0 && "text-[#fca5a5]",
+                      (item.resultAmount ?? 0) > 0 && "text-[#86efac]",
+                      (item.resultAmount ?? 0) < 0 && "text-[#fca5a5]",
                     )}
                     label="P&L"
-                    value={formatMoney(item.sessionStateJson.execution.resultAmount)}
+                    value={formatMoney(item.resultAmount)}
                   />
                   <CompactStat
                     accentClassName={cn(
@@ -412,10 +410,7 @@ export function BacktestingHistoryPanel({
                       Entry
                     </p>
                     <p className="mt-0.5 text-slate-200">
-                      {formatHistoryPrice(
-                        item.sessionStateJson.execution.entry ?? item.entry,
-                        item.symbol,
-                      )}
+                      {formatHistoryPrice(item.entry, item.symbol)}
                     </p>
                   </div>
                   <div>
@@ -423,10 +418,7 @@ export function BacktestingHistoryPanel({
                       Exit
                     </p>
                     <p className="mt-0.5 text-slate-200">
-                      {formatHistoryPrice(
-                        item.sessionStateJson.execution.exitPrice,
-                        item.symbol,
-                      )}
+                      {formatHistoryPrice(item.exitPrice, item.symbol)}
                     </p>
                   </div>
                 </div>
