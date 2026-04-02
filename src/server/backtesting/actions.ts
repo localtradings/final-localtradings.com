@@ -3,6 +3,7 @@
 import { z } from "zod";
 
 import {
+  BACKTEST_BARS_REQUESTED,
   BACKTEST_INSTRUMENTS,
   BACKTEST_TIMEFRAMES,
 } from "@/features/backtesting/constants";
@@ -31,6 +32,28 @@ type BacktestDeleteActionSuccess = {
 const MAX_BACKTEST_SESSIONS_PER_USER = 5;
 const BACKTEST_SESSION_SUMMARY_SELECT =
   "id, symbol, timeframe, direction, order_type, volume, entry, stop, target, exit_price, status, result_r, result_amount, balance_after_trade, started_at, finished_at";
+const BACKTEST_SESSION_LEGACY_SELECT =
+  "id, symbol, timeframe, direction, entry, stop, target, status, result_r, started_at, finished_at, session_state_json";
+
+function resolveWindowStartAt(windowStartAt: string | null | undefined, startedAt: string) {
+  if (
+    typeof windowStartAt === "string" &&
+    windowStartAt.length > 0 &&
+    Number.isFinite(Date.parse(windowStartAt))
+  ) {
+    return new Date(windowStartAt).toISOString();
+  }
+
+  return new Date(startedAt).toISOString();
+}
+
+function buildScenarioId(input: {
+  symbol: string;
+  timeframe: string;
+  windowStartAt: string;
+}) {
+  return `${input.symbol}:${input.timeframe}:${input.windowStartAt}`;
+}
 
 const backtestSessionSchema = z.object({
   id: z.string().uuid().optional(),
@@ -38,6 +61,8 @@ const backtestSessionSchema = z.object({
     BACKTEST_INSTRUMENTS.map((item) => item.symbol) as [string, ...string[]],
   ),
   timeframe: z.enum(BACKTEST_TIMEFRAMES as [string, ...string[]]),
+  windowStartAt: z.iso.datetime(),
+  barsRequested: z.number().int().positive().max(BACKTEST_BARS_REQUESTED),
   direction: z.enum(["Long", "Short"]),
   orderType: z.enum(["market", "limit", "stop"]).nullable(),
   volume: z.number().positive().nullable(),
@@ -61,6 +86,24 @@ const backtestSessionSchema = z.object({
   startedAt: z.iso.datetime(),
   finishedAt: z.iso.datetime().nullable(),
 });
+
+function isLegacySchemaError(error: { message?: string } | null) {
+  const message = error?.message?.toLowerCase() ?? "";
+  return (
+    message.includes("order_type") ||
+    message.includes("exit_price") ||
+    message.includes("result_amount") ||
+    message.includes("balance_after_trade") ||
+    message.includes("volume") ||
+    message.includes("window_start_at") ||
+    message.includes("bars_requested")
+  );
+}
+
+function isHistoricalWindowSchemaError(error: { message?: string } | null) {
+  const message = error?.message?.toLowerCase() ?? "";
+  return message.includes("window_start_at") || message.includes("bars_requested");
+}
 
 async function pruneBacktestSessionsForUser(userId: string) {
   const supabase = await createSupabaseServerClient();
@@ -112,10 +155,26 @@ export async function saveBacktestSession(
     return { ok: false, reason: "invalid_session_payload" };
   }
 
+  const resolvedWindowStartAt = resolveWindowStartAt(
+    parsed.data.windowStartAt,
+    parsed.data.startedAt,
+  );
+  const resolvedBarsRequested =
+    Number.isInteger(parsed.data.barsRequested) && parsed.data.barsRequested > 0
+      ? parsed.data.barsRequested
+      : BACKTEST_BARS_REQUESTED;
+
   const payload = {
     user_id: user.id,
     symbol: parsed.data.symbol,
     timeframe: parsed.data.timeframe,
+    scenario_id: buildScenarioId({
+      symbol: parsed.data.symbol,
+      timeframe: parsed.data.timeframe,
+      windowStartAt: resolvedWindowStartAt,
+    }),
+    window_start_at: resolvedWindowStartAt,
+    bars_requested: resolvedBarsRequested,
     direction: parsed.data.direction,
     order_type: parsed.data.orderType,
     volume: parsed.data.volume,
@@ -130,8 +189,68 @@ export async function saveBacktestSession(
     started_at: parsed.data.startedAt,
     finished_at: parsed.data.finishedAt,
   };
+  const legacyPayload = {
+    user_id: user.id,
+    symbol: parsed.data.symbol,
+    timeframe: parsed.data.timeframe,
+    scenario_id: buildScenarioId({
+      symbol: parsed.data.symbol,
+      timeframe: parsed.data.timeframe,
+      windowStartAt: resolvedWindowStartAt,
+    }),
+    window_start_at: resolvedWindowStartAt,
+    bars_requested: resolvedBarsRequested,
+    direction: parsed.data.direction,
+    entry: parsed.data.entry,
+    stop: parsed.data.stop,
+    target: parsed.data.target,
+    status: parsed.data.status,
+    result_r: parsed.data.resultR,
+    started_at: parsed.data.startedAt,
+    finished_at: parsed.data.finishedAt,
+    thesis: "",
+    review_notes: "",
+    session_state_json: {
+      execution: {
+        orderType: parsed.data.orderType,
+        volume: parsed.data.volume,
+        exitPrice: parsed.data.exitPrice,
+        resultAmount: parsed.data.resultAmount,
+        balanceAfterTrade: parsed.data.balanceAfter,
+      },
+    },
+  };
+  const legacyPreWindowPayload = {
+    user_id: user.id,
+    symbol: parsed.data.symbol,
+    timeframe: parsed.data.timeframe,
+    scenario_id: buildScenarioId({
+      symbol: parsed.data.symbol,
+      timeframe: parsed.data.timeframe,
+      windowStartAt: resolvedWindowStartAt,
+    }),
+    direction: parsed.data.direction,
+    entry: parsed.data.entry,
+    stop: parsed.data.stop,
+    target: parsed.data.target,
+    status: parsed.data.status,
+    result_r: parsed.data.resultR,
+    started_at: parsed.data.startedAt,
+    finished_at: parsed.data.finishedAt,
+    thesis: "",
+    review_notes: "",
+    session_state_json: {
+      execution: {
+        orderType: parsed.data.orderType,
+        volume: parsed.data.volume,
+        exitPrice: parsed.data.exitPrice,
+        resultAmount: parsed.data.resultAmount,
+        balanceAfterTrade: parsed.data.balanceAfter,
+      },
+    },
+  };
 
-  const result = parsed.data.id
+  const primaryResult = parsed.data.id
     ? await supabase
         .from("backtest_sessions")
         .update(payload)
@@ -145,8 +264,49 @@ export async function saveBacktestSession(
         .select(BACKTEST_SESSION_SUMMARY_SELECT)
         .single();
 
-  if (result.error || !result.data) {
-    return { ok: false, reason: result.error?.message ?? "save_failed" };
+  let data: unknown = primaryResult.data;
+  let error = primaryResult.error;
+
+  if (error && isLegacySchemaError(error)) {
+    const legacyResult = parsed.data.id
+      ? await supabase
+          .from("backtest_sessions")
+          .update(legacyPayload)
+          .eq("id", parsed.data.id)
+          .eq("user_id", user.id)
+          .select(BACKTEST_SESSION_LEGACY_SELECT)
+          .single()
+      : await supabase
+          .from("backtest_sessions")
+          .insert(legacyPayload)
+          .select(BACKTEST_SESSION_LEGACY_SELECT)
+          .single();
+
+    data = legacyResult.data;
+    error = legacyResult.error;
+  }
+
+  if (error && isHistoricalWindowSchemaError(error)) {
+    const legacyPreWindowResult = parsed.data.id
+      ? await supabase
+          .from("backtest_sessions")
+          .update(legacyPreWindowPayload)
+          .eq("id", parsed.data.id)
+          .eq("user_id", user.id)
+          .select(BACKTEST_SESSION_LEGACY_SELECT)
+          .single()
+      : await supabase
+          .from("backtest_sessions")
+          .insert(legacyPreWindowPayload)
+          .select(BACKTEST_SESSION_LEGACY_SELECT)
+          .single();
+
+    data = legacyPreWindowResult.data;
+    error = legacyPreWindowResult.error;
+  }
+
+  if (error || !data) {
+    return { ok: false, reason: error?.message ?? "save_failed" };
   }
 
   if (!parsed.data.id) {
@@ -156,7 +316,7 @@ export async function saveBacktestSession(
   return {
     ok: true,
     session: normalizeBacktestSession(
-      result.data as Parameters<typeof normalizeBacktestSession>[0],
+      data as Parameters<typeof normalizeBacktestSession>[0],
     ),
   };
 }

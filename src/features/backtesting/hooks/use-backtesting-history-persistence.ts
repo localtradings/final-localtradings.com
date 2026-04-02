@@ -17,6 +17,18 @@ import {
 } from "@/features/backtesting/utils/workspace-helpers";
 import { saveBacktestSession } from "@/server/backtesting/actions";
 
+function resolveWindowStartAt(windowStartAt: string | null | undefined, startedAt: string) {
+  if (
+    typeof windowStartAt === "string" &&
+    windowStartAt.length > 0 &&
+    Number.isFinite(Date.parse(windowStartAt))
+  ) {
+    return new Date(windowStartAt).toISOString();
+  }
+
+  return new Date(startedAt).toISOString();
+}
+
 export function useBacktestingHistoryPersistence({
   draftRef,
   execution,
@@ -88,9 +100,20 @@ export function useBacktestingHistoryPersistence({
     pendingSaveExecutionKeyRef.current = executionKey;
 
     void (async () => {
+      const resolvedStartedAt = new Date(sessionStartedAtRef.current).toISOString();
+      const resolvedFinishedAt = new Date(closedAtTime * 1000).toISOString();
       const result = await saveBacktestSession({
         symbol: activeDataset.selection.symbol,
         timeframe: activeDataset.selection.timeframe,
+        windowStartAt: resolveWindowStartAt(
+          activeDataset.selection.windowStartAt,
+          resolvedStartedAt,
+        ),
+        barsRequested:
+          Number.isInteger(activeDataset.selection.barsRequested) &&
+          activeDataset.selection.barsRequested > 0
+            ? activeDataset.selection.barsRequested
+            : activeDataset.candles.length,
         direction: draftRef.current.direction,
         orderType: execution.orderType,
         volume: execution.volume,
@@ -102,8 +125,8 @@ export function useBacktestingHistoryPersistence({
         resultR: execution.resultR,
         resultAmount: execution.resultAmount,
         balanceAfter: execution.balanceAfterTrade,
-        startedAt: sessionStartedAtRef.current,
-        finishedAt: new Date(closedAtTime * 1000).toISOString(),
+        startedAt: resolvedStartedAt,
+        finishedAt: resolvedFinishedAt,
       });
 
       if (result.ok) {

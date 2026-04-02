@@ -210,7 +210,7 @@ export const publicHelpCopy = {
     {
       title: "Backtesting",
       description:
-        "Get help with replay controls, planning inputs, saved sessions, and review notes.",
+        "Get help with replay controls, planning inputs, and lightweight saved session history.",
       icon: "query_stats",
     },
     {

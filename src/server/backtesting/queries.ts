@@ -23,25 +23,47 @@ const INCOMPLETE_SESSION_STATUSES = [
 ] as const;
 const BACKTEST_SESSION_SUMMARY_SELECT =
   "id, symbol, timeframe, direction, order_type, volume, entry, stop, target, exit_price, status, result_r, result_amount, balance_after_trade, started_at, finished_at";
+const BACKTEST_SESSION_LEGACY_SELECT =
+  "id, symbol, timeframe, direction, entry, stop, target, status, result_r, started_at, finished_at, session_state_json";
 
 type BacktestSessionRow = {
   id: string;
   symbol: string;
   timeframe: string;
   direction: string;
-  order_type: string | null;
-  volume: number | null;
+  order_type?: string | null;
+  volume?: number | null;
   entry: number | null;
   stop: number | null;
   target: number | null;
-  exit_price: number | null;
+  exit_price?: number | null;
   status: string;
   result_r: number | null;
-  result_amount: number | null;
-  balance_after_trade: number | null;
+  result_amount?: number | null;
+  balance_after_trade?: number | null;
   started_at: string;
   finished_at: string | null;
+  session_state_json?: {
+    execution?: {
+      orderType?: string | null;
+      volume?: number | null;
+      exitPrice?: number | null;
+      resultAmount?: number | null;
+      balanceAfterTrade?: number | null;
+    };
+  } | null;
 };
+
+function isSummarySchemaError(error: { message?: string } | null) {
+  const message = error?.message?.toLowerCase() ?? "";
+  return (
+    message.includes("order_type") ||
+    message.includes("exit_price") ||
+    message.includes("result_amount") ||
+    message.includes("balance_after_trade") ||
+    message.includes("volume")
+  );
+}
 
 export function normalizeBacktestSession(
   row: BacktestSessionRow,
@@ -50,6 +72,10 @@ export function normalizeBacktestSession(
   const orderType =
     row.order_type === "market" || row.order_type === "limit" || row.order_type === "stop"
       ? (row.order_type as BacktestOrderType)
+      : row.session_state_json?.execution?.orderType === "market" ||
+          row.session_state_json?.execution?.orderType === "limit" ||
+          row.session_state_json?.execution?.orderType === "stop"
+        ? (row.session_state_json.execution.orderType as BacktestOrderType)
       : null;
 
   return {
@@ -58,15 +84,35 @@ export function normalizeBacktestSession(
     timeframe: row.timeframe as BacktestTimeframe,
     direction,
     orderType,
-    volume: row.volume,
+    volume:
+      typeof row.volume === "number"
+        ? row.volume
+        : typeof row.session_state_json?.execution?.volume === "number"
+          ? row.session_state_json.execution.volume
+          : null,
     entry: row.entry,
     stop: row.stop,
     target: row.target,
-    exitPrice: row.exit_price,
+    exitPrice:
+      typeof row.exit_price === "number"
+        ? row.exit_price
+        : typeof row.session_state_json?.execution?.exitPrice === "number"
+          ? row.session_state_json.execution.exitPrice
+          : null,
     status: row.status as BacktestSessionRecord["status"],
     resultR: row.result_r,
-    resultAmount: row.result_amount,
-    balanceAfter: row.balance_after_trade,
+    resultAmount:
+      typeof row.result_amount === "number"
+        ? row.result_amount
+        : typeof row.session_state_json?.execution?.resultAmount === "number"
+          ? row.session_state_json.execution.resultAmount
+          : null,
+    balanceAfter:
+      typeof row.balance_after_trade === "number"
+        ? row.balance_after_trade
+        : typeof row.session_state_json?.execution?.balanceAfterTrade === "number"
+          ? row.session_state_json.execution.balanceAfterTrade
+          : null,
     startedAt: row.started_at,
     finishedAt: row.finished_at,
   };
@@ -78,13 +124,29 @@ export async function getBacktestSessions(userId: string) {
     return [] as BacktestSessionRecord[];
   }
 
-  const { data, error } = await supabase
+  const primaryResult = await supabase
     .from("backtest_sessions")
     .select(BACKTEST_SESSION_SUMMARY_SELECT)
     .eq("user_id", userId)
     .in("status", [...COMPLETED_HISTORY_STATUSES])
     .order("started_at", { ascending: false })
     .limit(MAX_BACKTEST_SESSIONS_PER_USER);
+
+  let data: unknown = primaryResult.data;
+  let error = primaryResult.error;
+
+  if (error && isSummarySchemaError(error)) {
+    const legacyResult = await supabase
+      .from("backtest_sessions")
+      .select(BACKTEST_SESSION_LEGACY_SELECT)
+      .eq("user_id", userId)
+      .in("status", [...COMPLETED_HISTORY_STATUSES])
+      .order("started_at", { ascending: false })
+      .limit(MAX_BACKTEST_SESSIONS_PER_USER);
+
+    data = legacyResult.data;
+    error = legacyResult.error;
+  }
 
   if (error || !data) {
     return [] as BacktestSessionRecord[];

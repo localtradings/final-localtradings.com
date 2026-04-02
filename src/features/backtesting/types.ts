@@ -236,6 +236,8 @@ export type BacktestSessionRecord = {
 
 export type BacktestSessionSaveInput = Omit<BacktestSessionRecord, "id"> & {
   id?: string;
+  windowStartAt: string;
+  barsRequested: number;
 };
 
 export type BacktestCandlesResponse = {
