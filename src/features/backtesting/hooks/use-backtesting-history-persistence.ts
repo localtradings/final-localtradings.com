@@ -55,6 +55,7 @@ export function useBacktestingHistoryPersistence({
   settledExecutionKeyRef: MutableRefObject<string | null>;
 }) {
   const historySaveAttemptsRef = useRef<Record<string, number>>({});
+  const pendingSettledExecutionRef = useRef<BacktestTradeExecution | null>(null);
 
   useEffect(() => {
     const isTradeFinished =
@@ -64,11 +65,17 @@ export function useBacktestingHistoryPersistence({
       execution.status === "manual_close" ||
       execution.status === "breakeven";
 
-    if (!isTradeFinished || execution.closedAtTime === null) {
+    if (isTradeFinished && execution.closedAtTime !== null) {
+      pendingSettledExecutionRef.current = execution;
+    }
+
+    const executionToPersist = pendingSettledExecutionRef.current;
+
+    if (!executionToPersist || executionToPersist.closedAtTime === null) {
       return;
     }
 
-    const executionKey = createSettledExecutionKey(execution);
+    const executionKey = createSettledExecutionKey(executionToPersist);
     if (
       !executionKey ||
       settledExecutionKeyRef.current === executionKey ||
@@ -77,22 +84,28 @@ export function useBacktestingHistoryPersistence({
       return;
     }
 
-    const isCompletedHistoryStatus = COMPLETED_HISTORY_STATUSES.includes(execution.status);
+    const isCompletedHistoryStatus = COMPLETED_HISTORY_STATUSES.includes(
+      executionToPersist.status,
+    );
 
-    if (isCompletedHistoryStatus && typeof execution.balanceAfterTrade === "number") {
+    if (
+      isCompletedHistoryStatus &&
+      typeof executionToPersist.balanceAfterTrade === "number"
+    ) {
       setAccount((current) => ({
         ...current,
-        currentBalance: execution.balanceAfterTrade ?? current.currentBalance,
+        currentBalance: executionToPersist.balanceAfterTrade ?? current.currentBalance,
       }));
     }
 
     if (!isCompletedHistoryStatus || !datasetRef.current) {
       settledExecutionKeyRef.current = executionKey;
+      pendingSettledExecutionRef.current = null;
       return;
     }
 
     const activeDataset = datasetRef.current;
-    const closedAtTime = execution.closedAtTime;
+    const closedAtTime = executionToPersist.closedAtTime;
     if (closedAtTime === null) {
       return;
     }
@@ -115,16 +128,16 @@ export function useBacktestingHistoryPersistence({
             ? activeDataset.selection.barsRequested
             : activeDataset.candles.length,
         direction: draftRef.current.direction,
-        orderType: execution.orderType,
-        volume: execution.volume,
-        entry: execution.entry,
-        stop: execution.stop,
-        target: execution.target,
-        exitPrice: execution.exitPrice,
-        status: execution.status,
-        resultR: execution.resultR,
-        resultAmount: execution.resultAmount,
-        balanceAfter: execution.balanceAfterTrade,
+        orderType: executionToPersist.orderType,
+        volume: executionToPersist.volume,
+        entry: executionToPersist.entry,
+        stop: executionToPersist.stop,
+        target: executionToPersist.target,
+        exitPrice: executionToPersist.exitPrice,
+        status: executionToPersist.status,
+        resultR: executionToPersist.resultR,
+        resultAmount: executionToPersist.resultAmount,
+        balanceAfter: executionToPersist.balanceAfterTrade,
         startedAt: resolvedStartedAt,
         finishedAt: resolvedFinishedAt,
       });
@@ -132,6 +145,7 @@ export function useBacktestingHistoryPersistence({
       if (result.ok) {
         settledExecutionKeyRef.current = executionKey;
         pendingSaveExecutionKeyRef.current = null;
+        pendingSettledExecutionRef.current = null;
         delete historySaveAttemptsRef.current[executionKey];
         setSessions((current) => mergeSessions(current, result.session));
       } else {
@@ -148,6 +162,7 @@ export function useBacktestingHistoryPersistence({
         }
 
         settledExecutionKeyRef.current = executionKey;
+        pendingSettledExecutionRef.current = null;
         setNotice("Trade completed, but history could not be saved.");
       }
     })();

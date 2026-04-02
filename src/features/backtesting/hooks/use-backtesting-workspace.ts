@@ -567,6 +567,7 @@ export function useBacktestingWorkspace(
       hasTarget: false,
       volume: draftRef.current.volume || defaultDraft.volume,
     });
+    setExecution(createDraftExecution());
     setReplay((current) => ({ ...current, isPlaying: false }));
   }, [
     currentCandle?.close,
