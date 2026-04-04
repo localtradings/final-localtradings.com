@@ -1,0 +1,16 @@
+name = "localtradings-battle-room"
+main = "src/index.ts"
+compatibility_date = "2026-04-02"
+
+[vars]
+APP_BASE_URL = "https://localtradings.com"
+
+[durable_objects]
+bindings = [
+  { name = "BATTLE_MATCHMAKER", class_name = "BattleMatchmakerDO" },
+  { name = "BATTLE_ROOM", class_name = "BattleRoomDO" }
+]
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["BattleMatchmakerDO", "BattleRoomDO"]
