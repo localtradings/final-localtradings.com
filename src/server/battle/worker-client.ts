@@ -1,0 +1,165 @@
+import "server-only";
+
+import type {
+  BattleDurationMinutes,
+  BattleRoomView,
+} from "@/features/battle/types";
+import type { BacktestDirection } from "@/features/backtesting/types";
+import { env, hasBattleWorkerEnv } from "@/lib/env";
+
+type WorkerSuccess<T> = {
+  ok: true;
+  data: T;
+};
+
+type WorkerFailure = {
+  ok: false;
+  reason:
+    | "battle_worker_not_configured"
+    | "invalid_worker_response"
+    | "service_unavailable"
+    | "room_not_found"
+    | "room_full"
+    | "room_already_started"
+    | "cooldown_active"
+    | "invalid_lobby_code"
+    | "pro_required"
+    | "room_not_active"
+    | "trade_already_open"
+    | "no_open_trade";
+  message: string;
+};
+
+async function requestWorker<T>(
+  path: string,
+  init?: {
+    method?: "GET" | "POST";
+    body?: unknown;
+  },
+): Promise<WorkerSuccess<T> | WorkerFailure> {
+  if (!hasBattleWorkerEnv()) {
+    return {
+      ok: false,
+      reason: "battle_worker_not_configured",
+      message: "Battle worker env is not configured.",
+    };
+  }
+
+  try {
+    const response = await fetch(`${env.battleWorkerUrl}${path}`, {
+      method: init?.method ?? "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-battle-internal-secret": env.battleSharedSecret,
+      },
+      body: init?.body ? JSON.stringify(init.body) : undefined,
+      cache: "no-store",
+    });
+
+    const payload = (await response.json().catch(() => null)) as
+      | { ok: true; data: T }
+      | { ok: false; reason?: WorkerFailure["reason"]; message?: string }
+      | null;
+
+    if (!payload || typeof payload !== "object" || typeof payload.ok !== "boolean") {
+      return {
+        ok: false,
+        reason: "invalid_worker_response",
+        message: "Battle worker returned an invalid response.",
+      };
+    }
+
+    if (!payload.ok) {
+      return {
+        ok: false,
+        reason: payload.reason ?? "service_unavailable",
+        message: payload.message ?? "Battle worker request failed.",
+      };
+    }
+
+    return payload;
+  } catch (error) {
+    return {
+      ok: false,
+      reason: "service_unavailable",
+      message: error instanceof Error ? error.message : "Battle worker request failed.",
+    };
+  }
+}
+
+export function createPublicBattleRoom(input: {
+  roomId: string;
+  userId: string;
+  displayName: string;
+}) {
+  return requestWorker<{ room: BattleRoomView }>("/internal/rooms/create", {
+    body: {
+      ...input,
+      roomType: "public",
+      lobbyCode: null,
+      durationMinutes: 10,
+    },
+  });
+}
+
+export function createBattleRoom(input: {
+  roomId: string;
+  roomType: "public" | "private";
+  lobbyCode: string | null;
+  durationMinutes: BattleDurationMinutes;
+  userId: string;
+  displayName: string;
+}) {
+  return requestWorker<{ room: BattleRoomView }>("/internal/rooms/create", {
+    body: input,
+  });
+}
+
+export function joinBattleRoom(input: {
+  roomId: string;
+  userId: string;
+  displayName: string;
+}) {
+  return requestWorker<{ room: BattleRoomView }>("/internal/rooms/join", {
+    body: input,
+  });
+}
+
+export function refreshBattleRoomView(input: { roomId: string; userId: string }) {
+  return requestWorker<{ room: BattleRoomView }>("/internal/rooms/state", {
+    body: input,
+  });
+}
+
+export function setBattleReadyState(input: {
+  roomId: string;
+  userId: string;
+  ready: boolean;
+}) {
+  return requestWorker<{ room: BattleRoomView }>("/internal/rooms/ready", {
+    body: input,
+  });
+}
+
+export function leaveBattleRoom(input: { roomId: string; userId: string }) {
+  return requestWorker<{ room: BattleRoomView | null }>("/internal/rooms/leave", {
+    body: input,
+  });
+}
+
+export function openBattleTrade(input: {
+  roomId: string;
+  userId: string;
+  direction: BacktestDirection;
+  volume: number;
+}) {
+  return requestWorker<{ room: BattleRoomView }>("/internal/rooms/open-trade", {
+    body: input,
+  });
+}
+
+export function closeBattleTrade(input: { roomId: string; userId: string; tradeId: string }) {
+  return requestWorker<{ room: BattleRoomView }>("/internal/rooms/close-trade", {
+    body: input,
+  });
+}

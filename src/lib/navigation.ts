@@ -16,6 +16,15 @@ export const productNav = [
   { href: "/app/learn", label: "Learn", icon: "school" },
   { href: "/app/quiz", label: "Quiz", icon: "quiz" },
   { href: "/app/backtesting", label: "Backtesting", icon: "query_stats" },
+  { href: "/app/battle", label: "Battle", icon: "battle" },
   { href: "/app/profile", label: "Profile", icon: "person" },
   { href: "/app/help", label: "Help", icon: "help" },
 ] as const;
+
+export const productPrimaryNav = productNav.filter((item) =>
+  ["/app", "/app/learn", "/app/quiz", "/app/backtesting", "/app/battle"].includes(item.href),
+);
+
+export const productAccountNav = productNav.filter((item) =>
+  ["/app/profile", "/app/help"].includes(item.href),
+);

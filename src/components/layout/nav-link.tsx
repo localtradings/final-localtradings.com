@@ -9,6 +9,7 @@ import {
   ClipboardCheck,
   GraduationCap,
   LayoutDashboard,
+  Trophy,
   UserRound,
 } from "lucide-react";
 
@@ -36,6 +37,7 @@ export function NavLink({
     school: GraduationCap,
     quiz: ClipboardCheck,
     query_stats: BarChart3,
+    battle: Trophy,
     person: UserRound,
     help: BadgeHelp,
   };

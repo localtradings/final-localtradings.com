@@ -1,12 +1,12 @@
-import { productNav } from "@/lib/navigation";
+import { productAccountNav, productPrimaryNav } from "@/lib/navigation";
 
 import { BrandMark } from "./brand-mark";
 import { NavLink } from "./nav-link";
 import { SignOutButton } from "./sign-out-button";
 
 export function ProductSidebar() {
-  const primaryItems = productNav.slice(0, 4);
-  const accountItems = productNav.slice(4);
+  const primaryItems = productPrimaryNav;
+  const accountItems = productAccountNav;
 
   return (
     <aside className="hidden h-full border-r border-outline-variant/10 bg-[linear-gradient(180deg,#080b0f_0%,#0b1015_100%)] lg:flex lg:min-h-0 lg:flex-col lg:px-3.5 lg:py-3.5">
