@@ -3,6 +3,7 @@ export type ProfileRecord = {
   fullName: string;
   displayName: string;
   email: string;
+  isPro: boolean;
   bio?: string | null;
   focusArea?: string | null;
 };
