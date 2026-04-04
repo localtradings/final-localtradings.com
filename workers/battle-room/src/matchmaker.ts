@@ -20,13 +20,13 @@ export class BattleMatchmakerDO {
     const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
 
     if (url.pathname === "/public/join") {
-      return this.handleJoinPublic(body);
+      return this.state.blockConcurrencyWhile(() => this.handleJoinPublic(body));
     }
     if (url.pathname === "/private/create") {
-      return this.handleCreatePrivate(body);
+      return this.state.blockConcurrencyWhile(() => this.handleCreatePrivate(body));
     }
     if (url.pathname === "/private/join") {
-      return this.handleJoinPrivate(body);
+      return this.state.blockConcurrencyWhile(() => this.handleJoinPrivate(body));
     }
 
     return Response.json(

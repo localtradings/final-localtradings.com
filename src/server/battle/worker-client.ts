@@ -102,6 +102,16 @@ export function createPublicBattleRoom(input: {
   });
 }
 
+export function joinPublicBattleMatch(input: {
+  roomId: string;
+  userId: string;
+  displayName: string;
+}) {
+  return requestWorker<{ room: BattleRoomView }>("/internal/public/join", {
+    body: input,
+  });
+}
+
 export function createBattleRoom(input: {
   roomId: string;
   roomType: "public" | "private";

@@ -20,8 +20,8 @@ import { createBattleRoomId } from "./room-id";
 import { attachBattleRoomToken } from "./room-session";
 import {
   createBattleRoom,
-  createPublicBattleRoom,
   joinBattleRoom,
+  joinPublicBattleMatch,
   leaveBattleRoom,
   openBattleTrade,
   closeBattleTrade,
@@ -149,29 +149,6 @@ function mapWorkerFailure(result: { reason: string; message: string }): BattleHo
   };
 }
 
-async function findJoinablePublicBattleRoomIds(limit = 10) {
-  const supabase = createSupabaseServiceRoleClient();
-  if (!supabase) {
-    return [];
-  }
-
-  const { data, error } = await supabase
-    .from("battle_rooms")
-    .select("id")
-    .eq("room_type", "public")
-    .eq("status", "lobby")
-    .order("created_at", { ascending: true })
-    .limit(limit);
-
-  if (error || !Array.isArray(data)) {
-    return [];
-  }
-
-  return data
-    .map((row) => String((row as { id?: string }).id ?? ""))
-    .filter((value) => value.length > 0);
-}
-
 async function findPrivateBattleRoomId(lobbyCode: string) {
   const supabase = createSupabaseServiceRoleClient();
   if (!supabase) {
@@ -277,35 +254,7 @@ export async function joinRandomBattleMatchAction(): Promise<BattleHomeActionRes
   }
 
   const displayName = getDisplayName(profile, user.email ?? "");
-  const candidateRoomIds = await findJoinablePublicBattleRoomIds();
-
-  for (const roomId of candidateRoomIds) {
-    const joinResult = await joinBattleRoom({
-      roomId,
-      userId: user.id,
-      displayName,
-    });
-
-    if (joinResult.ok) {
-      await persistBattleRoomView(joinResult.data.room);
-      return {
-        ok: true,
-        redirectTo: `/app/battle/lobby/${joinResult.data.room.room.roomId}`,
-        roomId: joinResult.data.room.room.roomId,
-        lobbyCode: joinResult.data.room.room.lobbyCode,
-      };
-    }
-
-    if (
-      joinResult.reason !== "room_not_found" &&
-      joinResult.reason !== "room_full" &&
-      joinResult.reason !== "room_already_started"
-    ) {
-      return mapWorkerFailure(joinResult);
-    }
-  }
-
-  const workerResult = await createPublicBattleRoom({
+  const workerResult = await joinPublicBattleMatch({
     roomId: createBattleRoomId(),
     userId: user.id,
     displayName,
