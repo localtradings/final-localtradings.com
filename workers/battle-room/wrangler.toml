@@ -3,7 +3,7 @@ main = "src/index.ts"
 compatibility_date = "2026-04-02"
 
 [vars]
-APP_BASE_URL = "https://localtradings.com"
+APP_BASE_URL = "https://www.localtradings.com"
 
 [durable_objects]
 bindings = [

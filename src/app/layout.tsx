@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { Inter, Manrope } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
+
+import { env } from "@/lib/env";
+
 import "./globals.css";
 
 const inter = Inter({
@@ -13,8 +16,17 @@ const manrope = Manrope({
   subsets: ["latin"],
 });
 
+function getMetadataBase() {
+  const appUrl = env.appUrl.trim();
+  if (URL.canParse(appUrl)) {
+    return new URL(appUrl);
+  }
+
+  return new URL("https://www.localtradings.com");
+}
+
 export const metadata: Metadata = {
-  metadataBase: new URL("https://localtradings.com"),
+  metadataBase: getMetadataBase(),
   title: {
     default: "localtradings.com",
     template: "%s | localtradings.com",
