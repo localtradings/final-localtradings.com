@@ -7,6 +7,7 @@ import type {
 } from "@/features/battle/types";
 import { hasBattleWorkerEnv } from "@/lib/env";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseServiceRoleClient } from "@/lib/supabase/service-role";
 
 import { getActiveBattlePenalty } from "./penalties";
 import { refreshBattleRoomView } from "./worker-client";
@@ -96,13 +97,29 @@ export async function getBattleHomeData(userId: string): Promise<BattleHomeData>
 export async function getBattleRoomSession(
   roomId: string,
   userId: string,
+  options?: { hydrateFromWorker?: boolean },
 ): Promise<BattleRoomSession> {
+  const hydrateFromWorker = options?.hydrateFromWorker ?? true;
   if (!hasBattleWorkerEnv()) {
     return {
       roomId,
+      viewerUserId: userId,
       isParticipant: false,
       initialView: null,
+      roomToken: null,
       workerConfigured: false,
+      workerSocketUrl: null,
+    };
+  }
+
+  if (!hydrateFromWorker) {
+    return {
+      roomId,
+      viewerUserId: userId,
+      isParticipant: true,
+      initialView: null,
+      roomToken: null,
+      workerConfigured: true,
       workerSocketUrl: null,
     };
   }
@@ -111,8 +128,10 @@ export async function getBattleRoomSession(
   if (!roomResult.ok) {
     return {
       roomId,
+      viewerUserId: userId,
       isParticipant: false,
       initialView: null,
+      roomToken: null,
       workerConfigured: true,
       workerSocketUrl: null,
     };
@@ -120,15 +139,17 @@ export async function getBattleRoomSession(
 
   return {
     roomId,
+    viewerUserId: userId,
     isParticipant: roomResult.data.room.viewerUserId === userId,
     initialView: roomResult.data.room,
+    roomToken: null,
     workerConfigured: true,
     workerSocketUrl: null,
   };
 }
 
 export async function getBattleResult(userId: string, roomId: string) {
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseServiceRoleClient() ?? await createSupabaseServerClient();
   if (!supabase) {
     return null;
   }

@@ -6,6 +6,7 @@ import { BATTLE_ALLOWED_DURATION_MINUTES } from "@/features/battle/constants";
 import type {
   BattleDurationMinutes,
   BattleHomeActionResult,
+  BattleReplayActionResult,
   BattleRoomView,
   BattleTradeActionResult,
 } from "@/features/battle/types";
@@ -15,6 +16,7 @@ import { requireUser } from "@/server/auth/session";
 import { getCurrentProfile } from "@/server/profile/queries";
 
 import { getActiveBattlePenalty } from "./penalties";
+import { persistBattleRoomSnapshot } from "./persist-room";
 import { getBattleRoomSession } from "./queries";
 import { createBattleRoomId } from "./room-id";
 import { attachBattleRoomToken } from "./room-session";
@@ -26,6 +28,7 @@ import {
   openBattleTrade,
   closeBattleTrade,
   refreshBattleRoomView,
+  syncBattleReplay,
   setBattleReadyState,
 } from "./worker-client";
 
@@ -55,12 +58,22 @@ const readySchema = z.object({
 const tradeOpenSchema = z.object({
   roomId: z.string().uuid(),
   direction: z.union([z.literal("Long"), z.literal("Short")]),
-  volume: z.number().positive().max(100),
+  orderType: z.union([z.literal("market"), z.literal("limit"), z.literal("stop")]),
+  entryPrice: z.number().positive().nullable(),
+  stopLoss: z.number().positive().nullable(),
+  takeProfit: z.number().positive().nullable(),
+  riskPercent: z.number().positive().max(100),
+  replayIndex: z.number().int().nonnegative(),
 });
 
 const tradeCloseSchema = z.object({
   roomId: z.string().uuid(),
-  tradeId: z.string().uuid(),
+  replayIndex: z.number().int().nonnegative(),
+});
+
+const replaySyncSchema = z.object({
+  roomId: z.string().uuid(),
+  replayIndex: z.number().int().nonnegative(),
 });
 
 function createLobbyCode() {
@@ -77,59 +90,7 @@ function getDisplayName(profile: Awaited<ReturnType<typeof getCurrentProfile>>, 
 }
 
 async function persistBattleRoomView(roomView: BattleRoomView) {
-  const supabase = createSupabaseServiceRoleClient();
-  if (!supabase) {
-    return;
-  }
-
-  const room = roomView.room;
-  await supabase.from("battle_rooms").upsert({
-    id: room.roomId,
-    creator_user_id: room.players.find((player) => player.isCreator)?.userId ?? null,
-    room_type: room.roomType,
-    status: room.phase,
-    duration_minutes: room.durationMinutes,
-    symbol: room.symbol,
-    timeframe: room.timeframe,
-    lobby_code: room.lobbyCode,
-    max_players: room.maxPlayers,
-    countdown_ends_at: room.countdownEndsAt,
-    started_at: room.officialStartAt,
-    ended_at: room.phase === "finished" || room.phase === "cancelled" ? room.officialEndAt : null,
-    winner_user_id: room.winnerUserId,
-    cancel_reason: room.cancelReason,
-    updated_at: new Date().toISOString(),
-  });
-
-  if (room.players.length > 0) {
-    await supabase.from("battle_room_players").upsert(
-      room.players.map((player) => ({
-        room_id: room.roomId,
-        user_id: player.userId,
-        display_name: player.displayName,
-        is_creator: player.isCreator,
-        status: player.status,
-        joined_at: player.joinedAt,
-        ready_at: player.isReady ? new Date().toISOString() : null,
-        removed_at:
-          player.status === "removed_unready" ||
-          player.status === "left_lobby" ||
-          player.status === "left_early" ||
-          player.status === "forfeit"
-            ? new Date().toISOString()
-            : null,
-        last_heartbeat_at: player.lastHeartbeatAt,
-        disconnected_at: player.disconnectedAt,
-        official_balance: player.officialBalance,
-        official_rank: player.officialRank,
-        trades_closed: player.tradesClosed,
-        winning_trades: player.wins,
-        losing_trades: player.losses,
-        has_open_trade: player.hasOpenTrade,
-      })),
-      { onConflict: "room_id,user_id" },
-    );
-  }
+  await persistBattleRoomSnapshot(roomView.room);
 }
 
 function mapWorkerFailure(result: { reason: string; message: string }): BattleHomeActionResult {
@@ -382,7 +343,16 @@ export async function leaveBattleRoomAction(roomId: string) {
 }
 
 export async function openBattleTradeAction(
-  rawInput: { roomId: string; direction: "Long" | "Short"; volume: number },
+  rawInput: {
+    roomId: string;
+    direction: "Long" | "Short";
+    orderType: "market" | "limit" | "stop";
+    entryPrice: number | null;
+    stopLoss: number | null;
+    takeProfit: number | null;
+    riskPercent: number;
+    replayIndex: number;
+  },
 ): Promise<BattleTradeActionResult> {
   const user = await requireUser();
   const parsed = tradeOpenSchema.safeParse(rawInput);
@@ -398,7 +368,12 @@ export async function openBattleTradeAction(
     roomId: parsed.data.roomId,
     userId: user.id,
     direction: parsed.data.direction,
-    volume: parsed.data.volume,
+    orderType: parsed.data.orderType,
+    entryPrice: parsed.data.entryPrice,
+    stopLoss: parsed.data.stopLoss,
+    takeProfit: parsed.data.takeProfit,
+    riskPercent: parsed.data.riskPercent,
+    replayIndex: parsed.data.replayIndex,
   });
 
   if (result.ok) {
@@ -409,20 +384,27 @@ export async function openBattleTradeAction(
     };
   }
 
+  if (result.data?.room) {
+    await persistBattleRoomView(result.data.room);
+  }
+
   return {
     ok: false,
-    reason:
+      reason:
       result.reason === "room_not_active" ||
       result.reason === "trade_already_open" ||
+      result.reason === "invalid_replay_progression" ||
+      result.reason === "player_eliminated" ||
       result.reason === "battle_worker_not_configured"
         ? result.reason
         : "service_unavailable",
     message: result.message,
+    room: result.data?.room ?? null,
   };
 }
 
 export async function closeBattleTradeAction(
-  rawInput: { roomId: string; tradeId: string },
+  rawInput: { roomId: string; replayIndex: number },
 ): Promise<BattleTradeActionResult> {
   const user = await requireUser();
   const parsed = tradeCloseSchema.safeParse(rawInput);
@@ -437,7 +419,7 @@ export async function closeBattleTradeAction(
   const result = await closeBattleTrade({
     roomId: parsed.data.roomId,
     userId: user.id,
-    tradeId: parsed.data.tradeId,
+    replayIndex: parsed.data.replayIndex,
   });
 
   if (result.ok) {
@@ -448,15 +430,67 @@ export async function closeBattleTradeAction(
     };
   }
 
+  if (result.data?.room) {
+    await persistBattleRoomView(result.data.room);
+  }
+
   return {
     ok: false,
-    reason:
+      reason:
       result.reason === "room_not_active" ||
       result.reason === "no_open_trade" ||
+      result.reason === "invalid_replay_progression" ||
+      result.reason === "player_eliminated" ||
       result.reason === "battle_worker_not_configured"
         ? result.reason
         : "service_unavailable",
     message: result.message,
+    room: result.data?.room ?? null,
+  };
+}
+
+export async function syncBattleReplayAction(
+  rawInput: { roomId: string; replayIndex: number },
+): Promise<BattleReplayActionResult> {
+  const user = await requireUser();
+  const parsed = replaySyncSchema.safeParse(rawInput);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      reason: "invalid_replay_progression",
+      message: "Replay progression is invalid.",
+    };
+  }
+
+  const result = await syncBattleReplay({
+    roomId: parsed.data.roomId,
+    userId: user.id,
+    replayIndex: parsed.data.replayIndex,
+  });
+
+  if (result.ok) {
+    await persistBattleRoomView(result.data.room);
+    return {
+      ok: true,
+      room: result.data.room,
+    };
+  }
+
+  if (result.data?.room) {
+    await persistBattleRoomView(result.data.room);
+  }
+
+  return {
+    ok: false,
+    reason:
+      result.reason === "room_not_active" ||
+      result.reason === "invalid_replay_progression" ||
+      result.reason === "player_eliminated" ||
+      result.reason === "battle_worker_not_configured"
+        ? result.reason
+        : "service_unavailable",
+    message: result.message,
+    room: result.data?.room ?? null,
   };
 }
 

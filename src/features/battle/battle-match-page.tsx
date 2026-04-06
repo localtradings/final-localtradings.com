@@ -6,7 +6,10 @@ import { BattleMatchClient } from "./battle-match-client";
 
 export async function BattleMatchPage({ roomId }: { roomId: string }) {
   const user = await requireUser();
-  const session = attachBattleRoomToken(await getBattleRoomSession(roomId, user.id), user.id);
+  const session = attachBattleRoomToken(
+    await getBattleRoomSession(roomId, user.id, { hydrateFromWorker: false }),
+    user.id,
+  );
 
   return <BattleMatchClient session={session} />;
 }

@@ -88,6 +88,7 @@ type BacktestChartProps = {
   onRemoveOptionalLine: (field: Extract<BacktestLineField, "stop" | "target">) => void;
   onToolChange: (tool: BacktestDrawingTool) => void;
   canEditLines: boolean;
+  showTradeControls?: boolean;
   windowKey: string;
 };
 
@@ -343,6 +344,7 @@ export function BacktestChart({
   onRemoveOptionalLine,
   onToolChange,
   canEditLines,
+  showTradeControls = true,
   windowKey,
 }: BacktestChartProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -1422,7 +1424,7 @@ export function BacktestChart({
         <div className="relative min-w-0 flex-1 overflow-hidden bg-[#05090e]">
           <div className="h-full w-full" ref={containerRef} />
 
-          {canEditLines ? (
+          {canEditLines && showTradeControls ? (
             <div className="absolute left-3 top-3 z-[95]">
               {hasTargetLine ? (
                 <div className={TRADE_CONTROL_ACTIVE_CLASS}>
@@ -1448,7 +1450,7 @@ export function BacktestChart({
             </div>
           ) : null}
 
-          {canEditLines ? (
+          {canEditLines && showTradeControls ? (
             <div className="absolute bottom-16 left-3 z-[95]">
               {hasStopLine ? (
                 <div className={TRADE_CONTROL_ACTIVE_CLASS}>

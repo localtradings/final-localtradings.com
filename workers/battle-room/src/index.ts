@@ -123,6 +123,12 @@ const battleWorker = {
         body: JSON.stringify(body),
       });
     }
+    if (url.pathname === "/internal/rooms/sync-replay") {
+      return stub.fetch("https://battle-room/sync-replay", {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
+    }
     if (url.pathname === "/internal/rooms/close-trade") {
       return stub.fetch("https://battle-room/close-trade", {
         method: "POST",

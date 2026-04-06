@@ -1,17 +1,34 @@
 import type { DurableObjectState } from "@cloudflare/workers-types";
 
 import {
+  activateTradeExecution,
+  advancePendingTradeExecution,
+  advanceTradeExecution,
+  armPendingTradeExecution,
+  calculatePositionSizeFromNotional,
+  deriveRiskSettings,
+  finalizeUnfinishedTrade,
+  manuallyCloseTrade,
+  validateTradeDraft,
+} from "../../../src/features/trading-shared/execution-engine";
+import {
   buildViewerState,
   createLobbyPlayer,
-  getCurrentPrice,
+  createPlayerMatchState,
+  getPlayerMatchState,
+  getReplayCandle,
   markDisconnectedForfeits,
+  normalizePlayerMatchState,
   rankPlayers,
   removeExpiredUnreadyPlayers,
-  settleTrade,
+  settleResolvedExecution,
   updateHeartbeat,
 } from "./state";
 import type {
   WorkerBattleDirection,
+  WorkerBattleExecution,
+  WorkerBattlePlayer,
+  WorkerBattlePlayerMatchState,
   WorkerBattleRoomState,
   WorkerBattleSeedData,
   WorkerBattleView,
@@ -25,8 +42,10 @@ type Env = {
 const STARTING_BALANCE = 100_000;
 const READY_DEADLINE_MS = 30_000;
 const LOBBY_COUNTDOWN_MS = 60_000;
-const ACTIVE_TICK_MS = 1_000;
 const RECONNECT_GRACE_MS = 60_000;
+const PARTICIPATION_WARNING_MS = 5 * 60 * 1_000;
+const PARTICIPATION_GRACE_MS = 60 * 1_000;
+const MAX_REPLAY_CHECKPOINT_DELTA = 4;
 const TOKEN_VERSION = "v1";
 
 type RoomTokenPayload = {
@@ -34,6 +53,10 @@ type RoomTokenPayload = {
   userId: string;
   issuedAt: string;
 };
+
+type PenaltyResponse =
+  | { ok: true; data?: { endsAt?: string | null } }
+  | { ok: false };
 
 export class BattleRoomDO {
   private readonly connections = new Map<string, Set<WebSocket>>();
@@ -68,6 +91,9 @@ export class BattleRoomDO {
     if (url.pathname === "/leave") {
       return this.handleLeave(body, now);
     }
+    if (url.pathname === "/sync-replay") {
+      return this.handleSyncReplay(body, now);
+    }
     if (url.pathname === "/open-trade") {
       return this.handleOpenTrade(body, now);
     }
@@ -87,14 +113,43 @@ export class BattleRoomDO {
       return;
     }
 
-    await this.reconcileRoom(room, Date.now());
+    this.logRoomEvent("alarm", {
+      roomId: room.roomId,
+      phase: room.phase,
+    });
+    const changed = await this.reconcileRoom(room, Date.now());
+    if (changed) {
+      await this.saveAndBroadcast(room);
+      if (room.phase !== "finished") {
+        await this.persistRoomSnapshot(room);
+      }
+      return;
+    }
+
+    await this.saveRoomState(room);
   }
 
   private async loadRoomState() {
     return (await this.state.storage.get<WorkerBattleRoomState>("room")) ?? null;
   }
 
+  private syncRoomCurrentIndex(room: WorkerBattleRoomState) {
+    room.playerStates ??= {};
+    const replayIndexes = Object.values(room.playerStates).map(
+      (state) => normalizePlayerMatchState(room, state).replayIndex,
+    );
+    const fallbackReplayIndex = Math.max(
+      0,
+      Math.min(Math.max(room.initialRevealCount - 1, 0), Math.max(room.candles.length - 1, 0)),
+    );
+    room.currentCandleIndex =
+      replayIndexes.length > 0
+        ? Math.max(...replayIndexes)
+        : fallbackReplayIndex;
+  }
+
   private async saveRoomState(room: WorkerBattleRoomState) {
+    this.syncRoomCurrentIndex(room);
     room.lastEventAt = new Date().toISOString();
     const nextAlarmAt = this.getNextAlarmAt(room);
     if (nextAlarmAt) {
@@ -110,10 +165,22 @@ export class BattleRoomDO {
     await this.broadcastRoomState(room);
   }
 
-  private getActiveLobbyPlayers(room: WorkerBattleRoomState) {
-    return room.players.filter((player) =>
-      player.status === "joined" || player.status === "ready",
+  private logRoomEvent(event: string, details: Record<string, unknown>) {
+    console.debug(
+      "[battle-room]",
+      JSON.stringify({
+        event,
+        roomId: details.roomId,
+        userId: details.userId ?? null,
+        phase: details.phase ?? null,
+        delta: details.delta ?? null,
+        reason: details.reason ?? null,
+      }),
     );
+  }
+
+  private getActiveLobbyPlayers(room: WorkerBattleRoomState) {
+    return room.players.filter((player) => player.status === "joined" || player.status === "ready");
   }
 
   private getNextAlarmAt(room: WorkerBattleRoomState) {
@@ -132,8 +199,6 @@ export class BattleRoomDO {
     }
 
     if (room.phase === "active") {
-      candidates.push(Date.now() + ACTIVE_TICK_MS);
-
       if (room.officialEndAt) {
         candidates.push(Date.parse(room.officialEndAt));
       }
@@ -142,6 +207,24 @@ export class BattleRoomDO {
         if (player.status === "active" && player.lastHeartbeatAt) {
           candidates.push(Date.parse(player.lastHeartbeatAt) + RECONNECT_GRACE_MS);
         }
+
+        if (player.status !== "active" || !room.officialStartAt) {
+          continue;
+        }
+
+        const state = this.getOrCreatePlayerState(room, player.userId);
+        if (state.hasEnteredTrade || state.participationStatus === "eliminated") {
+          continue;
+        }
+
+        const warningAt = Date.parse(room.officialStartAt) + PARTICIPATION_WARNING_MS;
+        const deadlineAt = warningAt + PARTICIPATION_GRACE_MS;
+
+        if (state.participationStatus === "clear") {
+          candidates.push(warningAt);
+        }
+
+        candidates.push(deadlineAt);
       }
     }
 
@@ -154,6 +237,17 @@ export class BattleRoomDO {
 
   private getPlayer(room: WorkerBattleRoomState, userId: string) {
     return room.players.find((entry) => entry.userId === userId) ?? null;
+  }
+
+  private getOrCreatePlayerState(room: WorkerBattleRoomState, userId: string) {
+    const existing = getPlayerMatchState(room, userId);
+    if (existing) {
+      return normalizePlayerMatchState(room, existing);
+    }
+
+    const created = createPlayerMatchState(Math.max(room.initialRevealCount - 1, 0));
+    room.playerStates[userId] = created;
+    return normalizePlayerMatchState(room, created);
   }
 
   private isPlayerAllowedInLobby(room: WorkerBattleRoomState, userId: string) {
@@ -171,15 +265,46 @@ export class BattleRoomDO {
 
   private isPlayerAllowedInActiveMatch(room: WorkerBattleRoomState, userId: string) {
     const player = this.getPlayer(room, userId);
-    if (!player) {
+    if (!player || player.status !== "active") {
       return null;
     }
 
-    if (player.status !== "active") {
+    const state = this.getOrCreatePlayerState(room, userId);
+    if (state.participationStatus === "eliminated") {
       return null;
     }
 
     return player;
+  }
+
+  private getMatchLockMessage(
+    room: WorkerBattleRoomState,
+    userId: string,
+    fallback: string,
+  ) {
+    const player = this.getPlayer(room, userId);
+
+    if (room.phase === "cancelled") {
+      return "This battle room was cancelled.";
+    }
+
+    if (room.phase === "finished") {
+      return "This battle room has already finished.";
+    }
+
+    if (player?.status === "no_trade") {
+      return "You were eliminated for not entering a trade before the deadline.";
+    }
+
+    if (player?.status === "forfeit") {
+      return "You were forfeited after losing room presence.";
+    }
+
+    if (player?.status === "left_early") {
+      return "You left this match early and can no longer trade in it.";
+    }
+
+    return fallback;
   }
 
   private toBase64Url(bytes: Uint8Array) {
@@ -330,14 +455,41 @@ export class BattleRoomDO {
     });
     server.addEventListener("message", (event) => {
       if (typeof event.data === "string" && event.data === "ping") {
-        try {
-          server.send(JSON.stringify({ type: "pong" }));
-        } catch {}
+        void (async () => {
+          const latestRoom = await this.loadRoomState();
+          if (!latestRoom) {
+            return;
+          }
+
+          const playerWithHeartbeat = updateHeartbeat(
+            latestRoom,
+            payload.userId,
+            new Date(Date.now()).toISOString(),
+          );
+          if (playerWithHeartbeat) {
+            await this.saveRoomState(latestRoom);
+            this.logRoomEvent("ws-ping", {
+              roomId: latestRoom.roomId,
+              userId: payload.userId,
+              phase: latestRoom.phase,
+            });
+          }
+
+          try {
+            server.send(JSON.stringify({ type: "pong" }));
+          } catch {}
+        })();
       }
     });
 
     updateHeartbeat(room, payload.userId, new Date().toISOString());
+    this.logRoomEvent("ws-connect", {
+      roomId: room.roomId,
+      userId: payload.userId,
+      phase: room.phase,
+    });
     await this.reconcileRoom(room, Date.now());
+    await this.saveAndBroadcast(room);
 
     return new Response(null, {
       status: 101,
@@ -345,55 +497,149 @@ export class BattleRoomDO {
     });
   }
 
+  private async issuePenalty(
+    roomId: string,
+    userId: string,
+    reason: "left_early" | "forfeit" | "no_trade",
+  ) {
+    const response = await fetch(`${this.env.APP_BASE_URL}/api/battle/internal/issue-penalty`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-battle-internal-secret": this.env.BATTLE_SHARED_SECRET,
+      },
+      body: JSON.stringify({
+        roomId,
+        userId,
+        reason,
+      }),
+    }).catch(() => null);
+
+    if (!response) {
+      return null;
+    }
+
+    return (await response.json().catch(() => null)) as PenaltyResponse | null;
+  }
+
+  private async persistRoomSnapshot(room: WorkerBattleRoomState) {
+    await fetch(`${this.env.APP_BASE_URL}/api/battle/internal/persist-room`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-battle-internal-secret": this.env.BATTLE_SHARED_SECRET,
+      },
+      body: JSON.stringify({
+        room: buildViewerState(room, room.players[0]?.userId ?? "00000000-0000-0000-0000-000000000000").room,
+      }),
+    }).catch(() => null);
+  }
+
+  private async eliminateForNoTrade(
+    room: WorkerBattleRoomState,
+    player: WorkerBattlePlayer,
+    state: WorkerBattlePlayerMatchState,
+  ) {
+    if (player.status !== "active" || state.participationStatus === "eliminated") {
+      return false;
+    }
+
+    player.status = "no_trade";
+    player.connected = false;
+    state.participationStatus = "eliminated";
+    state.execution = null;
+
+    if (!state.activePenaltyUntil) {
+      const penalty = await this.issuePenalty(room.roomId, player.userId, "no_trade");
+      if (penalty?.ok) {
+        state.activePenaltyUntil = penalty.data?.endsAt ?? null;
+      }
+    }
+
+    return true;
+  }
+
+  private clearParticipationWarning(state: WorkerBattlePlayerMatchState) {
+    const changed =
+      state.participationStatus !== "clear" ||
+      state.participationWarningIssuedAt !== null ||
+      state.participationDeadlineAt !== null;
+    state.participationStatus = "clear";
+    state.participationWarningIssuedAt = null;
+    state.participationDeadlineAt = null;
+    return changed;
+  }
+
+  private async enforceParticipationRule(room: WorkerBattleRoomState, nowMs: number) {
+    if (room.phase !== "active" || !room.officialStartAt) {
+      return false;
+    }
+
+    const warningAtMs = Date.parse(room.officialStartAt) + PARTICIPATION_WARNING_MS;
+    const deadlineMs = warningAtMs + PARTICIPATION_GRACE_MS;
+    let changed = false;
+
+    for (const player of room.players) {
+      if (player.status !== "active") {
+        continue;
+      }
+
+      const state = this.getOrCreatePlayerState(room, player.userId);
+      if (state.hasEnteredTrade) {
+        changed = this.clearParticipationWarning(state) || changed;
+        continue;
+      }
+
+      if (nowMs >= deadlineMs) {
+        state.participationWarningIssuedAt ??= new Date(warningAtMs).toISOString();
+        state.participationDeadlineAt ??= new Date(deadlineMs).toISOString();
+        changed = (await this.eliminateForNoTrade(room, player, state)) || changed;
+        continue;
+      }
+
+      if (nowMs >= warningAtMs && state.participationStatus === "clear") {
+        state.participationStatus = "warned";
+        state.participationWarningIssuedAt = new Date(nowMs).toISOString();
+        state.participationDeadlineAt = new Date(deadlineMs).toISOString();
+        changed = true;
+      }
+    }
+
+    return changed;
+  }
+
   private async reconcileRoom(room: WorkerBattleRoomState, nowMs: number) {
-    removeExpiredUnreadyPlayers(room, nowMs);
-    markDisconnectedForfeits(room, nowMs);
+    let changed = false;
+    changed = removeExpiredUnreadyPlayers(room, nowMs) || changed;
+    changed = markDisconnectedForfeits(room, nowMs) || changed;
 
     if (room.phase === "lobby" && room.countdownEndsAt) {
       const activeLobbyPlayers = this.getActiveLobbyPlayers(room);
       const readyPlayers = activeLobbyPlayers.filter((player) => player.isReady);
 
       if (activeLobbyPlayers.length >= 2 && readyPlayers.length === activeLobbyPlayers.length) {
-        await this.startRoom(room, nowMs);
+        changed = (await this.startRoom(room, nowMs)) || changed;
       } else if (Date.parse(room.countdownEndsAt) <= nowMs) {
         if (readyPlayers.length >= 2) {
-          await this.startRoom(room, nowMs);
+          changed = (await this.startRoom(room, nowMs)) || changed;
         } else {
           room.phase = "cancelled";
           room.cancelReason = "not_enough_ready_players";
+          changed = true;
         }
       }
     }
 
     if (room.phase === "active") {
-      this.advanceRoomCandle(room, nowMs);
+      changed = (await this.enforceParticipationRule(room, nowMs)) || changed;
 
       if (room.officialEndAt && Date.parse(room.officialEndAt) <= nowMs) {
-        await this.finalizeRoom(room, nowMs);
+        changed = (await this.finalizeRoom(room, nowMs)) || changed;
       }
     }
 
     rankPlayers(room.players);
-    await this.saveAndBroadcast(room);
-  }
-
-  private advanceRoomCandle(room: WorkerBattleRoomState, nowMs: number) {
-    if (!room.officialStartAt || !room.officialEndAt || room.candles.length === 0) {
-      return;
-    }
-
-    const startMs = Date.parse(room.officialStartAt);
-    const endMs = Date.parse(room.officialEndAt);
-    const durationMs = Math.max(1, endMs - startMs);
-    const remainingPlayableCandles = Math.max(
-      1,
-      room.candles.length - room.initialRevealCount,
-    );
-    const progress = Math.min(1, Math.max(0, (nowMs - startMs) / durationMs));
-    room.currentCandleIndex = Math.min(
-      room.candles.length - 1,
-      room.initialRevealCount - 1 + Math.floor(progress * remainingPlayableCandles),
-    );
+    return changed;
   }
 
   private async fetchSeedData(): Promise<WorkerBattleSeedData> {
@@ -441,7 +687,7 @@ export class BattleRoomDO {
 
   private async startRoom(room: WorkerBattleRoomState, nowMs: number) {
     if (room.phase !== "lobby") {
-      return;
+      return false;
     }
 
     let seed: WorkerBattleSeedData;
@@ -451,14 +697,14 @@ export class BattleRoomDO {
       room.phase = "cancelled";
       room.cancelReason = "service_unavailable";
       room.pendingSeedData = null;
-      return;
+      return true;
     }
 
     if (!seed || seed.candles.length === 0) {
       room.phase = "cancelled";
       room.cancelReason = "service_unavailable";
       room.pendingSeedData = null;
-      return;
+      return true;
     }
 
     const initialRevealCount = Math.max(
@@ -474,39 +720,47 @@ export class BattleRoomDO {
     room.currentCandleIndex = initialRevealCount - 1;
     room.countdownEndsAt = null;
     room.officialStartAt = new Date(nowMs).toISOString();
-    room.officialEndAt = new Date(
-      nowMs + room.durationMinutes * 60 * 1_000,
-    ).toISOString();
+    room.officialEndAt = new Date(nowMs + room.durationMinutes * 60 * 1_000).toISOString();
     room.pendingSeedData = null;
 
     for (const player of room.players) {
       if (player.isReady) {
         player.status = "active";
         player.readyDeadlineAt = null;
+        room.playerStates[player.userId] = createPlayerMatchState(initialRevealCount - 1);
       } else if (player.status === "joined") {
         player.status = "removed_unready";
       }
     }
+
+    return true;
   }
 
   private async finalizeRoom(room: WorkerBattleRoomState, nowMs: number) {
     if (room.phase === "finished" || room.finalizedAt) {
-      return;
+      return false;
     }
 
-    const finalPrice =
-      room.candles[room.candles.length - 1]?.close ?? getCurrentPrice(room) ?? null;
+    const finalIndex = room.candles.length - 1;
+    const finalCandle = room.candles[finalIndex] ?? null;
 
     for (const player of room.players) {
-      const openTrade = room.activeTrades[player.userId];
-      if (openTrade && finalPrice !== null) {
-        settleTrade(player, openTrade, finalPrice);
-        room.lastClosedTradeIds[player.userId] = openTrade.id;
-        delete room.activeTrades[player.userId];
+      const state = this.getOrCreatePlayerState(room, player.userId);
+      if (state.execution?.status === "active" && finalCandle) {
+        const resolved = finalizeUnfinishedTrade(
+          state.execution,
+          finalCandle,
+          finalIndex,
+          state.execution.direction,
+        ) as WorkerBattleExecution;
+        settleResolvedExecution(player, resolved);
+        state.execution = null;
+      } else if (state.execution?.status === "armed") {
+        state.execution = null;
       }
 
       if (player.status === "active") {
-        player.status = player.tradesClosed === 0 ? "no_trade" : "finished";
+        player.status = state.hasEnteredTrade ? "finished" : "no_trade";
       }
     }
 
@@ -554,14 +808,35 @@ export class BattleRoomDO {
         })),
       }),
     }).catch(() => null);
+
+    return true;
   }
 
   private jsonSuccess(data: { room: WorkerBattleView }) {
     return Response.json({ ok: true, data });
   }
 
-  private jsonFailure(reason: string, message: string, status = 400) {
-    return Response.json({ ok: false, reason, message }, { status });
+  private jsonFailure(
+    reason: string,
+    message: string,
+    status = 400,
+    room?: WorkerBattleRoomState,
+    viewerUserId?: string,
+  ) {
+    return Response.json(
+      {
+        ok: false,
+        reason,
+        message,
+        data:
+          room && viewerUserId
+            ? {
+                room: buildViewerState(room, viewerUserId),
+              }
+            : undefined,
+      },
+      { status },
+    );
   }
 
   private async handleCreate(body: Record<string, unknown> | null, nowMs: number) {
@@ -569,6 +844,7 @@ export class BattleRoomDO {
       return this.jsonFailure("invalid_payload", "Missing room create payload.");
     }
 
+    const creatorId = String(body.userId);
     const room: WorkerBattleRoomState = {
       roomId: String(body.roomId),
       lobbyCode: typeof body.lobbyCode === "string" ? body.lobbyCode : null,
@@ -591,20 +867,21 @@ export class BattleRoomDO {
       pendingSeedData: null,
       players: [
         createLobbyPlayer({
-          userId: String(body.userId),
+          userId: creatorId,
           displayName: String(body.displayName),
           isCreator: true,
           nowIso: new Date(nowMs).toISOString(),
         }),
       ],
-      activeTrades: {},
-      lastClosedTradeIds: {},
+      playerStates: {
+        [creatorId]: createPlayerMatchState(0),
+      },
       finalizedAt: null,
     };
 
     await this.saveAndBroadcast(room);
     return this.jsonSuccess({
-      room: buildViewerState(room, String(body.userId)),
+      room: buildViewerState(room, creatorId),
     });
   }
 
@@ -614,7 +891,10 @@ export class BattleRoomDO {
       return this.jsonFailure("room_not_found", "Battle room not found.", 404);
     }
 
-    await this.reconcileRoom(room, nowMs);
+    const reconciled = await this.reconcileRoom(room, nowMs);
+    if (reconciled) {
+      await this.saveAndBroadcast(room);
+    }
 
     if (room.phase !== "lobby") {
       return this.jsonFailure("room_already_started", "Battle room already started.");
@@ -641,6 +921,7 @@ export class BattleRoomDO {
         nowIso: new Date(nowMs).toISOString(),
       }),
     );
+    room.playerStates[userId] = createPlayerMatchState(Math.max(room.initialRevealCount - 1, 0));
 
     await this.saveAndBroadcast(room);
     return this.jsonSuccess({ room: buildViewerState(room, userId) });
@@ -658,7 +939,13 @@ export class BattleRoomDO {
       return this.jsonFailure("room_not_found", "Battle room not found.", 404);
     }
 
-    await this.reconcileRoom(room, nowMs);
+    this.getOrCreatePlayerState(room, userId);
+    await this.saveRoomState(room);
+    this.logRoomEvent("state", {
+      roomId: room.roomId,
+      userId,
+      phase: room.phase,
+    });
     return this.jsonSuccess({ room: buildViewerState(room, userId) });
   }
 
@@ -682,11 +969,10 @@ export class BattleRoomDO {
     updateHeartbeat(room, userId, new Date(nowMs).toISOString());
     player.isReady = ready;
     player.status = ready ? "ready" : "joined";
-    player.readyDeadlineAt = ready
-      ? null
-      : new Date(nowMs + READY_DEADLINE_MS).toISOString();
+    player.readyDeadlineAt = ready ? null : new Date(nowMs + READY_DEADLINE_MS).toISOString();
 
     await this.reconcileRoom(room, nowMs);
+    await this.saveAndBroadcast(room);
     return this.jsonSuccess({ room: buildViewerState(room, userId) });
   }
 
@@ -705,9 +991,138 @@ export class BattleRoomDO {
     player.connected = false;
     player.disconnectedAt = new Date(nowMs).toISOString();
     player.status = room.phase === "active" ? "left_early" : "left_lobby";
-    delete room.activeTrades[userId];
+    const state = this.getOrCreatePlayerState(room, userId);
+    state.execution = null;
+
+    if (room.phase === "active" && !state.activePenaltyUntil) {
+      const penalty = await this.issuePenalty(room.roomId, userId, "left_early");
+      if (penalty?.ok) {
+        state.activePenaltyUntil = penalty.data?.endsAt ?? null;
+      }
+    }
 
     await this.reconcileRoom(room, nowMs);
+    await this.saveAndBroadcast(room);
+    return this.jsonSuccess({ room: buildViewerState(room, userId) });
+  }
+
+  private async handleSyncReplay(body: Record<string, unknown> | null, nowMs: number) {
+    const room = await this.loadRoomState();
+    if (!room || !body) {
+      return this.jsonFailure("room_not_found", "Battle room not found.", 404);
+    }
+
+    const reconciled = await this.reconcileRoom(room, nowMs);
+    if (reconciled) {
+      await this.saveAndBroadcast(room);
+    }
+    if (room.phase !== "active") {
+      return this.jsonFailure("room_not_active", "Battle room is not active.", 409);
+    }
+
+    const userId = String(body.userId);
+    const player = this.isPlayerAllowedInActiveMatch(room, userId);
+    if (!player) {
+      return this.jsonFailure(
+        "player_eliminated",
+        this.getMatchLockMessage(
+          room,
+          userId,
+          "This player can no longer replay or trade in the match.",
+        ),
+        409,
+        room,
+        userId,
+      );
+    }
+
+    const state = this.getOrCreatePlayerState(room, userId);
+    const requestedReplayIndex = Number(body.replayIndex);
+    const maxReplayIndex = room.candles.length - 1;
+
+    if (!Number.isInteger(requestedReplayIndex) || requestedReplayIndex > maxReplayIndex) {
+      return this.jsonFailure(
+        "invalid_replay_progression",
+        "Replay progression is outside the canonical dataset.",
+        400,
+        room,
+        userId,
+      );
+    }
+
+    if (requestedReplayIndex <= state.replayIndex) {
+      return this.jsonFailure(
+        "invalid_replay_progression",
+        "Replay progression must move forward from the current authoritative candle.",
+        409,
+        room,
+        userId,
+      );
+    }
+
+    const replayDelta = requestedReplayIndex - state.replayIndex;
+    if (replayDelta > MAX_REPLAY_CHECKPOINT_DELTA) {
+      return this.jsonFailure(
+        "invalid_replay_progression",
+        "Replay progression exceeded the allowed checkpoint window.",
+        409,
+        room,
+        userId,
+      );
+    }
+
+    for (
+      let nextReplayIndex = state.replayIndex + 1;
+      nextReplayIndex <= requestedReplayIndex;
+      nextReplayIndex += 1
+    ) {
+      const nextCandle = getReplayCandle(room, nextReplayIndex);
+      if (!nextCandle) {
+        return this.jsonFailure(
+          "invalid_replay_progression",
+          "Replay progression is outside the canonical dataset.",
+          400,
+          room,
+          userId,
+        );
+      }
+
+      state.replayIndex = nextReplayIndex;
+      if (state.execution?.status === "armed") {
+        state.execution = advancePendingTradeExecution(
+          state.execution,
+          nextCandle,
+          nextReplayIndex,
+          state.execution.direction,
+        ) as WorkerBattleExecution;
+      } else if (state.execution?.status === "active") {
+        state.execution = advanceTradeExecution(
+          state.execution,
+          nextCandle,
+          nextReplayIndex,
+          state.execution.direction,
+        ) as WorkerBattleExecution;
+      }
+
+      if (
+        state.execution &&
+        state.execution.status !== "armed" &&
+        state.execution.status !== "active" &&
+        state.execution.resultAmount !== null
+      ) {
+        settleResolvedExecution(player, state.execution);
+        state.execution = null;
+      }
+    }
+
+    updateHeartbeat(room, userId, new Date(nowMs).toISOString());
+    this.logRoomEvent("sync-replay", {
+      roomId: room.roomId,
+      userId,
+      phase: room.phase,
+      delta: replayDelta,
+    });
+    await this.saveAndBroadcast(room);
     return this.jsonSuccess({ room: buildViewerState(room, userId) });
   }
 
@@ -717,7 +1132,10 @@ export class BattleRoomDO {
       return this.jsonFailure("room_not_found", "Battle room not found.", 404);
     }
 
-    await this.reconcileRoom(room, nowMs);
+    const reconciled = await this.reconcileRoom(room, nowMs);
+    if (reconciled) {
+      await this.saveAndBroadcast(room);
+    }
     if (room.phase !== "active") {
       return this.jsonFailure("room_not_active", "Battle room is not active.");
     }
@@ -725,31 +1143,114 @@ export class BattleRoomDO {
     const userId = String(body.userId);
     const player = this.isPlayerAllowedInActiveMatch(room, userId);
     if (!player) {
-      return this.jsonFailure("room_not_found", "Player not found in this active room.", 404);
+      return this.jsonFailure(
+        "player_eliminated",
+        this.getMatchLockMessage(
+          room,
+          userId,
+          "This player can no longer open a trade in the match.",
+        ),
+        409,
+        room,
+        userId,
+      );
     }
 
-    const existingTrade = room.activeTrades[userId];
-    if (existingTrade && (existingTrade.status === "open" || existingTrade.status === "closing")) {
+    const state = this.getOrCreatePlayerState(room, userId);
+    if (state.execution && (state.execution.status === "armed" || state.execution.status === "active")) {
       return this.jsonFailure("trade_already_open", "Only one open trade is allowed.");
     }
 
-    const price = getCurrentPrice(room);
-    if (price === null) {
+    const replayIndex = Number(body.replayIndex);
+    if (!Number.isInteger(replayIndex) || replayIndex !== state.replayIndex) {
+      return this.jsonFailure(
+        "invalid_replay_progression",
+        "Trade request used a stale replay position.",
+        409,
+        room,
+        userId,
+      );
+    }
+
+    const visibleCandle = getReplayCandle(room, replayIndex);
+    if (!visibleCandle) {
       return this.jsonFailure("room_not_active", "Current price is unavailable.");
     }
 
-    room.activeTrades[userId] = {
-      id: crypto.randomUUID(),
-      status: "open",
-      direction: String(body.direction) as WorkerBattleDirection,
-      orderType: "market",
-      volume: Number(body.volume),
-      entryPrice: price,
-      openedAtIndex: room.currentCandleIndex ?? 0,
-      openedAtTime: room.candles[room.currentCandleIndex ?? 0]?.time ?? Math.floor(nowMs / 1000),
-    };
+    const direction = String(body.direction) as WorkerBattleDirection;
+    const orderType = String(body.orderType) as "market" | "limit" | "stop";
+    const riskPercent = Number(body.riskPercent);
+    const entryPrice =
+      orderType === "market" ? visibleCandle.close : Number(body.entryPrice);
+    const stopLoss = body.stopLoss === null ? null : Number(body.stopLoss);
+    const takeProfit = body.takeProfit === null ? null : Number(body.takeProfit);
 
+    const validation = validateTradeDraft({
+      direction,
+      orderType,
+      entry: String(entryPrice),
+      hasStop: stopLoss !== null,
+      stop: stopLoss === null ? "" : String(stopLoss),
+      hasTarget: takeProfit !== null,
+      target: takeProfit === null ? "" : String(takeProfit),
+      volume: "",
+    });
+
+    if (
+      !validation.isValid ||
+      !Number.isFinite(riskPercent) ||
+      riskPercent <= 0
+    ) {
+      return this.jsonFailure("invalid_trade_payload", validation.message ?? "Enter a valid battle trade.");
+    }
+
+    const risk = deriveRiskSettings(
+      {
+        startingBalance: player.officialBalance,
+        currentBalance: player.officialBalance,
+        defaultRiskPercent: 1,
+      },
+      { riskPercent },
+    );
+    const volume = calculatePositionSizeFromNotional(validation.entry, risk.riskAmount);
+    if (!volume || !Number.isFinite(volume) || volume <= 0) {
+      return this.jsonFailure(
+        "invalid_trade_payload",
+        "This setup cannot derive a valid battle position size.",
+      );
+    }
+
+    const baseExecution =
+      orderType === "market"
+        ? activateTradeExecution(validation, replayIndex, visibleCandle.time, {
+            orderType,
+            riskPercent: risk.riskPercent,
+            riskAmount: risk.riskAmount,
+            volume,
+            balanceBeforeTrade: player.officialBalance,
+          })
+        : armPendingTradeExecution(validation, {
+            orderType,
+            riskPercent: risk.riskPercent,
+            riskAmount: risk.riskAmount,
+            volume,
+            balanceBeforeTrade: player.officialBalance,
+          });
+
+    state.execution = {
+      id: crypto.randomUUID(),
+      direction,
+      ...baseExecution,
+    };
+    state.hasEnteredTrade = true;
+    this.clearParticipationWarning(state);
     updateHeartbeat(room, userId, new Date(nowMs).toISOString());
+    this.logRoomEvent("open-trade", {
+      roomId: room.roomId,
+      userId,
+      phase: room.phase,
+    });
+
     await this.saveAndBroadcast(room);
     return this.jsonSuccess({ room: buildViewerState(room, userId) });
   }
@@ -760,41 +1261,67 @@ export class BattleRoomDO {
       return this.jsonFailure("room_not_found", "Battle room not found.", 404);
     }
 
-    await this.reconcileRoom(room, nowMs);
+    const reconciled = await this.reconcileRoom(room, nowMs);
+    if (reconciled) {
+      await this.saveAndBroadcast(room);
+    }
     if (room.phase !== "active") {
       return this.jsonFailure("room_not_active", "Battle room is not active.");
     }
 
     const userId = String(body.userId);
-    const tradeId = typeof body.tradeId === "string" ? body.tradeId : null;
-    if (!tradeId) {
-      return this.jsonFailure("no_open_trade", "No open trade is available to close.");
-    }
-
-    if (room.lastClosedTradeIds[userId] === tradeId) {
-      return this.jsonSuccess({ room: buildViewerState(room, userId) });
-    }
-
-    const trade = room.activeTrades[userId];
     const player = this.isPlayerAllowedInActiveMatch(room, userId);
-    if (!trade || !player || trade.id !== tradeId) {
+    if (!player) {
+      return this.jsonFailure(
+        "player_eliminated",
+        this.getMatchLockMessage(
+          room,
+          userId,
+          "This player can no longer close a trade in the match.",
+        ),
+        409,
+        room,
+        userId,
+      );
+    }
+
+    const state = this.getOrCreatePlayerState(room, userId);
+    const replayIndex = Number(body.replayIndex);
+    if (!Number.isInteger(replayIndex) || replayIndex !== state.replayIndex) {
+      return this.jsonFailure(
+        "invalid_replay_progression",
+        "Trade close request used a stale replay position.",
+        409,
+        room,
+        userId,
+      );
+    }
+
+    if (!state.execution || state.execution.status !== "active") {
       return this.jsonFailure("no_open_trade", "No open trade is available to close.");
     }
 
-    const price = getCurrentPrice(room);
-    if (price === null) {
+    const visibleCandle = getReplayCandle(room, replayIndex);
+    if (!visibleCandle) {
       return this.jsonFailure("room_not_active", "Current price is unavailable.");
     }
 
-    room.activeTrades[userId] = {
-      ...trade,
-      status: "closing",
-    };
+    const resolved = manuallyCloseTrade(
+      state.execution,
+      visibleCandle,
+      replayIndex,
+      state.execution.direction,
+    ) as WorkerBattleExecution;
 
-    settleTrade(player, trade, price);
-    room.lastClosedTradeIds[userId] = trade.id;
-    delete room.activeTrades[userId];
+    settleResolvedExecution(player, resolved);
+    state.execution = null;
     updateHeartbeat(room, userId, new Date(nowMs).toISOString());
+    this.logRoomEvent("close-trade", {
+      roomId: room.roomId,
+      userId,
+      phase: room.phase,
+    });
+
     await this.saveAndBroadcast(room);
     return this.jsonSuccess({ room: buildViewerState(room, userId) });
   }

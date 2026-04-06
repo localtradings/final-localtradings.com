@@ -206,6 +206,16 @@ type BacktestingToolbarProps = {
   onStepReplayForward: () => void;
   onTogglePlayback: () => void;
   userId?: string | null;
+  showSelectionControls?: boolean;
+  showSpeedControl?: boolean;
+  showRandomizeButton?: boolean;
+  showNextCandleButton?: boolean;
+  showBalancePill?: boolean;
+  lockedSelection?: {
+    symbolLabel: string;
+    timeframeLabel: string;
+  };
+  lockedSpeedLabel?: string;
 };
 
 export function BacktestingToolbar({
@@ -222,45 +232,68 @@ export function BacktestingToolbar({
   replay,
   selectionDraft,
   userId,
+  showSelectionControls = true,
+  showSpeedControl = true,
+  showRandomizeButton = true,
+  showNextCandleButton = true,
+  showBalancePill = true,
+  lockedSelection,
+  lockedSpeedLabel,
 }: BacktestingToolbarProps) {
   return (
     <div className="shrink-0 border-b border-white/8 px-3 py-2">
       <div className="grid gap-2 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
         <div className="flex flex-wrap items-end gap-2">
-            <label className="grid w-[8.5rem] min-w-0 gap-1">
-              <ToolbarLabel>Symbol</ToolbarLabel>
-              <Select
-                className={SELECT_CLASS}
-                id="backtest-symbol"
-                name="backtest_symbol"
-                onChange={(event) => onSelectionFieldChange("symbol", event.target.value)}
-                value={selectionDraft.symbol}
-              >
-                {initialCatalog.instruments.map((item) => (
-                  <option key={item.symbol} value={item.symbol}>
-                    {item.label}
-                  </option>
-                ))}
-              </Select>
-            </label>
+          {showSelectionControls ? (
+            <>
+              <label className="grid w-[8.5rem] min-w-0 gap-1">
+                <ToolbarLabel>Symbol</ToolbarLabel>
+                <Select
+                  className={SELECT_CLASS}
+                  id="backtest-symbol"
+                  name="backtest_symbol"
+                  onChange={(event) => onSelectionFieldChange("symbol", event.target.value)}
+                  value={selectionDraft.symbol}
+                >
+                  {initialCatalog.instruments.map((item) => (
+                    <option key={item.symbol} value={item.symbol}>
+                      {item.label}
+                    </option>
+                  ))}
+                </Select>
+              </label>
 
-            <label className="grid w-[5.75rem] min-w-0 gap-1">
-              <ToolbarLabel>Timeframe</ToolbarLabel>
-              <Select
-                className={SELECT_CLASS}
-                id="backtest-timeframe"
-                name="backtest_timeframe"
-                onChange={(event) => onSelectionFieldChange("timeframe", event.target.value)}
-                value={selectionDraft.timeframe}
-              >
-                {initialCatalog.timeframes.map((item) => (
-                  <option key={item} value={item}>
-                    {item}
-                  </option>
-                ))}
-              </Select>
-            </label>
+              <label className="grid w-[5.75rem] min-w-0 gap-1">
+                <ToolbarLabel>Timeframe</ToolbarLabel>
+                <Select
+                  className={SELECT_CLASS}
+                  id="backtest-timeframe"
+                  name="backtest_timeframe"
+                  onChange={(event) => onSelectionFieldChange("timeframe", event.target.value)}
+                  value={selectionDraft.timeframe}
+                >
+                  {initialCatalog.timeframes.map((item) => (
+                    <option key={item} value={item}>
+                      {item}
+                    </option>
+                  ))}
+                </Select>
+              </label>
+            </>
+          ) : lockedSelection ? (
+            <>
+              <div className="grid gap-1">
+                <ToolbarLabel>Symbol</ToolbarLabel>
+                <div className={SELECT_CLASS}>{lockedSelection.symbolLabel}</div>
+              </div>
+              <div className="grid gap-1">
+                <ToolbarLabel>Timeframe</ToolbarLabel>
+                <div className={SELECT_CLASS}>{lockedSelection.timeframeLabel}</div>
+              </div>
+            </>
+          ) : null}
 
+          {showSpeedControl ? (
             <label className="grid w-[5rem] min-w-0 gap-1">
               <ToolbarLabel>Speed</ToolbarLabel>
               <Select
@@ -277,23 +310,33 @@ export function BacktestingToolbar({
                 ))}
               </Select>
             </label>
+          ) : lockedSpeedLabel ? (
+            <div className="grid gap-1">
+              <ToolbarLabel>Speed</ToolbarLabel>
+              <div className={SELECT_CLASS}>{lockedSpeedLabel}</div>
+            </div>
+          ) : null}
         </div>
 
         <div className="grid grid-cols-3 gap-1.5 sm:flex sm:flex-wrap sm:items-center sm:justify-end lg:ml-auto">
-          <BacktestBalancePill
-            className="col-span-3 h-8 rounded-sm border-white/10 bg-[#0a0f14] px-2.5 text-[11px] text-slate-200 sm:col-auto"
-            initialBalance={initialAccount?.currentBalance}
-            userId={userId}
-          />
-          <Button
-            className={TOOLBAR_ACTION_BUTTON_CLASS}
-            disabled={isLoading}
-            onClick={onRandomizeWindow}
-            type="button"
-            variant="ghost"
-          >
-            {loadButtonLabel}
-          </Button>
+          {showBalancePill ? (
+            <BacktestBalancePill
+              className="col-span-3 h-8 rounded-sm border-white/10 bg-[#0a0f14] px-2.5 text-[11px] text-slate-200 sm:col-auto"
+              initialBalance={initialAccount?.currentBalance}
+              userId={userId}
+            />
+          ) : null}
+          {showRandomizeButton ? (
+            <Button
+              className={TOOLBAR_ACTION_BUTTON_CLASS}
+              disabled={isLoading}
+              onClick={onRandomizeWindow}
+              type="button"
+              variant="ghost"
+            >
+              {loadButtonLabel}
+            </Button>
+          ) : null}
           <Button
             className={TOOLBAR_ACTION_BUTTON_CLASS}
             disabled={!canStepForward || isLoading}
@@ -303,15 +346,17 @@ export function BacktestingToolbar({
           >
             {replay.isPlaying ? "Pause" : "Play"}
           </Button>
-          <Button
-            className={TOOLBAR_ACTION_BUTTON_CLASS}
-            disabled={!canStepForward || isLoading}
-            onClick={onStepReplayForward}
-            type="button"
-            variant="ghost"
-          >
-            Next Candle
-          </Button>
+          {showNextCandleButton ? (
+            <Button
+              className={TOOLBAR_ACTION_BUTTON_CLASS}
+              disabled={!canStepForward || isLoading}
+              onClick={onStepReplayForward}
+              type="button"
+              variant="ghost"
+            >
+              Next Candle
+            </Button>
+          ) : null}
         </div>
       </div>
     </div>

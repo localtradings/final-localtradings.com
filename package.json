@@ -10,7 +10,10 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e:battle": "node --env-file=.env.local scripts/battle-e2e.mjs"
+    "test:e2e:battle": "node --env-file=.env.local scripts/battle-e2e.mjs",
+    "test:e2e:battle:5p": "node --env-file=.env.local scripts/battle-5p-e2e.mjs",
+    "test:e2e:battle:results": "node --env-file=.env.local scripts/battle-results-e2e.mjs",
+    "test:e2e:battle:participation": "node --env-file=.env.local scripts/battle-participation-e2e.mjs"
   },
   "dependencies": {
     "@radix-ui/react-label": "^2.1.8",

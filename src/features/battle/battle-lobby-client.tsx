@@ -11,19 +11,24 @@ import { BattleStateCard } from "@/features/battle/components/battle-state-card"
 import { formatBattleCountdown, formatBattleDuration, formatBattlePhase } from "@/features/battle/formatters";
 import type { BattleRoomSession } from "@/features/battle/types";
 import { useBattleLobby } from "@/features/battle/hooks/use-battle-lobby";
-import { BattleMatchClient } from "@/features/battle/battle-match-client";
 
 export function BattleLobbyClient({ session }: { session: BattleRoomSession }) {
-  const { roomView, self, error, isPending, leave, setReady } = useBattleLobby(session);
+  const { roomView, self, error, hasBootstrapped, isPending, leave, setReady } = useBattleLobby(session);
   const [copied, setCopied] = useState(false);
-  const [now, setNow] = useState(() => Date.now());
+  const [now, setNow] = useState<number | null>(null);
 
   useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      setNow(Date.now());
+    });
     const timer = window.setInterval(() => {
       setNow(Date.now());
     }, 1_000);
 
-    return () => window.clearInterval(timer);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.clearInterval(timer);
+    };
   }, []);
 
   if (!session.workerConfigured) {
@@ -31,6 +36,15 @@ export function BattleLobbyClient({ session }: { session: BattleRoomSession }) {
       <BattleEmptyState
         detail="Add the Cloudflare battle worker env to enable live lobbies and room coordination."
         title="Battle worker not configured"
+      />
+    );
+  }
+
+  if (!roomView && session.roomToken && !hasBootstrapped) {
+    return (
+      <BattleEmptyState
+        detail="Connecting to the live battle room."
+        title="Loading lobby"
       />
     );
   }
@@ -46,11 +60,9 @@ export function BattleLobbyClient({ session }: { session: BattleRoomSession }) {
 
   if (roomView.room.phase === "active") {
     return (
-      <BattleMatchClient
-        session={{
-          ...session,
-          initialView: roomView,
-        }}
+      <BattleEmptyState
+        detail="The room is live. Moving you into the match workspace."
+        title="Starting match"
       />
     );
   }

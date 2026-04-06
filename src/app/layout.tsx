@@ -35,6 +35,11 @@ export const metadata: Metadata = {
     "Learn trading before risking money with structured lessons, quizzes, and backtesting practice.",
 };
 
+const shouldRenderAnalytics =
+  process.env.VERCEL === "1" ||
+  process.env.VERCEL === "true" ||
+  Boolean(process.env.VERCEL_ENV);
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -48,7 +53,7 @@ export default function RootLayout({
     >
       <body className="min-h-full bg-background text-foreground font-sans">
         {children}
-        <Analytics />
+        {shouldRenderAnalytics ? <Analytics /> : null}
       </body>
     </html>
   );

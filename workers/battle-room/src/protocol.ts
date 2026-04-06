@@ -41,15 +41,47 @@ export type WorkerBattleSeedData = {
   candles: WorkerBattleCandle[];
 };
 
-export type WorkerBattleTrade = {
+export type WorkerBattleExecution = {
   id: string;
-  status: "open" | "closing";
+  status:
+    | "draft"
+    | "armed"
+    | "active"
+    | "target_hit"
+    | "stop_hit"
+    | "manual_close"
+    | "unfinished"
+    | "breakeven";
   direction: WorkerBattleDirection;
-  orderType: "market";
-  volume: number;
-  entryPrice: number;
-  openedAtIndex: number;
-  openedAtTime: number;
+  orderType: "market" | "limit" | "stop" | null;
+  entry: number | null;
+  stop: number | null;
+  target: number | null;
+  riskPercent: number | null;
+  riskAmount: number | null;
+  volume: number | null;
+  balanceBeforeTrade: number | null;
+  openedAtIndex: number | null;
+  openedAtTime: number | null;
+  closedAtIndex: number | null;
+  closedAtTime: number | null;
+  exitPrice: number | null;
+  resultR: number | null;
+  resultAmount: number | null;
+  balanceAfterTrade: number | null;
+  maxFavorableR: number | null;
+  maxAdverseR: number | null;
+  durationBars: number | null;
+};
+
+export type WorkerBattlePlayerMatchState = {
+  replayIndex: number;
+  activePenaltyUntil: string | null;
+  hasEnteredTrade: boolean;
+  participationStatus: "clear" | "warned" | "eliminated";
+  participationWarningIssuedAt: string | null;
+  participationDeadlineAt: string | null;
+  execution: WorkerBattleExecution | null;
 };
 
 export type WorkerBattlePlayer = {
@@ -91,8 +123,7 @@ export type WorkerBattleRoomState = {
   candles: WorkerBattleCandle[];
   pendingSeedData: WorkerBattleSeedData | null;
   players: WorkerBattlePlayer[];
-  activeTrades: Record<string, WorkerBattleTrade>;
-  lastClosedTradeIds: Record<string, string>;
+  playerStates: Record<string, WorkerBattlePlayerMatchState>;
   finalizedAt: string | null;
 };
 
@@ -127,7 +158,14 @@ export type WorkerBattleView = {
   };
   self: {
     activePenaltyUntil: string | null;
-    openTrade: WorkerBattleTrade | null;
+    replayIndex: number;
+    revealedCandleCount: number;
+    lockReason: "no_trade" | "forfeit" | "left_early" | "finished" | "cancelled" | null;
+    hasEnteredTrade: boolean;
+    participationStatus: "clear" | "warned" | "eliminated";
+    participationWarningIssuedAt: string | null;
+    participationDeadlineAt: string | null;
+    execution: WorkerBattleExecution | null;
     privateBalance: number;
     unrealizedPnl: number;
     realizedPnl: number;

@@ -31,7 +31,11 @@ export function formatBattleLobbyCode(lobbyCode: string | null) {
   return lobbyCode ?? "Pending";
 }
 
-export function formatBattleCountdown(targetIso: string | null, now = Date.now()) {
+export function formatBattleCountdown(targetIso: string | null, now: number | null = null) {
+  if (now === null) {
+    return "--:--";
+  }
+
   if (!targetIso) {
     return "00:00";
   }

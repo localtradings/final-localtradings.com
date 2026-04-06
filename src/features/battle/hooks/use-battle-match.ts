@@ -1,31 +1,388 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import type { BattleRoomSession } from "@/features/battle/types";
+import {
+  BATTLE_DEFAULT_RISK_PERCENT,
+  BATTLE_REPLAY_BATCH_INTERVAL_MS,
+  BATTLE_REPLAY_BATCH_STEP_COUNT,
+  BATTLE_REPLAY_INTERVAL_MS,
+} from "@/features/battle/constants";
+import type { BattleRoomSession, BattleRoomView, BattleTradeForm } from "@/features/battle/types";
+import { getBacktestInstrument } from "@/features/backtesting/constants";
+import type {
+  BacktestDirection,
+  BacktestLineField,
+  BacktestLineValues,
+  BacktestTimeframe,
+  BacktestTradeDraft,
+} from "@/features/backtesting/types";
+import {
+  buildTradeDraftFromPrice,
+  calculatePositionSizeFromNotional,
+  createDraftExecution,
+  deriveRiskSettings,
+} from "@/features/trading-shared/execution-engine";
+import {
+  buildOrderAwareValidation,
+  derivePrimaryValidation,
+  parseDraftPrice,
+  parsePositiveNumber,
+} from "@/features/backtesting/utils/workspace-helpers";
 import {
   closeBattleTradeAction,
   openBattleTradeAction,
+  syncBattleReplayAction,
 } from "@/server/battle/actions";
 
 import { useBattleRoomSync } from "./use-battle-room-sync";
 
+function formatRiskPercent(value: number) {
+  return value.toFixed(2);
+}
+
+function seedBattleTradeForm(input: {
+  symbol: string;
+  timeframe: BacktestTimeframe | null;
+  referencePrice: number;
+  direction?: BacktestDirection;
+  orderType?: BattleTradeForm["orderType"];
+  riskPercent?: string;
+}): BattleTradeForm {
+  const instrument = getBacktestInstrument(input.symbol);
+  const baseDraft = buildTradeDraftFromPrice(
+    instrument,
+    input.timeframe ?? "15min",
+    input.referencePrice,
+    input.direction ?? "Long",
+    input.orderType ?? "market",
+  );
+
+  return {
+    direction: baseDraft.direction,
+    orderType: baseDraft.orderType,
+    entry: baseDraft.entry,
+    hasStop: false,
+    stop: baseDraft.stop,
+    hasTarget: false,
+    target: baseDraft.target,
+    riskPercent: input.riskPercent ?? formatRiskPercent(BATTLE_DEFAULT_RISK_PERCENT),
+  };
+}
+
+function buildDraftFromRoom(session: BattleRoomSession["initialView"]) {
+  const symbol = session?.room.symbol ?? "XAUUSD";
+  const timeframe = session?.room.timeframe ?? "15min";
+  const referencePrice =
+    session?.room.candles[session.self.replayIndex]?.close ??
+    session?.room.candles.at(-1)?.close ??
+    getBacktestInstrument(symbol).basePrice;
+
+  return seedBattleTradeForm({
+    symbol,
+    timeframe,
+    referencePrice,
+  });
+}
+
+function toValidationDraft(draft: BattleTradeForm): BacktestTradeDraft {
+  return {
+    direction: draft.direction,
+    orderType: draft.orderType,
+    entry: draft.entry,
+    hasStop: draft.hasStop,
+    stop: draft.stop,
+    hasTarget: draft.hasTarget,
+    target: draft.target,
+    volume: "",
+  };
+}
+
 export function useBattleMatch(session: BattleRoomSession) {
-  const { roomView, setRoomView, error, setError } = useBattleRoomSync(session);
-  const [direction, setDirection] = useState<"Long" | "Short">("Long");
-  const [volume, setVolume] = useState("1");
+  const { roomView, setRoomView, error, setError, hasBootstrapped } = useBattleRoomSync(session);
   const [isActionPending, setIsActionPending] = useState(false);
-  const [now, setNow] = useState(() => Date.now());
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [now, setNow] = useState<number | null>(null);
+  const [localReplayIndex, setLocalReplayIndex] = useState(
+    session.initialView?.self.replayIndex ?? 0,
+  );
+  const [tradeDraft, setTradeDraft] = useState<BattleTradeForm>(() =>
+    buildDraftFromRoom(session.initialView),
+  );
+  const roomViewRef = useRef(roomView);
+  const localReplayIndexRef = useRef(localReplayIndex);
+  const lastReplayFlushAtRef = useRef(Date.now());
+  const replayFlushPromiseRef = useRef<Promise<BattleRoomView | null> | null>(null);
+  const prevExecutionStatusRef = useRef<string | null>(
+    session.initialView?.self.execution?.status ?? null,
+  );
 
   useEffect(() => {
+    roomViewRef.current = roomView;
+  }, [roomView]);
+
+  useEffect(() => {
+    localReplayIndexRef.current = localReplayIndex;
+  }, [localReplayIndex]);
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      setNow(Date.now());
+    });
     const timer = window.setInterval(() => {
       setNow(Date.now());
     }, 1_000);
 
-    return () => window.clearInterval(timer);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.clearInterval(timer);
+    };
   }, []);
 
+  const currentInstrument = useMemo(
+    () => getBacktestInstrument(roomView?.room.symbol ?? "XAUUSD"),
+    [roomView?.room.symbol],
+  );
+  const currentCandle = roomView?.room.candles[localReplayIndex] ?? null;
+  const referenceEntryPrice =
+    currentCandle?.close ??
+    roomView?.room.candles.at(-1)?.close ??
+    currentInstrument.basePrice;
+  const activeExecution = roomView?.self.execution ?? null;
+  const isLocked =
+    roomView?.self.lockReason !== null ||
+    roomView?.room.phase !== "active" ||
+    roomView?.self.participationStatus === "eliminated";
+  const canConfigureDraft =
+    !isLocked &&
+    (!activeExecution ||
+      (activeExecution.status !== "armed" && activeExecution.status !== "active"));
+  const canStepForward =
+    !isLocked &&
+    localReplayIndex < (roomView?.room.candles.length ?? 0) - 1;
+
+  useEffect(() => {
+    if (!roomView) {
+      return;
+    }
+
+    const authoritativeReplayIndex = roomView.self.replayIndex;
+    if (
+      authoritativeReplayIndex >= localReplayIndexRef.current ||
+      localReplayIndexRef.current > roomView.room.candles.length - 1
+    ) {
+      setLocalReplayIndex(authoritativeReplayIndex);
+      lastReplayFlushAtRef.current = Date.now();
+    }
+  }, [roomView]);
+
+  useEffect(() => {
+    if (!roomView) {
+      return;
+    }
+
+    const currentStatus = roomView.self.execution?.status ?? null;
+    const previousStatus = prevExecutionStatusRef.current;
+    prevExecutionStatusRef.current = currentStatus;
+
+    const shouldSeedDraft =
+      !roomView.self.execution &&
+      (previousStatus === "armed" ||
+        previousStatus === "active" ||
+        previousStatus === "manual_close" ||
+        previousStatus === "stop_hit" ||
+        previousStatus === "target_hit" ||
+        previousStatus === "breakeven" ||
+        previousStatus === "unfinished");
+
+    if (!shouldSeedDraft) {
+      return;
+    }
+
+    setTradeDraft((current) =>
+      seedBattleTradeForm({
+        symbol: roomView.room.symbol ?? "XAUUSD",
+        timeframe: roomView.room.timeframe ?? "15min",
+        referencePrice: referenceEntryPrice,
+        direction: current.direction,
+        orderType: "market",
+        riskPercent: current.riskPercent,
+      }),
+    );
+  }, [referenceEntryPrice, roomView]);
+
+  const flushReplayCheckpoint = useCallback(async () => {
+    const activeRoomView = roomViewRef.current;
+    if (!activeRoomView) {
+      return null;
+    }
+
+    const authoritativeReplayIndex = activeRoomView.self.replayIndex;
+    const targetReplayIndex = localReplayIndexRef.current;
+
+    if (targetReplayIndex <= authoritativeReplayIndex) {
+      lastReplayFlushAtRef.current = Date.now();
+      return activeRoomView;
+    }
+
+    if (replayFlushPromiseRef.current) {
+      return replayFlushPromiseRef.current;
+    }
+
+    const flushPromise = (async () => {
+      const result = await syncBattleReplayAction({
+        roomId: activeRoomView.room.roomId,
+        replayIndex: targetReplayIndex,
+      });
+
+      if (result.ok) {
+        setRoomView(result.room);
+        setError(null);
+        lastReplayFlushAtRef.current = Date.now();
+        return result.room;
+      }
+
+      if (result.room) {
+        setRoomView(result.room);
+        setLocalReplayIndex(result.room.self.replayIndex);
+      } else {
+        setLocalReplayIndex(authoritativeReplayIndex);
+      }
+
+      setIsPlaying(false);
+      setError(result.message);
+      return result.room ?? activeRoomView;
+    })();
+
+    replayFlushPromiseRef.current = flushPromise;
+    try {
+      return await flushPromise;
+    } finally {
+      replayFlushPromiseRef.current = null;
+    }
+  }, [setError, setRoomView]);
+
+  useEffect(() => {
+    if (!roomView || !isPlaying || isActionPending || !canStepForward) {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      setLocalReplayIndex((current) => Math.min(current + 1, roomView.room.candles.length - 1));
+    }, BATTLE_REPLAY_INTERVAL_MS);
+
+    return () => window.clearTimeout(timeout);
+  }, [canStepForward, isActionPending, isPlaying, roomView]);
+
+  useEffect(() => {
+    if (!roomView || isActionPending || isLocked) {
+      return;
+    }
+
+    const delta = localReplayIndex - roomView.self.replayIndex;
+    if (delta <= 0) {
+      return;
+    }
+
+    const elapsed = Date.now() - lastReplayFlushAtRef.current;
+    if (!isPlaying || delta >= BATTLE_REPLAY_BATCH_STEP_COUNT || elapsed >= BATTLE_REPLAY_BATCH_INTERVAL_MS) {
+      void flushReplayCheckpoint();
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      void flushReplayCheckpoint();
+    }, Math.max(0, BATTLE_REPLAY_BATCH_INTERVAL_MS - elapsed));
+
+    return () => window.clearTimeout(timeout);
+  }, [flushReplayCheckpoint, isActionPending, isLocked, isPlaying, localReplayIndex, roomView]);
+
+  useEffect(() => {
+    if (!canStepForward) {
+      setIsPlaying(false);
+    }
+  }, [canStepForward]);
+
+  const validationDraft = useMemo(() => toValidationDraft(tradeDraft), [tradeDraft]);
+  const buyValidation = useMemo(
+    () =>
+      buildOrderAwareValidation(
+        validationDraft,
+        "Long",
+        currentCandle?.close ?? null,
+        referenceEntryPrice,
+      ),
+    [currentCandle?.close, referenceEntryPrice, validationDraft],
+  );
+  const sellValidation = useMemo(
+    () =>
+      buildOrderAwareValidation(
+        validationDraft,
+        "Short",
+        currentCandle?.close ?? null,
+        referenceEntryPrice,
+      ),
+    [currentCandle?.close, referenceEntryPrice, validationDraft],
+  );
+  const primaryValidation = useMemo(
+    () => derivePrimaryValidation(tradeDraft.direction, buyValidation, sellValidation),
+    [buyValidation, sellValidation, tradeDraft.direction],
+  );
+
+  const parsedRiskPercent = useMemo(
+    () => parsePositiveNumber(tradeDraft.riskPercent),
+    [tradeDraft.riskPercent],
+  );
+  const riskSettings = useMemo(
+    () =>
+      deriveRiskSettings(
+        {
+          startingBalance: roomView?.self.privateBalance ?? 100_000,
+          currentBalance: roomView?.self.privateBalance ?? 100_000,
+          defaultRiskPercent: BATTLE_DEFAULT_RISK_PERCENT,
+        },
+        { riskPercent: parsedRiskPercent ?? BATTLE_DEFAULT_RISK_PERCENT },
+      ),
+    [parsedRiskPercent, roomView?.self.privateBalance],
+  );
+  const volumePreview = useMemo(
+    () => calculatePositionSizeFromNotional(primaryValidation.entry, riskSettings.riskAmount),
+    [primaryValidation.entry, riskSettings.riskAmount],
+  );
+
+  const lineValues = useMemo<BacktestLineValues>(() => {
+    if (canConfigureDraft) {
+      return {
+        entry:
+          tradeDraft.orderType === "market" ? null : parseDraftPrice(tradeDraft.entry),
+        stop: tradeDraft.hasStop ? parseDraftPrice(tradeDraft.stop) : null,
+        target: tradeDraft.hasTarget ? parseDraftPrice(tradeDraft.target) : null,
+      };
+    }
+
+    return {
+      entry: activeExecution?.entry ?? null,
+      stop: activeExecution?.stop ?? null,
+      target: activeExecution?.target ?? null,
+    };
+  }, [
+    activeExecution?.entry,
+    activeExecution?.stop,
+    activeExecution?.target,
+    canConfigureDraft,
+    tradeDraft.entry,
+    tradeDraft.hasStop,
+    tradeDraft.hasTarget,
+    tradeDraft.orderType,
+    tradeDraft.stop,
+    tradeDraft.target,
+  ]);
+
   const remainingMs = useMemo(() => {
+    if (now === null) {
+      return null;
+    }
+
     if (!roomView?.room.officialEndAt) {
       return 0;
     }
@@ -33,17 +390,209 @@ export function useBattleMatch(session: BattleRoomSession) {
     return Math.max(0, Date.parse(roomView.room.officialEndAt) - now);
   }, [now, roomView?.room.officialEndAt]);
 
-  async function openTrade() {
-    if (!roomView || isActionPending) {
+  const participationRemainingMs = useMemo(() => {
+    if (now === null) {
+      return null;
+    }
+
+    if (!roomView?.self.participationDeadlineAt) {
+      return 0;
+    }
+
+    return Math.max(0, Date.parse(roomView.self.participationDeadlineAt) - now);
+  }, [now, roomView?.self.participationDeadlineAt]);
+
+  function updateDraftField(field: BacktestLineField, nextValue: string) {
+    if (!canConfigureDraft) {
+      return;
+    }
+
+    if (field === "entry" && tradeDraft.orderType === "market") {
+      return;
+    }
+
+    setError(null);
+    setTradeDraft((current) => ({
+      ...current,
+      [field]: nextValue,
+    }));
+  }
+
+  function setLineValue(field: BacktestLineField, nextPrice: number) {
+    if (!canConfigureDraft) {
+      return;
+    }
+
+    if (field === "entry" && tradeDraft.orderType === "market") {
+      return;
+    }
+
+    if (field === "stop" && !tradeDraft.hasStop) {
+      return;
+    }
+
+    if (field === "target" && !tradeDraft.hasTarget) {
+      return;
+    }
+
+    updateDraftField(field, nextPrice.toFixed(currentInstrument.pricePrecision));
+  }
+
+  function addDraftLine(field: Extract<BacktestLineField, "stop" | "target">) {
+    if (!canConfigureDraft) {
+      return;
+    }
+
+    setError(null);
+    const seededDraft = seedBattleTradeForm({
+      symbol: roomView?.room.symbol ?? "XAUUSD",
+      timeframe: roomView?.room.timeframe ?? "15min",
+      referencePrice:
+        tradeDraft.orderType === "market"
+          ? referenceEntryPrice
+          : parseDraftPrice(tradeDraft.entry) ?? referenceEntryPrice,
+      direction: tradeDraft.direction,
+      orderType: tradeDraft.orderType,
+      riskPercent: tradeDraft.riskPercent,
+    });
+
+    setTradeDraft((current) =>
+      field === "stop"
+        ? {
+            ...current,
+            hasStop: true,
+            stop: parseDraftPrice(current.stop) !== null ? current.stop : seededDraft.stop,
+          }
+        : {
+            ...current,
+            hasTarget: true,
+            target: parseDraftPrice(current.target) !== null ? current.target : seededDraft.target,
+          },
+    );
+  }
+
+  function removeDraftLine(field: Extract<BacktestLineField, "stop" | "target">) {
+    if (!canConfigureDraft) {
+      return;
+    }
+
+    setError(null);
+    setTradeDraft((current) =>
+      field === "stop"
+        ? { ...current, hasStop: false }
+        : { ...current, hasTarget: false },
+    );
+  }
+
+  function updateOrderType(nextOrderType: "market" | "limit" | "stop") {
+    if (!canConfigureDraft) {
+      return;
+    }
+
+    setError(null);
+    setTradeDraft((current) => {
+      const seededDraft = seedBattleTradeForm({
+        symbol: roomView?.room.symbol ?? "XAUUSD",
+        timeframe: roomView?.room.timeframe ?? "15min",
+        referencePrice:
+          nextOrderType === "market"
+            ? referenceEntryPrice
+            : parseDraftPrice(current.entry) ?? referenceEntryPrice,
+        direction: current.direction,
+        orderType: nextOrderType,
+        riskPercent: current.riskPercent,
+      });
+
+      return {
+        ...seededDraft,
+        entry:
+          nextOrderType === "market"
+            ? seededDraft.entry
+            : parseDraftPrice(current.entry) !== null
+              ? current.entry
+              : seededDraft.entry,
+        hasStop: current.hasStop,
+        stop:
+          current.hasStop && parseDraftPrice(current.stop) !== null
+            ? current.stop
+            : seededDraft.stop,
+        hasTarget: current.hasTarget,
+        target:
+          current.hasTarget && parseDraftPrice(current.target) !== null
+            ? current.target
+            : seededDraft.target,
+      };
+    });
+  }
+
+  function updateRiskPercent(nextValue: string) {
+    if (!canConfigureDraft) {
+      return;
+    }
+
+    setError(null);
+    setTradeDraft((current) => ({
+      ...current,
+      riskPercent: nextValue,
+    }));
+  }
+
+  function resetTradeLines() {
+    if (!canConfigureDraft) {
+      return;
+    }
+
+    setError(null);
+    setTradeDraft((current) =>
+      seedBattleTradeForm({
+        symbol: roomView?.room.symbol ?? "XAUUSD",
+        timeframe: roomView?.room.timeframe ?? "15min",
+        referencePrice: referenceEntryPrice,
+        direction: current.direction,
+        orderType: current.orderType,
+        riskPercent: current.riskPercent,
+      }),
+    );
+  }
+
+  async function openTrade(direction: BacktestDirection) {
+    if (!roomView || !canConfigureDraft || isActionPending) {
+      return;
+    }
+
+    const validation = direction === "Long" ? buyValidation : sellValidation;
+    if (!validation.isValid) {
+      setError(validation.message ?? "Enter a valid battle trade.");
+      return;
+    }
+
+    if (!parsedRiskPercent || !Number.isFinite(riskSettings.riskAmount) || riskSettings.riskAmount <= 0) {
+      setError("Enter a valid risk percentage.");
+      return;
+    }
+
+    if (!volumePreview || !Number.isFinite(volumePreview) || volumePreview <= 0) {
+      setError("This setup cannot derive a valid position size.");
       return;
     }
 
     setIsActionPending(true);
     try {
+      const syncedRoomView = await flushReplayCheckpoint();
+      if (!syncedRoomView || syncedRoomView.self.replayIndex !== localReplayIndexRef.current) {
+        setError("Replay is still syncing. Try opening the trade again.");
+        return;
+      }
+
       const result = await openBattleTradeAction({
-        roomId: roomView.room.roomId,
+        roomId: syncedRoomView.room.roomId,
         direction,
-        volume: Number(volume),
+        orderType: tradeDraft.orderType,
+        entryPrice: tradeDraft.orderType === "market" ? null : validation.entry,
+        stopLoss: validation.stop,
+        takeProfit: validation.target,
+        riskPercent: parsedRiskPercent,
+        replayIndex: syncedRoomView.self.replayIndex,
       });
 
       if (result.ok) {
@@ -52,6 +601,9 @@ export function useBattleMatch(session: BattleRoomSession) {
         return;
       }
 
+      if (result.room) {
+        setRoomView(result.room);
+      }
       setError(result.message);
     } finally {
       setIsActionPending(false);
@@ -59,15 +611,21 @@ export function useBattleMatch(session: BattleRoomSession) {
   }
 
   async function closeTrade() {
-    if (!roomView || isActionPending || !roomView.self.openTrade?.id) {
+    if (!roomView || isActionPending || activeExecution?.status !== "active") {
       return;
     }
 
     setIsActionPending(true);
     try {
+      const syncedRoomView = await flushReplayCheckpoint();
+      if (!syncedRoomView || syncedRoomView.self.replayIndex !== localReplayIndexRef.current) {
+        setError("Replay is still syncing. Try closing the trade again.");
+        return;
+      }
+
       const result = await closeBattleTradeAction({
-        roomId: roomView.room.roomId,
-        tradeId: roomView.self.openTrade.id,
+        roomId: syncedRoomView.room.roomId,
+        replayIndex: syncedRoomView.self.replayIndex,
       });
 
       if (result.ok) {
@@ -76,6 +634,9 @@ export function useBattleMatch(session: BattleRoomSession) {
         return;
       }
 
+      if (result.room) {
+        setRoomView(result.room);
+      }
       setError(result.message);
     } finally {
       setIsActionPending(false);
@@ -84,14 +645,58 @@ export function useBattleMatch(session: BattleRoomSession) {
 
   return {
     roomView,
-    direction,
-    volume,
-    setDirection,
-    setVolume,
-    openTrade,
-    closeTrade,
+    hasBootstrapped,
+    currentInstrument,
+    currentCandle,
+    tradeDraft,
+    replay: {
+      isPlaying,
+      speedId: "4x",
+    },
+    revealedCandles:
+      roomView?.room.candles.slice(0, localReplayIndex + 1) ?? [],
+    execution: activeExecution ?? createDraftExecution(),
+    lineValues,
+    primaryValidation,
+    riskSettings,
+    volumePreview,
+    hasStop: canConfigureDraft ? tradeDraft.hasStop : activeExecution?.stop !== null,
+    hasTarget: canConfigureDraft ? tradeDraft.hasTarget : activeExecution?.target !== null,
+    canConfigureDraft,
+    canManageTradeLines: canConfigureDraft,
+    canStepForward,
+    canArmBuy:
+      canConfigureDraft &&
+      buyValidation.isValid &&
+      parsedRiskPercent !== null &&
+      volumePreview !== null,
+    canArmSell:
+      canConfigureDraft &&
+      sellValidation.isValid &&
+      parsedRiskPercent !== null &&
+      volumePreview !== null,
+    canCloseTrade: activeExecution?.status === "active",
     remainingMs,
+    participationRemainingMs,
     error,
     isPending: isActionPending,
+    updateDraftField,
+    setLineValue,
+    addDraftLine,
+    removeDraftLine,
+    updateOrderType,
+    updateRiskPercent,
+    resetTradeLines,
+    togglePlayback: () => {
+      if (!canStepForward || isLocked) {
+        return;
+      }
+
+      setError(null);
+      setIsPlaying((current) => !current);
+    },
+    armBuy: () => void openTrade("Long"),
+    armSell: () => void openTrade("Short"),
+    closeTrade: () => void closeTrade(),
   };
 }

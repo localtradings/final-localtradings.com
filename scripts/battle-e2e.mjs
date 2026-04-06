@@ -170,33 +170,57 @@ async function runBattleFlow() {
       pageB.waitForURL(new RegExp(`/app/battle/match/${roomId}$`), { timeout: 60_000 }),
     ]);
 
-    await pageA.getByRole("button", { name: "Open Trade" }).click();
+    assert.equal(
+      await pageA.getByRole("button", { name: "Next Candle" }).count(),
+      0,
+      "Battle match should not expose a next-candle button",
+    );
+
+    await expectCompactBattleSurface(pageA);
+
+    await pageA.getByRole("button", { name: "Play" }).click();
+    await pageA.waitForTimeout(2_600);
+    await pageA.getByRole("button", { name: "Pause" }).click();
+    await pageA.getByRole("button", { name: "Reset" }).click();
+
+    await pageA.getByLabel("Risk %").fill("1.50");
+
+    await pageA.getByRole("button", { name: "Buy" }).click();
     await pageA.waitForTimeout(1_000);
 
     assert.equal(
-      await pageA.getByRole("button", { name: "Close Trade" }).isVisible(),
+      await pageA.getByRole("button", { name: "Close" }).isVisible(),
       true,
-      "Expected Close Trade button after opening a trade",
-    );
-    assert.match(
-      await pageA.locator("body").innerText(),
-      /OPEN STATUS\s+Position Running/s,
-      "Expected live open-trade status after opening a trade",
+      "Expected Close button after opening a trade",
     );
 
-    await pageA.getByRole("button", { name: "Close Trade" }).click();
+    await pageA.getByRole("button", { name: "Close" }).click();
     await pageA.waitForTimeout(1_000);
 
     assert.equal(
-      await pageA.getByRole("button", { name: "Open Trade" }).isVisible(),
+      await pageA.getByRole("button", { name: "Buy" }).isVisible(),
       true,
-      "Expected Open Trade button after closing the trade",
+      "Expected Buy button after closing the trade",
     );
-    assert.match(
-      await pageA.locator("body").innerText(),
-      /OPEN STATUS\s+Flat/s,
-      "Expected flat status after closing the trade",
-    );
+
+    const resetButton = pageA.getByRole("button", { name: "Reset" });
+    if (await resetButton.isEnabled()) {
+      await resetButton.click();
+      await pageA.waitForTimeout(500);
+    }
+    await pageA.getByRole("button", { name: "+ TP" }).waitFor({ state: "visible", timeout: 60_000 });
+    await pageA.getByRole("button", { name: "+ TP" }).click();
+    await pageA.getByRole("textbox", { name: "Take Profit" }).waitFor({ state: "visible", timeout: 60_000 });
+
+    await pageA.getByRole("button", { name: "+ SL" }).waitFor({ state: "visible", timeout: 60_000 });
+    await pageA.getByRole("button", { name: "+ SL" }).click();
+    await pageA.getByRole("textbox", { name: "Stop Loss" }).waitFor({ state: "visible", timeout: 60_000 });
+
+    await pageA.getByLabel("Risk %").fill("2.00");
+    await pageA.getByRole("button", { name: "Buy" }).click();
+    await pageA.waitForTimeout(1_000);
+    await pageA.getByRole("button", { name: "Close" }).click();
+    await pageA.waitForTimeout(1_000);
 
     assert.equal(pageErrors.length, 0, `Browser page errors:\n${pageErrors.join("\n")}`);
 
@@ -213,6 +237,14 @@ async function runBattleFlow() {
     await browser.close();
     await deleteDisposableUsers(admin, createdUsers);
   }
+}
+
+async function expectCompactBattleSurface(page) {
+  await page.getByText("Battle Match", { exact: true }).first().waitFor({ state: "visible", timeout: 60_000 });
+  await page.getByText("Rank", { exact: true }).first().waitFor({ state: "visible", timeout: 60_000 });
+  await page.getByText("Player", { exact: true }).first().waitFor({ state: "visible", timeout: 60_000 });
+  await page.getByText("Balance", { exact: true }).first().waitFor({ state: "visible", timeout: 60_000 });
+  await page.getByLabel("Risk %").waitFor({ state: "visible", timeout: 60_000 });
 }
 
 await runBattleFlow();

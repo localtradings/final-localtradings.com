@@ -11,7 +11,7 @@ import {
 import { useBattleRoomSync } from "./use-battle-room-sync";
 
 export function useBattleLobby(session: BattleRoomSession) {
-  const { roomView, setRoomView, error, setError } = useBattleRoomSync(session);
+  const { roomView, setRoomView, error, setError, hasBootstrapped } = useBattleRoomSync(session);
   const [isActionPending, setIsActionPending] = useState(false);
 
   const self = useMemo(
@@ -67,6 +67,7 @@ export function useBattleLobby(session: BattleRoomSession) {
     roomView,
     self,
     error,
+    hasBootstrapped,
     isPending: isActionPending,
     setReady,
     leave,

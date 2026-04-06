@@ -26,23 +26,27 @@ export function attachBattleRoomToken(
   session: BattleRoomSession,
   userId: string,
 ): BattleRoomSession {
+  const roomToken = createBattleRoomToken({
+    roomId: session.roomId,
+    userId,
+    issuedAt: new Date().toISOString(),
+  });
+
   if (!session.initialView) {
     return {
       ...session,
+      roomToken,
       workerSocketUrl: getBattleWorkerSocketUrl(),
     };
   }
 
   return {
     ...session,
+    roomToken,
     workerSocketUrl: getBattleWorkerSocketUrl(),
     initialView: {
       ...session.initialView,
-      token: createBattleRoomToken({
-        roomId: session.roomId,
-        userId,
-        issuedAt: new Date().toISOString(),
-      }),
+      token: roomToken,
     },
   };
 }

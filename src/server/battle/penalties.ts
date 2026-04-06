@@ -57,6 +57,21 @@ export async function createBattlePenalty(input: {
     return null;
   }
 
+  const { data: existing } = await supabase
+    .from("battle_penalties")
+    .select("id, room_id, user_id, reason, starts_at, ends_at, created_at")
+    .eq("user_id", input.userId)
+    .eq("reason", input.reason)
+    .eq("room_id", input.roomId)
+    .gt("ends_at", new Date().toISOString())
+    .order("ends_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (existing) {
+    return normalizePenaltyRow(existing);
+  }
+
   const now = new Date();
   const endsAt = new Date(now.getTime() + BATTLE_PENALTY_MS);
 

@@ -6,7 +6,10 @@ import { BattleLobbyClient } from "./battle-lobby-client";
 
 export async function BattleLobbyPage({ roomId }: { roomId: string }) {
   const user = await requireUser();
-  const session = attachBattleRoomToken(await getBattleRoomSession(roomId, user.id), user.id);
+  const session = attachBattleRoomToken(
+    await getBattleRoomSession(roomId, user.id, { hydrateFromWorker: false }),
+    user.id,
+  );
 
   return <BattleLobbyClient session={session} />;
 }

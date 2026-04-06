@@ -1,8 +1,9 @@
 import type {
+  WorkerBattleExecution,
   WorkerBattlePlayer,
+  WorkerBattlePlayerMatchState,
   WorkerBattlePlayerStatus,
   WorkerBattleRoomState,
-  WorkerBattleTrade,
   WorkerBattleView,
 } from "./protocol";
 
@@ -35,35 +36,94 @@ export function createLobbyPlayer(input: {
   };
 }
 
-export function getCurrentPrice(room: WorkerBattleRoomState) {
+export function createPlayerMatchState(initialReplayIndex: number): WorkerBattlePlayerMatchState {
+  return {
+    replayIndex: initialReplayIndex,
+    activePenaltyUntil: null,
+    hasEnteredTrade: false,
+    participationStatus: "clear",
+    participationWarningIssuedAt: null,
+    participationDeadlineAt: null,
+    execution: null,
+  };
+}
+
+export function getPlayerMatchState(room: WorkerBattleRoomState, userId: string) {
+  room.playerStates ??= {};
+  return room.playerStates[userId] ?? null;
+}
+
+export function normalizePlayerMatchState(
+  room: WorkerBattleRoomState,
+  state: WorkerBattlePlayerMatchState,
+) {
+  const maxReplayIndex = Math.max(room.candles.length - 1, 0);
+  state.replayIndex = Math.max(0, Math.min(state.replayIndex, maxReplayIndex));
+  return state;
+}
+
+function getViewerLockReason(
+  room: WorkerBattleRoomState,
+  player: WorkerBattlePlayer | undefined,
+) {
+  if (room.phase === "cancelled") {
+    return "cancelled" as const;
+  }
+
+  if (room.phase === "finished") {
+    return "finished" as const;
+  }
+
+  if (player?.status === "no_trade") {
+    return "no_trade" as const;
+  }
+
+  if (player?.status === "forfeit") {
+    return "forfeit" as const;
+  }
+
+  if (player?.status === "left_early") {
+    return "left_early" as const;
+  }
+
+  return null;
+}
+
+export function getReplayCandle(room: WorkerBattleRoomState, replayIndex: number) {
   if (room.candles.length === 0) {
     return null;
   }
 
-  const index =
-    typeof room.currentCandleIndex === "number"
-      ? Math.max(0, Math.min(room.currentCandleIndex, room.candles.length - 1))
-      : room.candles.length - 1;
-
-  return room.candles[index]?.close ?? null;
+  const index = Math.max(0, Math.min(replayIndex, room.candles.length - 1));
+  return room.candles[index] ?? null;
 }
 
-export function calculateUnrealizedPnl(trade: WorkerBattleTrade | null, price: number | null) {
-  if (!trade || price === null) {
+export function calculateUnrealizedPnl(
+  execution: WorkerBattleExecution | null,
+  price: number | null,
+) {
+  if (
+    !execution ||
+    execution.status !== "active" ||
+    price === null ||
+    execution.entry === null ||
+    typeof execution.volume !== "number"
+  ) {
     return 0;
   }
 
   const signedDifference =
-    trade.direction === "Long" ? price - trade.entryPrice : trade.entryPrice - price;
-  return signedDifference * trade.volume;
+    execution.direction === "Long"
+      ? price - execution.entry
+      : execution.entry - price;
+  return signedDifference * execution.volume;
 }
 
-export function settleTrade(
+export function settleResolvedExecution(
   player: WorkerBattlePlayer,
-  trade: WorkerBattleTrade,
-  exitPrice: number,
+  execution: WorkerBattleExecution,
 ) {
-  const pnl = calculateUnrealizedPnl(trade, exitPrice);
+  const pnl = execution.resultAmount ?? 0;
   player.officialBalance = Number((player.officialBalance + pnl).toFixed(2));
   player.tradesClosed += 1;
   if (pnl >= 0) {
@@ -97,9 +157,7 @@ export function rankPlayers(players: WorkerBattlePlayer[]) {
       return right.tradesClosed - left.tradesClosed;
     }
 
-    return (
-      activeStatuses.indexOf(left.status) - activeStatuses.indexOf(right.status)
-    );
+    return activeStatuses.indexOf(left.status) - activeStatuses.indexOf(right.status);
   });
 
   players.forEach((player, index) => {
@@ -111,12 +169,17 @@ export function buildViewerState(
   room: WorkerBattleRoomState,
   viewerUserId: string,
 ): WorkerBattleView {
+  room.playerStates ??= {};
   const rankedPlayers = [...room.players];
   rankPlayers(rankedPlayers);
   const player = rankedPlayers.find((entry) => entry.userId === viewerUserId);
-  const openTrade = room.activeTrades[viewerUserId] ?? null;
-  const currentPrice = getCurrentPrice(room);
-  const unrealizedPnl = calculateUnrealizedPnl(openTrade, currentPrice);
+  const matchState = normalizePlayerMatchState(
+    room,
+    room.playerStates[viewerUserId] ??
+      createPlayerMatchState(Math.max(room.initialRevealCount - 1, 0)),
+  );
+  const currentPrice = getReplayCandle(room, matchState.replayIndex)?.close ?? null;
+  const unrealizedPnl = calculateUnrealizedPnl(matchState.execution, currentPrice);
 
   return {
     room: {
@@ -139,7 +202,10 @@ export function buildViewerState(
       candles: room.candles,
       players: rankedPlayers.map((entry) => ({
         ...entry,
-        hasOpenTrade: Boolean(room.activeTrades[entry.userId]),
+        hasOpenTrade:
+          Boolean(room.playerStates[entry.userId]?.execution) &&
+          (room.playerStates[entry.userId]?.execution?.status === "armed" ||
+            room.playerStates[entry.userId]?.execution?.status === "active"),
       })),
       leaderboard: rankedPlayers.map((entry) => ({
         userId: entry.userId,
@@ -151,11 +217,22 @@ export function buildViewerState(
       })),
     },
     self: {
-      activePenaltyUntil: null,
-      openTrade,
-      privateBalance: Number(((player?.officialBalance ?? STARTING_BALANCE) + unrealizedPnl).toFixed(2)),
+      activePenaltyUntil: matchState.activePenaltyUntil,
+      replayIndex: matchState.replayIndex,
+      revealedCandleCount: matchState.replayIndex + 1,
+      lockReason: getViewerLockReason(room, player),
+      hasEnteredTrade: matchState.hasEnteredTrade,
+      participationStatus: matchState.participationStatus,
+      participationWarningIssuedAt: matchState.participationWarningIssuedAt,
+      participationDeadlineAt: matchState.participationDeadlineAt,
+      execution: matchState.execution,
+      privateBalance: Number(
+        ((player?.officialBalance ?? STARTING_BALANCE) + unrealizedPnl).toFixed(2),
+      ),
       unrealizedPnl: Number(unrealizedPnl.toFixed(2)),
-      realizedPnl: Number(((player?.officialBalance ?? STARTING_BALANCE) - STARTING_BALANCE).toFixed(2)),
+      realizedPnl: Number(
+        ((player?.officialBalance ?? STARTING_BALANCE) - STARTING_BALANCE).toFixed(2),
+      ),
     },
     token: null,
     viewerUserId,
@@ -185,6 +262,8 @@ export function updateHeartbeat(room: WorkerBattleRoomState, userId: string, now
 }
 
 export function removeExpiredUnreadyPlayers(room: WorkerBattleRoomState, nowMs: number) {
+  let changed = false;
+
   for (const player of room.players) {
     if (
       room.phase === "lobby" &&
@@ -195,15 +274,19 @@ export function removeExpiredUnreadyPlayers(room: WorkerBattleRoomState, nowMs: 
     ) {
       player.status = "removed_unready";
       player.connected = false;
+      changed = true;
     }
   }
+
+  return changed;
 }
 
 export function markDisconnectedForfeits(room: WorkerBattleRoomState, nowMs: number) {
   if (room.phase !== "active") {
-    return;
+    return false;
   }
 
+  let changed = false;
   for (const player of room.players) {
     if (
       player.status === "active" &&
@@ -215,7 +298,13 @@ export function markDisconnectedForfeits(room: WorkerBattleRoomState, nowMs: num
       if (!player.disconnectedAt) {
         player.disconnectedAt = new Date(nowMs).toISOString();
       }
-      delete room.activeTrades[player.userId];
+      room.playerStates ??= {};
+      if (room.playerStates[player.userId]) {
+        room.playerStates[player.userId].execution = null;
+      }
+      changed = true;
     }
   }
+
+  return changed;
 }

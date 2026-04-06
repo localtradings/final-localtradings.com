@@ -26,8 +26,13 @@ type WorkerFailure = {
     | "pro_required"
     | "room_not_active"
     | "trade_already_open"
-    | "no_open_trade";
+    | "no_open_trade"
+    | "invalid_replay_progression"
+    | "player_eliminated";
   message: string;
+  data?: {
+    room?: BattleRoomView | null;
+  } | null;
 };
 
 async function requestWorker<T>(
@@ -58,7 +63,12 @@ async function requestWorker<T>(
 
     const payload = (await response.json().catch(() => null)) as
       | { ok: true; data: T }
-      | { ok: false; reason?: WorkerFailure["reason"]; message?: string }
+      | {
+          ok: false;
+          reason?: WorkerFailure["reason"];
+          message?: string;
+          data?: WorkerFailure["data"];
+        }
       | null;
 
     if (!payload || typeof payload !== "object" || typeof payload.ok !== "boolean") {
@@ -74,6 +84,7 @@ async function requestWorker<T>(
         ok: false,
         reason: payload.reason ?? "service_unavailable",
         message: payload.message ?? "Battle worker request failed.",
+        data: payload.data ?? null,
       };
     }
 
@@ -161,14 +172,33 @@ export function openBattleTrade(input: {
   roomId: string;
   userId: string;
   direction: BacktestDirection;
-  volume: number;
+  orderType: "market" | "limit" | "stop";
+  entryPrice: number | null;
+  stopLoss: number | null;
+  takeProfit: number | null;
+  riskPercent: number;
+  replayIndex: number;
 }) {
   return requestWorker<{ room: BattleRoomView }>("/internal/rooms/open-trade", {
     body: input,
   });
 }
 
-export function closeBattleTrade(input: { roomId: string; userId: string; tradeId: string }) {
+export function syncBattleReplay(input: {
+  roomId: string;
+  userId: string;
+  replayIndex: number;
+}) {
+  return requestWorker<{ room: BattleRoomView }>("/internal/rooms/sync-replay", {
+    body: input,
+  });
+}
+
+export function closeBattleTrade(input: {
+  roomId: string;
+  userId: string;
+  replayIndex: number;
+}) {
   return requestWorker<{ room: BattleRoomView }>("/internal/rooms/close-trade", {
     body: input,
   });

@@ -1,7 +1,8 @@
 import type {
   BacktestCandle,
   BacktestDirection,
-  BacktestOrderType,
+  BacktestTradeDraft,
+  BacktestTradeExecution,
   BacktestTimeframe,
 } from "@/features/backtesting/types";
 
@@ -35,14 +36,48 @@ export type BattleResultStatus =
 
 export type BattlePenaltyReason = "left_early" | "forfeit" | "no_trade";
 
-export type BattleTradeSnapshot = {
+export type BattleParticipationStatus = "clear" | "warned" | "eliminated";
+export type BattleMatchLockReason =
+  | "no_trade"
+  | "forfeit"
+  | "left_early"
+  | "finished"
+  | "cancelled";
+
+export type BattleTradeSnapshot = Pick<
+  BacktestTradeExecution,
+  | "status"
+  | "orderType"
+  | "entry"
+  | "stop"
+  | "target"
+  | "riskPercent"
+  | "riskAmount"
+  | "volume"
+  | "openedAtIndex"
+  | "openedAtTime"
+  | "closedAtIndex"
+  | "closedAtTime"
+  | "exitPrice"
+  | "resultR"
+  | "resultAmount"
+  | "balanceAfterTrade"
+> & {
   id: string;
   direction: BacktestDirection;
-  orderType: BacktestOrderType;
-  volume: number;
-  entryPrice: number;
-  openedAtIndex: number;
-  openedAtTime: number;
+};
+
+export type BattleTradeForm = Pick<
+  BacktestTradeDraft,
+  | "direction"
+  | "orderType"
+  | "entry"
+  | "hasStop"
+  | "stop"
+  | "hasTarget"
+  | "target"
+> & {
+  riskPercent: string;
 };
 
 export type BattleLeaderboardEntry = {
@@ -97,7 +132,14 @@ export type BattleRoomSnapshot = {
 
 export type BattleSelfState = {
   activePenaltyUntil: string | null;
-  openTrade: BattleTradeSnapshot | null;
+  replayIndex: number;
+  revealedCandleCount: number;
+  lockReason: BattleMatchLockReason | null;
+  hasEnteredTrade: boolean;
+  participationStatus: BattleParticipationStatus;
+  participationWarningIssuedAt: string | null;
+  participationDeadlineAt: string | null;
+  execution: BattleTradeSnapshot | null;
   privateBalance: number;
   unrealizedPnl: number;
   realizedPnl: number;
@@ -154,8 +196,10 @@ export type BattleHomeData = {
 
 export type BattleRoomSession = {
   roomId: string;
+  viewerUserId: string;
   isParticipant: boolean;
   initialView: BattleRoomView | null;
+  roomToken: string | null;
   workerConfigured: boolean;
   workerSocketUrl: string | null;
 };
@@ -194,9 +238,27 @@ export type BattleTradeActionResult =
         | "trade_already_open"
         | "no_open_trade"
         | "invalid_trade_payload"
+        | "invalid_replay_progression"
+        | "player_eliminated"
         | "room_not_active"
         | "service_unavailable";
       message: string;
+      room?: BattleRoomView | null;
+    };
+
+export type BattleReplayActionResult =
+  | { ok: true; room: BattleRoomView }
+  | {
+      ok: false;
+      reason:
+        | "battle_worker_not_configured"
+        | "not_authenticated"
+        | "invalid_replay_progression"
+        | "player_eliminated"
+        | "room_not_active"
+        | "service_unavailable";
+      message: string;
+      room?: BattleRoomView | null;
     };
 
 export type BattleFinalizePayload = {
