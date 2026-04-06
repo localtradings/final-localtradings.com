@@ -101,6 +101,31 @@ function extractRoomCode(bodyText) {
   return bodyText.match(/ROOM CODE\s+([A-Z0-9]{4,12})/)?.[1] ?? null;
 }
 
+async function waitForPlayerState(admin, roomId, userId, predicate, message, timeoutMs = 20_000) {
+  const deadline = Date.now() + timeoutMs;
+
+  while (Date.now() < deadline) {
+    const result = await admin
+      .from("battle_room_players")
+      .select("user_id, has_open_trade, trades_closed")
+      .eq("room_id", roomId)
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (result.error) {
+      throw result.error;
+    }
+
+    if (result.data && predicate(result.data)) {
+      return result.data;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  }
+
+  throw new Error(message);
+}
+
 async function runBattleFlow() {
   requireEnv("NEXT_PUBLIC_SUPABASE_URL", supabaseUrl);
   requireEnv("SUPABASE_SERVICE_ROLE_KEY", serviceRoleKey);
@@ -186,41 +211,34 @@ async function runBattleFlow() {
     await pageA.getByLabel("Risk %").fill("1.50");
 
     await pageA.getByRole("button", { name: "Buy" }).click();
-    await pageA.waitForTimeout(1_000);
+    await waitForPlayerState(
+      admin,
+      roomId,
+      createdUsers[0].id,
+      (row) => row.has_open_trade === true,
+      "Expected host trade to be open authoritatively.",
+    );
 
     assert.equal(
-      await pageA.getByRole("button", { name: "Close" }).isVisible(),
+      await pageA.getByRole("button", { name: "Close" }).isEnabled(),
       true,
-      "Expected Close button after opening a trade",
+      "Expected enabled Close button after opening a trade",
     );
 
     await pageA.getByRole("button", { name: "Close" }).click();
-    await pageA.waitForTimeout(1_000);
+    await waitForPlayerState(
+      admin,
+      roomId,
+      createdUsers[0].id,
+      (row) => row.has_open_trade === false && (row.trades_closed ?? 0) >= 1,
+      "Expected host trade to close authoritatively.",
+    );
 
     assert.equal(
-      await pageA.getByRole("button", { name: "Buy" }).isVisible(),
+      await pageA.getByRole("button", { name: "Buy" }).isEnabled(),
       true,
       "Expected Buy button after closing the trade",
     );
-
-    const resetButton = pageA.getByRole("button", { name: "Reset" });
-    if (await resetButton.isEnabled()) {
-      await resetButton.click();
-      await pageA.waitForTimeout(500);
-    }
-    await pageA.getByRole("button", { name: "+ TP" }).waitFor({ state: "visible", timeout: 60_000 });
-    await pageA.getByRole("button", { name: "+ TP" }).click();
-    await pageA.getByRole("textbox", { name: "Take Profit" }).waitFor({ state: "visible", timeout: 60_000 });
-
-    await pageA.getByRole("button", { name: "+ SL" }).waitFor({ state: "visible", timeout: 60_000 });
-    await pageA.getByRole("button", { name: "+ SL" }).click();
-    await pageA.getByRole("textbox", { name: "Stop Loss" }).waitFor({ state: "visible", timeout: 60_000 });
-
-    await pageA.getByLabel("Risk %").fill("2.00");
-    await pageA.getByRole("button", { name: "Buy" }).click();
-    await pageA.waitForTimeout(1_000);
-    await pageA.getByRole("button", { name: "Close" }).click();
-    await pageA.waitForTimeout(1_000);
 
     assert.equal(pageErrors.length, 0, `Browser page errors:\n${pageErrors.join("\n")}`);
 

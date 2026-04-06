@@ -618,14 +618,19 @@ export function useBattleMatch(session: BattleRoomSession) {
     setIsActionPending(true);
     try {
       const syncedRoomView = await flushReplayCheckpoint();
-      if (!syncedRoomView || syncedRoomView.self.replayIndex !== localReplayIndexRef.current) {
+      if (!syncedRoomView) {
         setError("Replay is still syncing. Try closing the trade again.");
         return;
       }
 
+      const authoritativeReplayIndex = syncedRoomView.self.replayIndex;
+      if (authoritativeReplayIndex !== localReplayIndexRef.current) {
+        setLocalReplayIndex(authoritativeReplayIndex);
+      }
+
       const result = await closeBattleTradeAction({
         roomId: syncedRoomView.room.roomId,
-        replayIndex: syncedRoomView.self.replayIndex,
+        replayIndex: authoritativeReplayIndex,
       });
 
       if (result.ok) {
