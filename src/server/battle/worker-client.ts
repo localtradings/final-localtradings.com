@@ -4,6 +4,7 @@ import type {
   BattleDurationMinutes,
   BattleRoomView,
 } from "@/features/battle/types";
+import { normalizeBattleRoomView } from "@/features/battle/lib/normalize-room-view";
 import type { BacktestDirection } from "@/features/backtesting/types";
 import { env, hasBattleWorkerEnv } from "@/lib/env";
 
@@ -85,6 +86,22 @@ async function requestWorker<T>(
         reason: payload.reason ?? "service_unavailable",
         message: payload.message ?? "Battle worker request failed.",
         data: payload.data ?? null,
+      };
+    }
+
+    if (
+      payload.data &&
+      typeof payload.data === "object" &&
+      "room" in payload.data
+    ) {
+      const dataWithRoom = payload.data as { room?: BattleRoomView | null };
+
+      return {
+        ok: true,
+        data: {
+          ...dataWithRoom,
+          room: normalizeBattleRoomView(dataWithRoom.room ?? null),
+        } as T,
       };
     }
 

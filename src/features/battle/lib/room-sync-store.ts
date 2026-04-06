@@ -7,6 +7,7 @@ import {
   BATTLE_INITIAL_SYNC_TIMEOUT_MS,
   BATTLE_SOCKET_PING_MS,
 } from "@/features/battle/constants";
+import { normalizeBattleRoomView } from "@/features/battle/lib/normalize-room-view";
 import type { BattleRoomSession, BattleRoomView } from "@/features/battle/types";
 import { refreshBattleRoomAction } from "@/server/battle/actions";
 
@@ -132,10 +133,11 @@ export class SharedBattleRoomSync {
   }
 
   private applyRoomView(nextView: BattleRoomView | null) {
+    const normalizedRoomView = normalizeBattleRoomView(nextView, this.snapshot.roomView);
     this.lastAuthoritativeEventAt = Date.now();
     this.snapshot = {
       ...this.snapshot,
-      roomView: mergeToken(nextView, this.snapshot.roomView, this.token),
+      roomView: mergeToken(normalizedRoomView, this.snapshot.roomView, this.token),
       error: null,
       hasBootstrapped: true,
     };

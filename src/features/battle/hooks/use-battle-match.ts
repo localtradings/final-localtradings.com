@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   BATTLE_DEFAULT_RISK_PERCENT,
-  BATTLE_REPLAY_BATCH_INTERVAL_MS,
   BATTLE_REPLAY_BATCH_STEP_COUNT,
   BATTLE_REPLAY_INTERVAL_MS,
 } from "@/features/battle/constants";
@@ -284,17 +283,14 @@ export function useBattleMatch(session: BattleRoomSession) {
       return;
     }
 
-    const elapsed = Date.now() - lastReplayFlushAtRef.current;
-    if (!isPlaying || delta >= BATTLE_REPLAY_BATCH_STEP_COUNT || elapsed >= BATTLE_REPLAY_BATCH_INTERVAL_MS) {
-      void flushReplayCheckpoint();
+    if (isPlaying) {
       return;
     }
 
-    const timeout = window.setTimeout(() => {
+    if (delta >= BATTLE_REPLAY_BATCH_STEP_COUNT || !isPlaying) {
       void flushReplayCheckpoint();
-    }, Math.max(0, BATTLE_REPLAY_BATCH_INTERVAL_MS - elapsed));
-
-    return () => window.clearTimeout(timeout);
+      return;
+    }
   }, [flushReplayCheckpoint, isActionPending, isLocked, isPlaying, localReplayIndex, roomView]);
 
   useEffect(() => {
@@ -698,7 +694,14 @@ export function useBattleMatch(session: BattleRoomSession) {
       }
 
       setError(null);
-      setIsPlaying((current) => !current);
+      setIsPlaying((current) => {
+        const next = !current;
+        if (next) {
+          lastReplayFlushAtRef.current = Date.now();
+        }
+
+        return next;
+      });
     },
     armBuy: () => void openTrade("Long"),
     armSell: () => void openTrade("Short"),
