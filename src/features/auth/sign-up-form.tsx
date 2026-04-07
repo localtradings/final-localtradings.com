@@ -1,15 +1,22 @@
 "use client";
 
-import Link from "next/link";
-import { useActionState } from "react";
-import { motion, type Variants } from "framer-motion";
-import { ArrowRight, ShieldCheck } from "lucide-react";
+import { useActionState, useMemo, useState } from "react";
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { signUp } from "@/server/auth/actions";
 import type { ActionState } from "@/types/auth";
+
+import {
+  AuthCheckbox,
+  AuthDivider,
+  AuthField,
+  AuthFooterLink,
+  AuthNotice,
+  AuthPanelHeading,
+  AuthPrimaryButton,
+  AuthRequirement,
+  AuthSocialButtons,
+  PasswordRevealButton,
+} from "./auth-form-ui";
 
 const initialState: ActionState = {
   status: "idle",
@@ -17,118 +24,174 @@ const initialState: ActionState = {
 
 export function SignUpForm() {
   const [state, formAction, isPending] = useActionState(signUp, initialState);
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
 
-  const containerVariants: Variants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.08,
-        delayChildren: 0.06,
-      },
-    },
-  };
-
-  const itemVariants: Variants = {
-    hidden: { y: 12, opacity: 0 },
-    visible: {
-      y: 0,
-      opacity: 1,
-      transition: {
-        duration: 0.35,
-        ease: "easeOut",
-      },
-    },
-  };
+  const passwordChecks = useMemo(
+    () => ({
+      length: password.length >= 8,
+      number: /\d/.test(password),
+      special: /[^A-Za-z0-9]/.test(password),
+    }),
+    [password],
+  );
 
   return (
-    <motion.form
+    <form
       action={formAction}
-      animate="visible"
-      className="space-y-6"
-      initial="hidden"
-      variants={containerVariants}
+      className="mt-3"
+      onSubmit={(event) => {
+        const form = event.currentTarget;
+        const termsField = form.elements.namedItem("terms");
+        const termsAccepted =
+          termsField instanceof HTMLInputElement ? termsField.checked : false;
+
+        if (password !== confirmPassword) {
+          event.preventDefault();
+          setLocalError("Passwords must match before you can create the account.");
+          return;
+        }
+
+        if (!termsAccepted) {
+          event.preventDefault();
+          setLocalError("Accept the Terms of Service and Privacy Policy first.");
+          return;
+        }
+
+        setLocalError(null);
+      }}
     >
-      <motion.div
-        className="flex items-start gap-3 rounded-[var(--radius-lg)] border border-outline/16 bg-surface-low/70 px-4 py-3 text-xs text-muted"
-        variants={itemVariants}
-      >
-        <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-        <p className="leading-6">
-          Use your real email so you can confirm the account if your Supabase project requires email verification.
-        </p>
-      </motion.div>
+      <AuthPanelHeading
+        description="Join the arena and start competing."
+        title="Create Your Account"
+      />
 
-      <motion.div className="space-y-2" variants={itemVariants}>
-        <Label htmlFor="fullName">Full name</Label>
-        <Input
-          className="min-h-12 rounded-[var(--radius-xl)] border-outline/18 bg-surface-low/90 px-4"
-          id="fullName"
-          name="fullName"
-          placeholder="Your full name"
-          required
-        />
-      </motion.div>
+      <div className="mt-4 space-y-3">
+        {localError ? <AuthNotice message={localError} tone="error" /> : null}
+        {state.message ? (
+          <AuthNotice
+            message={state.message}
+            tone={state.status === "error" ? "error" : "success"}
+          />
+        ) : null}
 
-      <motion.div className="space-y-2" variants={itemVariants}>
-        <Label htmlFor="email">Email</Label>
-        <Input
-          className="min-h-12 rounded-[var(--radius-xl)] border-outline/18 bg-surface-low/90 px-4"
-          id="email"
-          name="email"
-          placeholder="you@example.com"
-          required
-          type="email"
-        />
-      </motion.div>
-
-      <motion.div className="space-y-2" variants={itemVariants}>
-        <div className="flex items-center justify-between">
-          <Label htmlFor="password">Password</Label>
-          <span className="text-xs font-medium text-muted">
-            Minimum 8 characters
-          </span>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <AuthField
+            autoComplete="nickname"
+            icon="user"
+            id="Display Name (optional)"
+            name="displayName"
+            placeholder="TraderX"
+          />
+          <AuthField
+            autoComplete="email"
+            icon="mail"
+            id="Email"
+            name="email"
+            placeholder="you@example.com"
+            required
+            type="email"
+          />
         </div>
-        <Input
-          className="min-h-12 rounded-[var(--radius-xl)] border-outline/18 bg-surface-low/90 px-4"
-          id="password"
-          name="password"
-          placeholder="Create a secure password"
-          required
-          type="password"
-        />
-      </motion.div>
 
-      {state.message ? (
-        <motion.p
-          className={
-            state.status === "error"
-              ? "rounded-[var(--radius-lg)] border border-danger/25 bg-danger/8 px-4 py-3 text-sm text-danger"
-              : "rounded-[var(--radius-lg)] border border-success/25 bg-success/8 px-4 py-3 text-sm text-success"
-          }
-          variants={itemVariants}
-        >
-          {state.message}
-        </motion.p>
-      ) : null}
+        <div className="space-y-1.5">
+          <label className="block text-[0.95rem] font-medium text-white/96" htmlFor="password">
+            Password
+          </label>
+          <div className="relative">
+            <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-white/42">
+              <svg aria-hidden="true" className="h-5 w-5" fill="none" viewBox="0 0 24 24">
+                <path d="M7 10V7a5 5 0 0 1 10 0v3" stroke="currentColor" strokeWidth="1.8" />
+                <rect height="11" rx="2" stroke="currentColor" strokeWidth="1.8" width="14" x="5" y="10" />
+              </svg>
+            </span>
+            <input
+              autoComplete="new-password"
+              className="h-[3rem] w-full rounded-[0.95rem] border border-white/10 bg-[rgba(15,20,28,0.92)] pl-[3rem] pr-[3rem] text-[0.93rem] text-white outline-none transition placeholder:text-white/34 focus:border-[#18ff95]/48 focus:ring-4 focus:ring-[#18ff95]/10"
+              id="password"
+              name="password"
+              onChange={(event) => {
+                setPassword(event.target.value);
+                setLocalError(null);
+              }}
+              placeholder="Enter your password"
+              required
+              type={showPassword ? "text" : "password"}
+            />
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 text-white/56">
+              <PasswordRevealButton
+                onClick={() => setShowPassword((current) => !current)}
+                visible={showPassword}
+              />
+            </div>
+          </div>
+        </div>
 
-      <motion.div className="space-y-4" variants={itemVariants}>
-        <Button
-          className="min-h-12 w-full rounded-[var(--radius-xl)] text-base"
-          disabled={isPending}
-          size="lg"
-          type="submit"
-        >
-          {isPending ? "Creating account..." : "Create Account"}
-          {!isPending ? <ArrowRight className="h-4 w-4" /> : null}
-        </Button>
-        <p className="text-center text-sm leading-7 text-muted">
-          Already have an account?{" "}
-          <Link className="font-semibold text-primary transition hover:text-primary/80" href="/sign-in">
-            Sign in
-          </Link>
-        </p>
-      </motion.div>
-    </motion.form>
+        <div className="space-y-1.5">
+          <label className="block text-[0.95rem] font-medium text-white/96" htmlFor="confirmPassword">
+            Confirm Password
+          </label>
+          <div className="relative">
+            <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-white/42">
+              <svg aria-hidden="true" className="h-5 w-5" fill="none" viewBox="0 0 24 24">
+                <path d="M7 10V7a5 5 0 0 1 10 0v3" stroke="currentColor" strokeWidth="1.8" />
+                <rect height="11" rx="2" stroke="currentColor" strokeWidth="1.8" width="14" x="5" y="10" />
+              </svg>
+            </span>
+            <input
+              autoComplete="new-password"
+              className="h-[3rem] w-full rounded-[0.95rem] border border-white/10 bg-[rgba(15,20,28,0.92)] pl-[3rem] pr-[3rem] text-[0.93rem] text-white outline-none transition placeholder:text-white/34 focus:border-[#18ff95]/48 focus:ring-4 focus:ring-[#18ff95]/10"
+              id="confirmPassword"
+              name="confirmPassword"
+              onChange={(event) => {
+                setConfirmPassword(event.target.value);
+                setLocalError(null);
+              }}
+              placeholder="Confirm your password"
+              required
+              type={showConfirmPassword ? "text" : "password"}
+            />
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 text-white/56">
+              <PasswordRevealButton
+                onClick={() => setShowConfirmPassword((current) => !current)}
+                visible={showConfirmPassword}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <p className="text-[0.88rem] font-medium text-white/82">Password must contain:</p>
+          <div className="flex flex-wrap gap-x-3.5 gap-y-1.5">
+            <AuthRequirement label="At least 8 characters" met={passwordChecks.length} />
+            <AuthRequirement label="One number" met={passwordChecks.number} />
+            <AuthRequirement label="One special character" met={passwordChecks.special} />
+          </div>
+        </div>
+
+        <div className="pt-0.5">
+          <AuthCheckbox
+            id="terms"
+            label="I agree to the"
+            linkHref="/help"
+            linkLabel="Terms of Service"
+            name="terms"
+            required
+            suffix=" and Privacy Policy"
+          />
+        </div>
+
+        <AuthPrimaryButton disabled={isPending}>
+          {isPending ? "Creating Account..." : "Create Account"}
+        </AuthPrimaryButton>
+      </div>
+
+      <AuthDivider />
+      <AuthSocialButtons />
+      <AuthFooterLink href="/sign-in" label="Sign in" prompt="Already have an account?" />
+    </form>
   );
 }

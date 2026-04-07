@@ -1,15 +1,22 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
-import { motion, type Variants } from "framer-motion";
-import { ArrowRight, LifeBuoy } from "lucide-react";
+import { useActionState, useState } from "react";
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { signIn } from "@/server/auth/actions";
 import type { ActionState } from "@/types/auth";
+
+import {
+  AuthDivider,
+  AuthField,
+  AuthFooterLink,
+  AuthNotice,
+  AuthPanelHeading,
+  AuthPrimaryButton,
+  AuthSocialButtons,
+  AuthCheckbox,
+  PasswordRevealButton,
+} from "./auth-form-ui";
 
 const initialState: ActionState = {
   status: "idle",
@@ -27,132 +34,80 @@ export function SignInForm({
   redirectTo = "/app",
 }: SignInFormProps) {
   const [state, formAction, isPending] = useActionState(signIn, initialState);
-
-  const containerVariants: Variants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.08,
-        delayChildren: 0.06,
-      },
-    },
-  };
-
-  const itemVariants: Variants = {
-    hidden: { y: 12, opacity: 0 },
-    visible: {
-      y: 0,
-      opacity: 1,
-      transition: {
-        duration: 0.35,
-        ease: "easeOut",
-      },
-    },
-  };
+  const [showPassword, setShowPassword] = useState(false);
 
   return (
-    <motion.form
-      action={formAction}
-      animate="visible"
-      className="space-y-6"
-      initial="hidden"
-      variants={containerVariants}
-    >
+    <form action={formAction} className="mt-4">
       <input name="redirectTo" type="hidden" value={redirectTo} />
 
-      <motion.div
-        className="flex items-center justify-between rounded-[var(--radius-lg)] border border-outline/16 bg-surface-low/70 px-4 py-3 text-xs text-muted"
-        variants={itemVariants}
-      >
-        <span className="font-medium">Email and password only for v1.</span>
-        <Link
-          className="inline-flex items-center gap-2 font-semibold text-primary transition hover:text-primary/80"
-          href="/help"
-        >
-          <LifeBuoy className="h-3.5 w-3.5" />
-          Need help?
-        </Link>
-      </motion.div>
+      <AuthPanelHeading
+        description="Access your account and enter the arena."
+        title="Sign in to LocalTrading"
+      />
 
-      {missingConfig ? (
-        <motion.p
-          className="rounded-[var(--radius-lg)] border border-secondary/25 bg-secondary-container/20 px-4 py-3 text-sm leading-6 text-secondary"
-          variants={itemVariants}
-        >
-          Supabase auth is not configured in this environment yet, so signed-in
-          routes like backtesting are unavailable until those env values are set.
-        </motion.p>
-      ) : null}
+      <div className="mt-5 space-y-3.5">
+        {missingConfig ? (
+          <AuthNotice
+            message="Supabase auth is not configured in this environment yet. Add the auth env values first."
+            tone="info"
+          />
+        ) : null}
 
-      {!missingConfig && reason === "auth" ? (
-        <motion.p
-          className="rounded-[var(--radius-lg)] border border-outline/16 bg-surface-low/70 px-4 py-3 text-sm leading-6 text-muted"
-          variants={itemVariants}
-        >
-          Sign in to continue into the signed-in workspace.
-        </motion.p>
-      ) : null}
+        {!missingConfig && reason === "auth" ? (
+          <AuthNotice
+            message="Sign in to continue into the workspace."
+            tone="info"
+          />
+        ) : null}
 
-      <motion.div className="space-y-2" variants={itemVariants}>
-        <Label htmlFor="email">Email</Label>
-        <Input
-          className="min-h-12 rounded-[var(--radius-xl)] border-outline/18 bg-surface-low/90 px-4"
-          id="email"
+        {state.message ? (
+          <AuthNotice
+            message={state.message}
+            tone={state.status === "error" ? "error" : "success"}
+          />
+        ) : null}
+
+        <AuthField
+          autoComplete="email"
+          icon="mail"
+          id="Email"
           name="email"
           placeholder="you@example.com"
           required
           type="email"
         />
-      </motion.div>
 
-      <motion.div className="space-y-2" variants={itemVariants}>
-        <div className="flex items-center justify-between">
-          <Label htmlFor="password">Password</Label>
-          <span className="text-xs font-medium text-muted">
-            Case-sensitive
-          </span>
-        </div>
-        <Input
-          className="min-h-12 rounded-[var(--radius-xl)] border-outline/18 bg-surface-low/90 px-4"
-          id="password"
+        <AuthField
+          autoComplete="current-password"
+          icon="lock"
+          id="Password"
           name="password"
           placeholder="Enter your password"
           required
-          type="password"
-        />
-      </motion.div>
-
-      {state.message ? (
-        <motion.p
-          className={
-            state.status === "error"
-              ? "rounded-[var(--radius-lg)] border border-danger/25 bg-danger/8 px-4 py-3 text-sm text-danger"
-              : "rounded-[var(--radius-lg)] border border-success/25 bg-success/8 px-4 py-3 text-sm text-success"
+          rightSlot={
+            <PasswordRevealButton
+              onClick={() => setShowPassword((current) => !current)}
+              visible={showPassword}
+            />
           }
-          variants={itemVariants}
-        >
-          {state.message}
-        </motion.p>
-      ) : null}
+          type={showPassword ? "text" : "password"}
+        />
 
-      <motion.div className="space-y-4" variants={itemVariants}>
-        <Button
-          className="min-h-12 w-full rounded-[var(--radius-xl)] text-base"
-          disabled={isPending}
-          size="lg"
-          type="submit"
-        >
-          {isPending ? "Signing in..." : "Sign In"}
-          {!isPending ? <ArrowRight className="h-4 w-4" /> : null}
-        </Button>
-        <p className="text-center text-sm leading-7 text-muted">
-          New here?{" "}
-          <Link className="font-semibold text-primary transition hover:text-primary/80" href="/sign-up">
-            Create your account
+        <div className="flex flex-wrap items-center justify-between gap-3 text-[0.93rem]">
+          <AuthCheckbox defaultChecked id="rememberMe" label="Remember me" name="rememberMe" />
+          <Link className="font-medium text-[#15f58e] transition hover:text-[#7cffbf]" href="/help">
+            Forgot password?
           </Link>
-        </p>
-      </motion.div>
-    </motion.form>
+        </div>
+
+        <AuthPrimaryButton disabled={isPending}>
+          {isPending ? "Signing In..." : "Sign In"}
+        </AuthPrimaryButton>
+      </div>
+
+      <AuthDivider />
+      <AuthSocialButtons />
+      <AuthFooterLink href="/sign-up" label="Sign up" prompt="Don't have an account?" />
+    </form>
   );
 }

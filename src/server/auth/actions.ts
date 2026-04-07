@@ -13,7 +13,7 @@ const signInSchema = z.object({
 });
 
 const signUpSchema = signInSchema.extend({
-  fullName: z.string().min(2),
+  displayName: z.string().trim().max(60).optional().or(z.literal("")),
 });
 
 export async function signIn(
@@ -56,8 +56,9 @@ export async function signUp(
   _prevState: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  const displayNameInput = formData.get("displayName") ?? formData.get("fullName");
   const parsed = signUpSchema.safeParse({
-    fullName: formData.get("fullName"),
+    displayName: typeof displayNameInput === "string" ? displayNameInput : "",
     email: formData.get("email"),
     password: formData.get("password"),
   });
@@ -65,7 +66,7 @@ export async function signUp(
   if (!parsed.success) {
     return {
       status: "error",
-      message: "Provide your name, a valid email, and a password with at least 8 characters.",
+      message: "Provide a valid email and a password with at least 8 characters.",
     };
   }
 
@@ -77,12 +78,18 @@ export async function signUp(
     };
   }
 
+  const profileName =
+    parsed.data.displayName?.trim() ||
+    parsed.data.email.split("@")[0] ||
+    "Trader";
+
   const { data, error } = await supabase.auth.signUp({
     email: parsed.data.email,
     password: parsed.data.password,
     options: {
       data: {
-        full_name: parsed.data.fullName,
+        full_name: profileName,
+        display_name: profileName,
       },
     },
   });
@@ -95,8 +102,8 @@ export async function signUp(
     await supabase.from("profiles").upsert({
       id: data.user.id,
       email: parsed.data.email,
-      full_name: parsed.data.fullName,
-      display_name: parsed.data.fullName,
+      full_name: profileName,
+      display_name: profileName,
       focus_area: "Candlesticks and risk management",
       bio: "Focused on building structured habits before risking real money.",
       updated_at: new Date().toISOString(),
