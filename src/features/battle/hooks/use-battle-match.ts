@@ -16,6 +16,7 @@ import type {
   BacktestLineField,
   BacktestLineValues,
   BacktestTimeframe,
+  BacktestTradeExecution,
   BacktestTradeDraft,
 } from "@/features/backtesting/types";
 import {
@@ -105,21 +106,44 @@ function toValidationDraft(draft: BattleTradeForm): BacktestTradeDraft {
 function deriveLocalExecutionView(input: {
   roomView: BattleRoomView | null;
   localReplayIndex: number;
-}) {
+}): BacktestTradeExecution | null {
   const roomView = input.roomView;
   const authoritativeExecution = roomView?.self.execution ?? null;
   if (!roomView || !authoritativeExecution) {
     return null;
   }
 
+  const baseExecution: BacktestTradeExecution = {
+    status: authoritativeExecution.status,
+    orderType: authoritativeExecution.orderType,
+    entry: authoritativeExecution.entry,
+    stop: authoritativeExecution.stop,
+    target: authoritativeExecution.target,
+    riskPercent: authoritativeExecution.riskPercent,
+    riskAmount: authoritativeExecution.riskAmount,
+    volume: authoritativeExecution.volume,
+    balanceBeforeTrade: null,
+    openedAtIndex: authoritativeExecution.openedAtIndex,
+    openedAtTime: authoritativeExecution.openedAtTime,
+    closedAtIndex: authoritativeExecution.closedAtIndex,
+    closedAtTime: authoritativeExecution.closedAtTime,
+    exitPrice: authoritativeExecution.exitPrice,
+    resultR: authoritativeExecution.resultR,
+    resultAmount: authoritativeExecution.resultAmount,
+    balanceAfterTrade: authoritativeExecution.balanceAfterTrade,
+    maxFavorableR: null,
+    maxAdverseR: null,
+    durationBars: null,
+  };
+
   if (
     authoritativeExecution.status !== "armed" &&
     authoritativeExecution.status !== "active"
   ) {
-    return authoritativeExecution;
+    return baseExecution;
   }
 
-  let nextExecution = authoritativeExecution;
+  let nextExecution: BacktestTradeExecution = baseExecution;
   const startIndex = roomView.self.replayIndex + 1;
   const endIndex = Math.min(input.localReplayIndex, roomView.room.candles.length - 1);
 
@@ -134,7 +158,7 @@ function deriveLocalExecutionView(input: {
         nextExecution,
         candle,
         replayIndex,
-        nextExecution.direction,
+        authoritativeExecution.direction,
       );
       continue;
     }
@@ -144,7 +168,7 @@ function deriveLocalExecutionView(input: {
         nextExecution,
         candle,
         replayIndex,
-        nextExecution.direction,
+        authoritativeExecution.direction,
       );
     }
   }
@@ -159,7 +183,7 @@ function deriveLocalExecutionView(input: {
       nextExecution,
       roomView.room.candles[finalIndex],
       finalIndex,
-      nextExecution.direction,
+      authoritativeExecution.direction,
     );
   }
 

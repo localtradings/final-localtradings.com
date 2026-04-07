@@ -12,7 +12,6 @@ import { useBattleMatch } from "@/features/battle/hooks/use-battle-match";
 import type {
   BattleMatchLockReason,
   BattleRoomSession,
-  BattleTradeSnapshot,
 } from "@/features/battle/types";
 import { BACKTEST_STATUS_LABELS } from "@/features/backtesting/constants";
 import { BacktestChart } from "@/features/backtesting/components/backtest-chart";
@@ -25,10 +24,8 @@ import {
   formatMoney,
   getSessionTone,
 } from "@/features/backtesting/components/backtesting-ui";
-import { createDraftExecution } from "@/features/trading-shared/execution-engine";
 import type {
   BacktestDrawingTool,
-  BacktestTradeExecution,
 } from "@/features/backtesting/types";
 import { cn } from "@/lib/utils";
 
@@ -86,35 +83,6 @@ function HeaderMetric({
       </p>
     </div>
   );
-}
-
-function toChartExecution(execution: BattleTradeSnapshot | null): BacktestTradeExecution {
-  if (!execution) {
-    return createDraftExecution();
-  }
-
-  return {
-    status: execution.status,
-    orderType: execution.orderType,
-    entry: execution.entry,
-    stop: execution.stop,
-    target: execution.target,
-    riskPercent: execution.riskPercent,
-    riskAmount: execution.riskAmount,
-    volume: execution.volume,
-    balanceBeforeTrade: null,
-    openedAtIndex: execution.openedAtIndex,
-    openedAtTime: execution.openedAtTime,
-    closedAtIndex: execution.closedAtIndex,
-    closedAtTime: execution.closedAtTime,
-    exitPrice: execution.exitPrice,
-    resultR: execution.resultR,
-    resultAmount: execution.resultAmount,
-    balanceAfterTrade: execution.balanceAfterTrade,
-    maxFavorableR: null,
-    maxAdverseR: null,
-    durationBars: null,
-  };
 }
 
 export function BattleMatchClient({ session }: { session: BattleRoomSession }) {
@@ -179,6 +147,7 @@ export function BattleMatchClient({ session }: { session: BattleRoomSession }) {
                 ? "Active"
                 : "Waiting";
   const activeExecution = workspace.execution.status === "draft" ? null : workspace.execution;
+  const executionDirection = roomView.self.execution?.direction ?? workspace.tradeDraft.direction;
   const riskRewardLabel =
     workspace.primaryValidation.isValid &&
     typeof workspace.primaryValidation.riskReward === "number"
@@ -309,7 +278,7 @@ export function BattleMatchClient({ session }: { session: BattleRoomSession }) {
                 activeDrawingTool={activeDrawingTool}
                 candles={workspace.revealedCandles}
                 drawingStorageKey={`battle-drawings:${roomView.room.roomId}:${roomView.viewerUserId}`}
-                direction={activeExecution?.direction ?? workspace.tradeDraft.direction}
+                direction={executionDirection}
                 editableFields={{
                   entry:
                     activeDrawingTool === "cursor" &&
@@ -318,7 +287,7 @@ export function BattleMatchClient({ session }: { session: BattleRoomSession }) {
                   stop: activeDrawingTool === "cursor" && workspace.canConfigureDraft,
                   target: activeDrawingTool === "cursor" && workspace.canConfigureDraft,
                 }}
-                execution={toChartExecution(activeExecution)}
+                execution={workspace.execution}
                 instrument={workspace.currentInstrument}
                 isLoading={workspace.isPending}
                 lineValues={workspace.lineValues}
