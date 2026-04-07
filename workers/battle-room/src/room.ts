@@ -45,7 +45,7 @@ const LOBBY_COUNTDOWN_MS = 60_000;
 const RECONNECT_GRACE_MS = 60_000;
 const PARTICIPATION_WARNING_MS = 5 * 60 * 1_000;
 const PARTICIPATION_GRACE_MS = 60 * 1_000;
-const MAX_REPLAY_CHECKPOINT_DELTA = 4;
+const MAX_REPLAY_CHECKPOINT_DELTA = 48;
 const TOKEN_VERSION = "v1";
 
 type RoomTokenPayload = {
@@ -99,6 +99,12 @@ export class BattleRoomDO {
     }
     if (url.pathname === "/close-trade") {
       return this.handleCloseTrade(body, now);
+    }
+    if (url.pathname === "/test-participation") {
+      return this.handleTestParticipation(body, now);
+    }
+    if (url.pathname === "/test-lobby-countdown") {
+      return this.handleTestLobbyCountdown(body, now);
     }
 
     return Response.json(
@@ -163,6 +169,27 @@ export class BattleRoomDO {
   private async saveAndBroadcast(room: WorkerBattleRoomState) {
     await this.saveRoomState(room);
     await this.broadcastRoomState(room);
+  }
+
+  private didPublicReplayStateChange(
+    previous: {
+      officialBalance: number;
+      tradesClosed: number;
+      status: WorkerBattlePlayer["status"];
+      hasOpenTrade: boolean;
+    },
+    nextPlayer: WorkerBattlePlayer,
+    nextExecution: WorkerBattlePlayerMatchState["execution"],
+  ) {
+    const nextHasOpenTrade =
+      nextExecution?.status === "armed" || nextExecution?.status === "active";
+
+    return (
+      previous.officialBalance !== nextPlayer.officialBalance ||
+      previous.tradesClosed !== nextPlayer.tradesClosed ||
+      previous.status !== nextPlayer.status ||
+      previous.hasOpenTrade !== nextHasOpenTrade
+    );
   }
 
   private logRoomEvent(event: string, details: Record<string, unknown>) {
@@ -379,6 +406,21 @@ export class BattleRoomDO {
     if (sockets.size === 0) {
       this.connections.delete(userId);
     }
+  }
+
+  private closeConnectionsForUser(userId: string, code = 1000, reason = "room_left") {
+    const sockets = this.connections.get(userId);
+    if (!sockets) {
+      return;
+    }
+
+    for (const socket of sockets) {
+      try {
+        socket.close(code, reason);
+      } catch {}
+    }
+
+    this.connections.delete(userId);
   }
 
   private async broadcastRoomState(room: WorkerBattleRoomState) {
@@ -615,12 +657,10 @@ export class BattleRoomDO {
 
     if (room.phase === "lobby" && room.countdownEndsAt) {
       const activeLobbyPlayers = this.getActiveLobbyPlayers(room);
-      const readyPlayers = activeLobbyPlayers.filter((player) => player.isReady);
-
-      if (activeLobbyPlayers.length >= 2 && readyPlayers.length === activeLobbyPlayers.length) {
+      if (activeLobbyPlayers.length >= room.maxPlayers) {
         changed = (await this.startRoom(room, nowMs)) || changed;
       } else if (Date.parse(room.countdownEndsAt) <= nowMs) {
-        if (readyPlayers.length >= 2) {
+        if (activeLobbyPlayers.length >= 2) {
           changed = (await this.startRoom(room, nowMs)) || changed;
         } else {
           room.phase = "cancelled";
@@ -723,12 +763,16 @@ export class BattleRoomDO {
     room.officialEndAt = new Date(nowMs + room.durationMinutes * 60 * 1_000).toISOString();
     room.pendingSeedData = null;
 
+    const activeLobbyPlayerIds = new Set(
+      this.getActiveLobbyPlayers(room).map((player) => player.userId),
+    );
+
     for (const player of room.players) {
-      if (player.isReady) {
+      if (activeLobbyPlayerIds.has(player.userId)) {
         player.status = "active";
         player.readyDeadlineAt = null;
         room.playerStates[player.userId] = createPlayerMatchState(initialRevealCount - 1);
-      } else if (player.status === "joined") {
+      } else if (player.status === "joined" || player.status === "ready") {
         player.status = "removed_unready";
       }
     }
@@ -812,7 +856,7 @@ export class BattleRoomDO {
     return true;
   }
 
-  private jsonSuccess(data: { room: WorkerBattleView }) {
+  private jsonSuccess(data: { room: WorkerBattleView | null }) {
     return Response.json({ ok: true, data });
   }
 
@@ -988,9 +1032,20 @@ export class BattleRoomDO {
       return this.jsonFailure("room_not_found", "Player not found in this room.", 404);
     }
 
+    if (room.phase === "lobby") {
+      room.players = room.players.filter((entry) => entry.userId !== userId);
+      delete room.playerStates[userId];
+      this.closeConnectionsForUser(userId, 1000, "left_lobby");
+
+      await this.reconcileRoom(room, nowMs);
+      await this.saveAndBroadcast(room);
+      await this.persistRoomSnapshot(room);
+      return this.jsonSuccess({ room: null });
+    }
+
     player.connected = false;
     player.disconnectedAt = new Date(nowMs).toISOString();
-    player.status = room.phase === "active" ? "left_early" : "left_lobby";
+    player.status = "left_early";
     const state = this.getOrCreatePlayerState(room, userId);
     state.execution = null;
 
@@ -1037,6 +1092,13 @@ export class BattleRoomDO {
     }
 
     const state = this.getOrCreatePlayerState(room, userId);
+    const previousPublicState = {
+      officialBalance: player.officialBalance,
+      tradesClosed: player.tradesClosed,
+      status: player.status,
+      hasOpenTrade:
+        state.execution?.status === "armed" || state.execution?.status === "active",
+    };
     const requestedReplayIndex = Number(body.replayIndex);
     const maxReplayIndex = room.candles.length - 1;
 
@@ -1122,8 +1184,69 @@ export class BattleRoomDO {
       phase: room.phase,
       delta: replayDelta,
     });
-    await this.saveAndBroadcast(room);
+    await this.saveRoomState(room);
+
+    if (this.didPublicReplayStateChange(previousPublicState, player, state.execution)) {
+      await this.broadcastRoomState(room);
+    }
+
     return this.jsonSuccess({ room: buildViewerState(room, userId) });
+  }
+
+  private async handleTestParticipation(body: Record<string, unknown> | null, nowMs: number) {
+    const room = await this.loadRoomState();
+    if (!room || !body) {
+      return this.jsonFailure("room_not_found", "Battle room not found.", 404);
+    }
+
+    if (room.phase !== "active" || !room.officialStartAt) {
+      return this.jsonFailure("room_not_active", "Battle room is not active.", 409);
+    }
+
+    const stage = body.stage === "warning" || body.stage === "deadline" ? body.stage : null;
+    if (!stage) {
+      return this.jsonFailure("invalid_payload", "Participation test stage is required.", 400);
+    }
+
+    const offsetMs =
+      stage === "warning"
+        ? PARTICIPATION_WARNING_MS + 1_000
+        : PARTICIPATION_WARNING_MS + PARTICIPATION_GRACE_MS + 1_000;
+
+    room.officialStartAt = new Date(nowMs - offsetMs).toISOString();
+    const changed = await this.reconcileRoom(room, nowMs);
+
+    await this.saveAndBroadcast(room);
+    if (changed) {
+      await this.persistRoomSnapshot(room);
+    }
+
+    return this.jsonSuccess({
+      room: buildViewerState(room, room.players[0]?.userId ?? ""),
+    });
+  }
+
+  private async handleTestLobbyCountdown(body: Record<string, unknown> | null, nowMs: number) {
+    const room = await this.loadRoomState();
+    if (!room || !body) {
+      return this.jsonFailure("room_not_found", "Battle room not found.", 404);
+    }
+
+    if (room.phase !== "lobby") {
+      return this.jsonFailure("room_not_in_lobby", "Battle room is not in the lobby.", 409);
+    }
+
+    room.countdownEndsAt = new Date(nowMs - 1_000).toISOString();
+    const changed = await this.reconcileRoom(room, nowMs);
+
+    await this.saveAndBroadcast(room);
+    if (changed) {
+      await this.persistRoomSnapshot(room);
+    }
+
+    return this.jsonSuccess({
+      room: buildViewerState(room, room.players[0]?.userId ?? ""),
+    });
   }
 
   private async handleOpenTrade(body: Record<string, unknown> | null, nowMs: number) {

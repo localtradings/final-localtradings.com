@@ -4,8 +4,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   BATTLE_DEFAULT_RISK_PERCENT,
+  BATTLE_REPLAY_BATCH_INTERVAL_MS,
   BATTLE_REPLAY_BATCH_STEP_COUNT,
   BATTLE_REPLAY_INTERVAL_MS,
+  BATTLE_REPLAY_RESOLUTION_SYNC_MS,
 } from "@/features/battle/constants";
 import type { BattleRoomSession, BattleRoomView, BattleTradeForm } from "@/features/battle/types";
 import { getBacktestInstrument } from "@/features/backtesting/constants";
@@ -17,10 +19,13 @@ import type {
   BacktestTradeDraft,
 } from "@/features/backtesting/types";
 import {
+  advancePendingTradeExecution,
+  advanceTradeExecution,
   buildTradeDraftFromPrice,
   calculatePositionSizeFromNotional,
   createDraftExecution,
   deriveRiskSettings,
+  finalizeUnfinishedTrade,
 } from "@/features/trading-shared/execution-engine";
 import {
   buildOrderAwareValidation,
@@ -97,6 +102,70 @@ function toValidationDraft(draft: BattleTradeForm): BacktestTradeDraft {
   };
 }
 
+function deriveLocalExecutionView(input: {
+  roomView: BattleRoomView | null;
+  localReplayIndex: number;
+}) {
+  const roomView = input.roomView;
+  const authoritativeExecution = roomView?.self.execution ?? null;
+  if (!roomView || !authoritativeExecution) {
+    return null;
+  }
+
+  if (
+    authoritativeExecution.status !== "armed" &&
+    authoritativeExecution.status !== "active"
+  ) {
+    return authoritativeExecution;
+  }
+
+  let nextExecution = authoritativeExecution;
+  const startIndex = roomView.self.replayIndex + 1;
+  const endIndex = Math.min(input.localReplayIndex, roomView.room.candles.length - 1);
+
+  for (let replayIndex = startIndex; replayIndex <= endIndex; replayIndex += 1) {
+    const candle = roomView.room.candles[replayIndex];
+    if (!candle) {
+      break;
+    }
+
+    if (nextExecution.status === "armed") {
+      nextExecution = advancePendingTradeExecution(
+        nextExecution,
+        candle,
+        replayIndex,
+        nextExecution.direction,
+      );
+      continue;
+    }
+
+    if (nextExecution.status === "active") {
+      nextExecution = advanceTradeExecution(
+        nextExecution,
+        candle,
+        replayIndex,
+        nextExecution.direction,
+      );
+    }
+  }
+
+  if (
+    roomView.room.phase === "finished" &&
+    nextExecution.status === "active" &&
+    roomView.room.candles.length > 0
+  ) {
+    const finalIndex = roomView.room.candles.length - 1;
+    nextExecution = finalizeUnfinishedTrade(
+      nextExecution,
+      roomView.room.candles[finalIndex],
+      finalIndex,
+      nextExecution.direction,
+    );
+  }
+
+  return nextExecution;
+}
+
 export function useBattleMatch(session: BattleRoomSession) {
   const { roomView, setRoomView, error, setError, hasBootstrapped } = useBattleRoomSync(session);
   const [isActionPending, setIsActionPending] = useState(false);
@@ -147,7 +216,11 @@ export function useBattleMatch(session: BattleRoomSession) {
     currentCandle?.close ??
     roomView?.room.candles.at(-1)?.close ??
     currentInstrument.basePrice;
-  const activeExecution = roomView?.self.execution ?? null;
+  const authoritativeExecution = roomView?.self.execution ?? null;
+  const activeExecution = useMemo(
+    () => deriveLocalExecutionView({ roomView, localReplayIndex }),
+    [localReplayIndex, roomView],
+  );
   const isLocked =
     roomView?.self.lockReason !== null ||
     roomView?.room.phase !== "active" ||
@@ -283,21 +356,70 @@ export function useBattleMatch(session: BattleRoomSession) {
       return;
     }
 
-    if (isPlaying) {
-      return;
-    }
+    const elapsedSinceLastFlushMs = Date.now() - lastReplayFlushAtRef.current;
+    const localExecutionRequiresSync =
+      activeExecution?.status === "armed" ||
+      activeExecution?.status === "active" ||
+      (authoritativeExecution !== null &&
+        activeExecution !== null &&
+        activeExecution.status !== authoritativeExecution.status);
+    const resolvedLocally =
+      activeExecution !== null &&
+      activeExecution.status !== "armed" &&
+      activeExecution.status !== "active";
 
-    if (delta >= BATTLE_REPLAY_BATCH_STEP_COUNT || !isPlaying) {
+    const shouldFlushReplay =
+      !isPlaying ||
+      (localExecutionRequiresSync &&
+        (delta >= BATTLE_REPLAY_BATCH_STEP_COUNT ||
+          elapsedSinceLastFlushMs >= BATTLE_REPLAY_BATCH_INTERVAL_MS)) ||
+      (resolvedLocally && elapsedSinceLastFlushMs >= BATTLE_REPLAY_RESOLUTION_SYNC_MS);
+
+    if (shouldFlushReplay) {
       void flushReplayCheckpoint();
-      return;
     }
-  }, [flushReplayCheckpoint, isActionPending, isLocked, isPlaying, localReplayIndex, roomView]);
+  }, [
+    activeExecution,
+    authoritativeExecution,
+    flushReplayCheckpoint,
+    isActionPending,
+    isLocked,
+    isPlaying,
+    localReplayIndex,
+    roomView,
+  ]);
 
   useEffect(() => {
     if (!canStepForward) {
       setIsPlaying(false);
     }
   }, [canStepForward]);
+
+  useEffect(() => {
+    if (!roomView) {
+      return;
+    }
+
+    const flushIfNeeded = () => {
+      if (localReplayIndexRef.current > (roomViewRef.current?.self.replayIndex ?? 0)) {
+        void flushReplayCheckpoint();
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        flushIfNeeded();
+      }
+    };
+
+    window.addEventListener("pagehide", flushIfNeeded);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener("pagehide", flushIfNeeded);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [flushReplayCheckpoint, roomView]);
 
   const validationDraft = useMemo(() => toValidationDraft(tradeDraft), [tradeDraft]);
   const buyValidation = useMemo(

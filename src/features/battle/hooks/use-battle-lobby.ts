@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import type { BattleRoomSession } from "@/features/battle/types";
 import {
@@ -11,6 +12,7 @@ import {
 import { useBattleRoomSync } from "./use-battle-room-sync";
 
 export function useBattleLobby(session: BattleRoomSession) {
+  const router = useRouter();
   const { roomView, setRoomView, error, setError, hasBootstrapped } = useBattleRoomSync(session);
   const [isActionPending, setIsActionPending] = useState(false);
 
@@ -52,6 +54,13 @@ export function useBattleLobby(session: BattleRoomSession) {
     try {
       const result = await leaveBattleRoomAction(roomView.room.roomId);
       if (result.ok) {
+        if (!result.data.room) {
+          setRoomView(null);
+          setError(null);
+          router.push("/app/battle");
+          return;
+        }
+
         setRoomView(result.data.room);
         setError(null);
         return;

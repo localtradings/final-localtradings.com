@@ -12,6 +12,7 @@
     "test:watch": "vitest",
     "test:e2e:battle": "node --env-file=.env.local scripts/battle-e2e.mjs",
     "test:e2e:battle:5p": "node --env-file=.env.local scripts/battle-5p-e2e.mjs",
+    "test:e2e:battle:leave": "node --env-file=.env.local scripts/battle-leave-lobby-e2e.mjs",
     "test:e2e:battle:results": "node --env-file=.env.local scripts/battle-results-e2e.mjs",
     "test:e2e:battle:participation": "node --env-file=.env.local scripts/battle-participation-e2e.mjs"
   },

@@ -1,105 +1,21 @@
 import assert from "node:assert/strict";
 
-import { createClient } from "@supabase/supabase-js";
 import { chromium } from "playwright";
 
-const baseUrl = (process.env.E2E_BASE_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
-const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
-const headless = process.env.PLAYWRIGHT_HEADLESS !== "false";
-
-function requireEnv(name, value) {
-  assert.ok(value.trim().length > 0, `Missing required environment variable: ${name}`);
-}
-
-function buildDisposableUsers() {
-  const stamp = Date.now();
-  const password = `BattlePass-${stamp}`;
-
-  return {
-    password,
-    users: [
-      {
-        email: `codex-battle-a-${stamp}@example.com`,
-        displayName: "Codex Battle A",
-      },
-      {
-        email: `codex-battle-b-${stamp}@example.com`,
-        displayName: "Codex Battle B",
-      },
-    ],
-  };
-}
-
-async function createDisposableUsers(admin, spec) {
-  const created = [];
-
-  for (const user of spec.users) {
-    const { data, error } = await admin.auth.admin.createUser({
-      email: user.email,
-      password: spec.password,
-      email_confirm: true,
-      user_metadata: {
-        full_name: user.displayName,
-      },
-    });
-
-    if (error) {
-      throw error;
-    }
-
-    const userId = data.user?.id;
-    assert.ok(userId, `Supabase did not return a user id for ${user.email}`);
-
-    const { error: profileError } = await admin.from("profiles").upsert({
-      id: userId,
-      email: user.email,
-      full_name: user.displayName,
-      display_name: user.displayName,
-      focus_area: "Battle E2E",
-      bio: "Disposable browser test account",
-      updated_at: new Date().toISOString(),
-    });
-
-    if (profileError) {
-      throw profileError;
-    }
-
-    created.push({
-      ...user,
-      id: userId,
-      password: spec.password,
-    });
-  }
-
-  return created;
-}
-
-async function deleteDisposableUsers(admin, users) {
-  await Promise.all(
-    users.map(async (user) => {
-      if (!user?.id) {
-        return;
-      }
-
-      await admin.auth.admin.deleteUser(user.id);
-    }),
-  );
-}
-
-async function signIn(page, user) {
-  await page.goto(`${baseUrl}/sign-in`, { waitUntil: "domcontentloaded", timeout: 60_000 });
-  await page.getByLabel("Email").fill(user.email);
-  await page.getByLabel("Password").fill(user.password);
-  await Promise.all([
-    page.waitForURL(/\/app(\/|$)/, { timeout: 60_000 }),
-    page.getByRole("button", { name: /^Sign In$/ }).click(),
-  ]);
-}
-
-function extractRoomCode(bodyText) {
-  return bodyText.match(/ROOM CODE\s+([A-Z0-9]{4,12})/)?.[1] ?? null;
-}
+import {
+  attachPageDiagnostics,
+  baseUrl,
+  buildDisposableUsers,
+  createAdminClient,
+  createDisposableUsers,
+  deleteDisposableUsers,
+  expectCompactBattleSurface,
+  fastForwardLobbyCountdown,
+  getRoomCode,
+  headless,
+  signIn,
+  waitForPath,
+} from "./battle-test-helpers.mjs";
 
 async function waitForPlayerState(admin, roomId, userId, predicate, message, timeoutMs = 20_000) {
   const deadline = Date.now() + timeoutMs;
@@ -127,17 +43,9 @@ async function waitForPlayerState(admin, roomId, userId, predicate, message, tim
 }
 
 async function runBattleFlow() {
-  requireEnv("NEXT_PUBLIC_SUPABASE_URL", supabaseUrl);
-  requireEnv("SUPABASE_SERVICE_ROLE_KEY", serviceRoleKey);
+  const admin = createAdminClient();
 
-  const admin = createClient(supabaseUrl, serviceRoleKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-  });
-
-  const spec = buildDisposableUsers();
+  const spec = buildDisposableUsers(2, "codex-battle");
   const createdUsers = await createDisposableUsers(admin, spec);
   const browser = await chromium.launch({ headless });
 
@@ -153,14 +61,7 @@ async function runBattleFlow() {
 
     for (const [index, page] of pages.entries()) {
       const label = index === 0 ? "A" : "B";
-      page.on("console", (message) => {
-        if (message.type() === "warning" || message.type() === "error") {
-          consoleWarnings.push(`[${label}:${message.type()}] ${message.text()}`);
-        }
-      });
-      page.on("pageerror", (error) => {
-        pageErrors.push(`[${label}] ${error.message}`);
-      });
+      attachPageDiagnostics(page, label, { consoleWarnings, pageErrors });
     }
 
     await Promise.all([
@@ -174,25 +75,40 @@ async function runBattleFlow() {
     ]);
 
     await pageA.getByRole("button", { name: "Create Private Room" }).click();
-    await pageA.waitForURL(/\/app\/battle\/lobby\//, { timeout: 60_000 });
+    await waitForPath(pageA, /\/app\/battle\/lobby\//, 60_000);
     await pageA.waitForTimeout(1_500);
 
     const roomId = pageA.url().split("/").pop();
     assert.ok(roomId, "Host lobby URL did not contain a room id");
 
-    const roomCode = extractRoomCode(await pageA.locator("body").innerText());
+    const roomCode = await getRoomCode(admin, roomId);
     assert.ok(roomCode, "Could not extract room code from host lobby");
 
     await pageB.getByPlaceholder("ROOM CODE").fill(roomCode);
     await pageB.getByRole("button", { name: "Join Room" }).click();
-    await pageB.waitForURL(new RegExp(`/app/battle/lobby/${roomId}$`), { timeout: 60_000 });
+    await waitForPath(pageB, new RegExp(`/app/battle/lobby/${roomId}$`), 60_000);
 
-    await pageB.getByRole("button", { name: "Ready Up" }).click();
-    await pageA.getByRole("button", { name: "Ready Up" }).click();
+    await pageB.getByRole("button", { name: "Ready Up" }).click({ force: true });
+    await pageA.getByRole("button", { name: "Ready Up" }).click({ force: true });
+
+    await pageA.waitForTimeout(3_000);
+    await pageB.waitForTimeout(3_000);
+    assert.match(
+      pageA.url(),
+      new RegExp(`/app/battle/lobby/${roomId}$`),
+      "2-player room should stay in the lobby before the countdown expires",
+    );
+    assert.match(
+      pageB.url(),
+      new RegExp(`/app/battle/lobby/${roomId}$`),
+      "Guest should stay in the lobby before the countdown expires",
+    );
+
+    await fastForwardLobbyCountdown(roomId);
 
     await Promise.all([
-      pageA.waitForURL(new RegExp(`/app/battle/match/${roomId}$`), { timeout: 60_000 }),
-      pageB.waitForURL(new RegExp(`/app/battle/match/${roomId}$`), { timeout: 60_000 }),
+      waitForPath(pageA, new RegExp(`/app/battle/match/${roomId}$`), 60_000),
+      waitForPath(pageB, new RegExp(`/app/battle/match/${roomId}$`), 60_000),
     ]);
 
     assert.equal(
@@ -203,9 +119,20 @@ async function runBattleFlow() {
 
     await expectCompactBattleSurface(pageA);
 
+    const replayBeforeText = await pageA.locator("body").innerText();
+    const replayBeforeMatch = replayBeforeText.match(/Replay\s+(\d+)\/(\d+)/i);
+    assert.ok(replayBeforeMatch, "Expected replay counter before starting playback");
+
     await pageA.getByRole("button", { name: "Play" }).click();
     await pageA.waitForTimeout(2_600);
     await pageA.getByRole("button", { name: "Pause" }).click();
+    const replayAfterText = await pageA.locator("body").innerText();
+    const replayAfterMatch = replayAfterText.match(/Replay\s+(\d+)\/(\d+)/i);
+    assert.ok(replayAfterMatch, "Expected replay counter after playback");
+    assert.ok(
+      Number(replayAfterMatch[1]) > Number(replayBeforeMatch[1]),
+      `Expected replay counter to advance during playback, got ${replayBeforeMatch[0]} -> ${replayAfterMatch[0]}`,
+    );
     await pageA.getByRole("button", { name: "Reset" }).click();
 
     await pageA.getByLabel("Risk %").fill("1.50");
@@ -255,14 +182,6 @@ async function runBattleFlow() {
     await browser.close();
     await deleteDisposableUsers(admin, createdUsers);
   }
-}
-
-async function expectCompactBattleSurface(page) {
-  await page.getByText("Battle Match", { exact: true }).first().waitFor({ state: "visible", timeout: 60_000 });
-  await page.getByText("Rank", { exact: true }).first().waitFor({ state: "visible", timeout: 60_000 });
-  await page.getByText("Player", { exact: true }).first().waitFor({ state: "visible", timeout: 60_000 });
-  await page.getByText("Balance", { exact: true }).first().waitFor({ state: "visible", timeout: 60_000 });
-  await page.getByLabel("Risk %").waitFor({ state: "visible", timeout: 60_000 });
 }
 
 await runBattleFlow();

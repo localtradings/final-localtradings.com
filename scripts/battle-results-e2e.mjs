@@ -113,10 +113,8 @@ async function main() {
       await page.goto(`${baseUrl}/sign-in`, { waitUntil: "domcontentloaded", timeout: 60_000 });
       await page.getByLabel("Email").fill(email);
       await page.getByLabel("Password").fill(password);
-      await Promise.all([
-        page.waitForURL(/\/app(\/|$)/, { timeout: 60_000 }),
-        page.getByRole("button", { name: /^Sign In$/ }).click(),
-      ]);
+      await page.getByRole("button", { name: /^Sign In$/ }).click({ noWaitAfter: true });
+      await page.waitForURL(/\/app(\/|$)/, { timeout: 60_000 });
 
       await page.goto(`${baseUrl}/app/battle/results/${roomId}`, {
         waitUntil: "domcontentloaded",

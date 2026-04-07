@@ -301,11 +301,7 @@ export async function joinPrivateBattleRoomAction(
 
 export async function refreshBattleRoomAction(roomId: string) {
   const user = await requireUser();
-  const roomResult = await refreshBattleRoomView({ roomId, userId: user.id });
-  if (roomResult.ok) {
-    await persistBattleRoomView(roomResult.data.room);
-  }
-  return roomResult;
+  return refreshBattleRoomView({ roomId, userId: user.id });
 }
 
 export async function setBattleReadyAction(rawInput: {
@@ -469,15 +465,10 @@ export async function syncBattleReplayAction(
   });
 
   if (result.ok) {
-    await persistBattleRoomView(result.data.room);
     return {
       ok: true,
       room: result.data.room,
     };
-  }
-
-  if (result.data?.room) {
-    await persistBattleRoomView(result.data.room);
   }
 
   return {

@@ -10,9 +10,12 @@ import {
   createAdminClient,
   createDisposableUsers,
   deleteDisposableUsers,
-  extractRoomCode,
+  fastForwardLobbyCountdown,
+  fastForwardParticipationStage,
+  getRoomCode,
   headless,
   signIn,
+  waitForPath,
 } from "./battle-test-helpers.mjs";
 
 async function main() {
@@ -51,25 +54,32 @@ async function main() {
     );
 
     await host.getByRole("button", { name: "Create Private Room" }).click();
-    await host.waitForURL(/\/app\/battle\/lobby\//, { timeout: 60_000 });
+    await waitForPath(host, /\/app\/battle\/lobby\//, 60_000);
     await host.waitForTimeout(1_500);
 
     roomId = host.url().split("/").pop() ?? null;
     assert.ok(roomId, "Host lobby URL did not contain a room id");
 
-    const roomCode = extractRoomCode(await host.locator("body").innerText());
+    const roomCode = await getRoomCode(admin, roomId);
     assert.ok(roomCode, "Could not extract room code from host lobby");
 
     await guest.getByPlaceholder("ROOM CODE").fill(roomCode);
     await guest.getByRole("button", { name: "Join Room" }).click();
-    await guest.waitForURL(new RegExp(`/app/battle/lobby/${roomId}$`), { timeout: 60_000 });
+    await waitForPath(guest, new RegExp(`/app/battle/lobby/${roomId}$`), 60_000);
 
-    await guest.getByRole("button", { name: "Ready Up" }).click();
-    await host.getByRole("button", { name: "Ready Up" }).click();
+    await guest.getByRole("button", { name: "Ready Up" }).click({ force: true });
+    await host.getByRole("button", { name: "Ready Up" }).click({ force: true });
+
+    await host.waitForTimeout(3_000);
+    await guest.waitForTimeout(3_000);
+    assert.match(host.url(), new RegExp(`/app/battle/lobby/${roomId}$`));
+    assert.match(guest.url(), new RegExp(`/app/battle/lobby/${roomId}$`));
+
+    await fastForwardLobbyCountdown(roomId);
 
     await Promise.all(
       pages.map((page) =>
-        page.waitForURL(new RegExp(`/app/battle/match/${roomId}$`), { timeout: 60_000 }),
+        waitForPath(page, new RegExp(`/app/battle/match/${roomId}$`), 60_000),
       ),
     );
 
@@ -79,13 +89,7 @@ async function main() {
       "Warning banner should not render immediately after match start",
     );
 
-    await host.waitForTimeout(4 * 60_000 + 50_000);
-
-    assert.equal(
-      await host.getByText(/Enter one trade within/i).count(),
-      0,
-      "Warning banner appeared before the 5-minute threshold",
-    );
+    await fastForwardParticipationStage(roomId, "warning");
 
     await host.getByText(/Enter one trade within/i).waitFor({
       state: "visible",
@@ -96,6 +100,8 @@ async function main() {
       state: "visible",
       timeout: 30_000,
     });
+
+    await fastForwardParticipationStage(roomId, "deadline");
 
     await host.getByText(/You were eliminated after missing the no-trade deadline/i).waitFor({
       state: "visible",

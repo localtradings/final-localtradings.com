@@ -6,6 +6,7 @@ export const baseUrl = (process.env.E2E_BASE_URL ?? process.env.NEXT_PUBLIC_APP_
 export const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 export const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
 export const battleSecret = process.env.BATTLE_SHARED_SECRET ?? "uHa2TkCpd3ukITf8SfeA488zPMJssQ2dp5G6w8frZtQ=";
+export const battleWorkerUrl = (process.env.CLOUDFLARE_BATTLE_WORKER_URL ?? "").replace(/\/$/, "");
 export const headless = process.env.PLAYWRIGHT_HEADLESS !== "false";
 
 export function requireEnv(name, value) {
@@ -100,18 +101,94 @@ export async function cleanupBattleRoom(admin, roomId) {
   await admin.from("battle_rooms").delete().eq("id", roomId);
 }
 
+export async function getRoomCode(admin, roomId) {
+  const result = await admin
+    .from("battle_rooms")
+    .select("lobby_code")
+    .eq("id", roomId)
+    .maybeSingle();
+
+  if (result.error) {
+    throw result.error;
+  }
+
+  return result.data?.lobby_code ?? null;
+}
+
+export async function fastForwardParticipationStage(roomId, stage) {
+  requireEnv("CLOUDFLARE_BATTLE_WORKER_URL", battleWorkerUrl);
+
+  const response = await fetch(`${battleWorkerUrl}/internal/rooms/test-participation`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "x-battle-internal-secret": battleSecret,
+    },
+    body: JSON.stringify({
+      roomId,
+      stage,
+    }),
+  });
+
+  const payload = await response.json().catch(() => null);
+  assert.ok(
+    response.ok && payload?.ok,
+    `Failed to fast-forward participation stage "${stage}": ${response.status} ${JSON.stringify(payload)}`,
+  );
+
+  return payload;
+}
+
+export async function fastForwardLobbyCountdown(roomId) {
+  requireEnv("CLOUDFLARE_BATTLE_WORKER_URL", battleWorkerUrl);
+
+  const response = await fetch(`${battleWorkerUrl}/internal/rooms/test-lobby-countdown`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "x-battle-internal-secret": battleSecret,
+    },
+    body: JSON.stringify({
+      roomId,
+    }),
+  });
+
+  const payload = await response.json().catch(() => null);
+  assert.ok(
+    response.ok && payload?.ok,
+    `Failed to fast-forward lobby countdown: ${response.status} ${JSON.stringify(payload)}`,
+  );
+
+  return payload;
+}
+
 export async function signIn(page, user) {
   await page.goto(`${baseUrl}/sign-in`, { waitUntil: "domcontentloaded", timeout: 60_000 });
   await page.getByLabel("Email").fill(user.email);
   await page.getByLabel("Password").fill(user.password);
-  await Promise.all([
-    page.waitForURL(/\/app(\/|$)/, { timeout: 60_000 }),
-    page.getByRole("button", { name: /^Sign In$/ }).click(),
-  ]);
+  await page.getByRole("button", { name: /^Sign In$/ }).click({ noWaitAfter: true });
+  await page.waitForFunction(
+    () => window.location.pathname === "/app" || window.location.pathname.startsWith("/app/"),
+    undefined,
+    { timeout: 60_000 },
+  );
 }
 
-export function extractRoomCode(bodyText) {
-  return bodyText.match(/ROOM CODE\s+([A-Z0-9]{4,12})/)?.[1] ?? null;
+export async function waitForPath(page, matcher, timeout = 60_000) {
+  await page.waitForFunction(
+    (expected) => {
+      const pathname = window.location.pathname;
+      if (typeof expected === "string") {
+        return pathname === expected;
+      }
+
+      return new RegExp(expected.pattern, expected.flags).test(pathname);
+    },
+    typeof matcher === "string"
+      ? matcher
+      : { pattern: matcher.source, flags: matcher.flags },
+    { timeout },
+  );
 }
 
 export function attachPageDiagnostics(page, label, bucket) {

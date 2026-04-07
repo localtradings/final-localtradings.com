@@ -6,6 +6,8 @@ import {
   BATTLE_FALLBACK_RESYNC_MS,
   BATTLE_INITIAL_SYNC_TIMEOUT_MS,
   BATTLE_SOCKET_PING_MS,
+  BATTLE_SOCKET_RETRY_BASE_MS,
+  BATTLE_SOCKET_RETRY_MAX_MS,
 } from "@/features/battle/constants";
 import { normalizeBattleRoomView } from "@/features/battle/lib/normalize-room-view";
 import type { BattleRoomSession, BattleRoomView } from "@/features/battle/types";
@@ -50,9 +52,11 @@ export class SharedBattleRoomSync {
   private fallbackInterval = 0;
   private bootstrapTimeout = 0;
   private disposeTimeout = 0;
+  private reconnectTimeout = 0;
   private refreshPromise: Promise<void> | null = null;
   private lastAuthoritativeEventAt = 0;
   private socketIssueUntil = 0;
+  private reconnectAttempt = 0;
 
   constructor(
     private readonly storeKey: string,
@@ -174,7 +178,7 @@ export class SharedBattleRoomSync {
   }
 
   private startSocketIfNeeded() {
-    if (!this.canUseSocket() || this.socket) {
+    if (!this.canUseSocket() || this.socket || this.reconnectTimeout) {
       return;
     }
 
@@ -189,6 +193,7 @@ export class SharedBattleRoomSync {
       }
 
       this.socketIssueUntil = 0;
+      this.reconnectAttempt = 0;
       this.lastAuthoritativeEventAt = Date.now();
       this.snapshot = {
         ...this.snapshot,
@@ -251,11 +256,30 @@ export class SharedBattleRoomSync {
         this.emit();
       }
 
-      this.ensureActive();
+      this.scheduleReconnect();
     };
 
     socket.addEventListener("close", handleSocketEnd);
     socket.addEventListener("error", handleSocketEnd);
+  }
+
+  private scheduleReconnect() {
+    if (!this.canUseSocket() || this.socket || this.reconnectTimeout) {
+      return;
+    }
+
+    const baseDelay = Math.min(
+      BATTLE_SOCKET_RETRY_BASE_MS * 2 ** this.reconnectAttempt,
+      BATTLE_SOCKET_RETRY_MAX_MS,
+    );
+    const jitter = Math.round(baseDelay * 0.2 * Math.random());
+    const delay = baseDelay + jitter;
+    this.reconnectAttempt += 1;
+
+    this.reconnectTimeout = window.setTimeout(() => {
+      this.reconnectTimeout = 0;
+      this.startSocketIfNeeded();
+    }, delay);
   }
 
   private startBootstrapIfNeeded() {
@@ -362,6 +386,13 @@ export class SharedBattleRoomSync {
     }
   }
 
+  private clearReconnectTimeout() {
+    if (this.reconnectTimeout) {
+      window.clearTimeout(this.reconnectTimeout);
+      this.reconnectTimeout = 0;
+    }
+  }
+
   private closeSocket() {
     if (!this.socket) {
       return;
@@ -396,6 +427,7 @@ export class SharedBattleRoomSync {
     this.clearDisposeTimeout();
     this.clearBootstrapTimeout();
     this.clearFallbackInterval();
+    this.clearReconnectTimeout();
     this.closeSocket();
     this.onDispose(this.storeKey);
   }

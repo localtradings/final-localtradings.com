@@ -178,7 +178,7 @@ export function BattleMatchClient({ session }: { session: BattleRoomSession }) {
               : roomView.self.hasEnteredTrade
                 ? "Active"
                 : "Waiting";
-  const activeExecution = roomView.self.execution;
+  const activeExecution = workspace.execution.status === "draft" ? null : workspace.execution;
   const riskRewardLabel =
     workspace.primaryValidation.isValid &&
     typeof workspace.primaryValidation.riskReward === "number"
@@ -309,7 +309,7 @@ export function BattleMatchClient({ session }: { session: BattleRoomSession }) {
                 activeDrawingTool={activeDrawingTool}
                 candles={workspace.revealedCandles}
                 drawingStorageKey={`battle-drawings:${roomView.room.roomId}:${roomView.viewerUserId}`}
-                direction={workspace.tradeDraft.direction}
+                direction={activeExecution?.direction ?? workspace.tradeDraft.direction}
                 editableFields={{
                   entry:
                     activeDrawingTool === "cursor" &&

@@ -135,6 +135,18 @@ const battleWorker = {
         body: JSON.stringify(body),
       });
     }
+    if (url.pathname === "/internal/rooms/test-participation") {
+      return stub.fetch("https://battle-room/test-participation", {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
+    }
+    if (url.pathname === "/internal/rooms/test-lobby-countdown") {
+      return stub.fetch("https://battle-room/test-lobby-countdown", {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
+    }
 
     return Response.json(
       { ok: false, reason: "route_not_found", message: "Battle worker route not found." },

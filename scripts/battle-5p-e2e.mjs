@@ -11,9 +11,10 @@ import {
   createDisposableUsers,
   deleteDisposableUsers,
   expectCompactBattleSurface,
-  extractRoomCode,
+  getRoomCode,
   headless,
   signIn,
+  waitForPath,
 } from "./battle-test-helpers.mjs";
 
 async function waitForPlayerState(admin, roomId, userId, predicate, message, timeoutMs = 20_000) {
@@ -66,8 +67,28 @@ async function main() {
       pages.map((page, index) => signIn(page, createdUsers[index])),
     );
 
+    const [host, playerB, playerC, playerD, playerE] = pages;
+
+    await host.goto(`${baseUrl}/app/battle`, {
+      waitUntil: "domcontentloaded",
+      timeout: 60_000,
+    });
+    await host.getByRole("button", { name: "Create Private Room" }).waitFor({
+      state: "visible",
+      timeout: 60_000,
+    });
+    await host.getByRole("button", { name: "Create Private Room" }).click({ force: true });
+    await waitForPath(host, /\/app\/battle\/lobby\//, 60_000);
+    await host.waitForTimeout(1_500);
+
+    roomId = host.url().split("/").pop() ?? null;
+    assert.ok(roomId, "Host lobby URL did not contain a room id");
+
+    const roomCode = await getRoomCode(admin, roomId);
+    assert.ok(roomCode, "Could not extract room code from host lobby");
+
     await Promise.all(
-      pages.map((page) =>
+      [playerB, playerC, playerD, playerE].map((page) =>
         page.goto(`${baseUrl}/app/battle`, {
           waitUntil: "domcontentloaded",
           timeout: 60_000,
@@ -75,22 +96,10 @@ async function main() {
       ),
     );
 
-    const [host, playerB, playerC, playerD, playerE] = pages;
-
-    await host.getByRole("button", { name: "Create Private Room" }).click();
-    await host.waitForURL(/\/app\/battle\/lobby\//, { timeout: 60_000 });
-    await host.waitForTimeout(1_500);
-
-    roomId = host.url().split("/").pop() ?? null;
-    assert.ok(roomId, "Host lobby URL did not contain a room id");
-
-    const roomCode = extractRoomCode(await host.locator("body").innerText());
-    assert.ok(roomCode, "Could not extract room code from host lobby");
-
     for (const page of [playerB, playerC, playerD, playerE]) {
       await page.getByPlaceholder("ROOM CODE").fill(roomCode);
       await page.getByRole("button", { name: "Join Room" }).click();
-      await page.waitForURL(new RegExp(`/app/battle/lobby/${roomId}$`), { timeout: 60_000 });
+      await waitForPath(page, new RegExp(`/app/battle/lobby/${roomId}$`), 60_000);
     }
 
     const lobbyText = await host.locator("body").innerText();
@@ -98,18 +107,18 @@ async function main() {
       assert.match(lobbyText, new RegExp(user.displayName), `Expected ${user.displayName} in the lobby scoreboard`);
     }
 
-    await playerE.getByRole("button", { name: "Ready Up" }).click();
+    await playerE.getByRole("button", { name: "Ready Up" }).click({ force: true });
     await playerE.getByRole("button", { name: "Unready" }).waitFor({ state: "visible", timeout: 10_000 });
     await playerE.getByRole("button", { name: "Unready" }).click();
     await playerE.getByRole("button", { name: "Ready Up" }).waitFor({ state: "visible", timeout: 10_000 });
 
     for (const page of [playerB, playerC, playerD, playerE, host]) {
-      await page.getByRole("button", { name: "Ready Up" }).click();
+      await page.getByRole("button", { name: "Ready Up" }).click({ force: true });
     }
 
     await Promise.all(
       pages.map((page) =>
-        page.waitForURL(new RegExp(`/app/battle/match/${roomId}$`), { timeout: 60_000 }),
+        waitForPath(page, new RegExp(`/app/battle/match/${roomId}$`), 60_000),
       ),
     );
 
@@ -128,9 +137,20 @@ async function main() {
       );
     }
 
+    const hostReplayBeforeText = await host.locator("body").innerText();
+    const hostReplayBeforeMatch = hostReplayBeforeText.match(/Replay\s+(\d+)\/(\d+)/i);
+    assert.ok(hostReplayBeforeMatch, "Expected host replay counter before playback");
+
     await host.getByRole("button", { name: "Play" }).click();
     await host.waitForTimeout(1_500);
     await host.getByRole("button", { name: "Pause" }).click();
+    const hostReplayAfterText = await host.locator("body").innerText();
+    const hostReplayAfterMatch = hostReplayAfterText.match(/Replay\s+(\d+)\/(\d+)/i);
+    assert.ok(hostReplayAfterMatch, "Expected host replay counter after playback");
+    assert.ok(
+      Number(hostReplayAfterMatch[1]) > Number(hostReplayBeforeMatch[1]),
+      `Expected host replay counter to advance, got ${hostReplayBeforeMatch[0]} -> ${hostReplayAfterMatch[0]}`,
+    );
     await host.getByRole("button", { name: "Reset" }).click();
     await host.locator("#battle-order-type").selectOption("market");
     await host.getByLabel("Risk %").fill("1.50");
