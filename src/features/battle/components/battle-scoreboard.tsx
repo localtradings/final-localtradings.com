@@ -41,8 +41,8 @@ export function BattleScoreboard({
   viewerUserId?: string;
 }) {
   return (
-    <div className="overflow-hidden rounded-[0.85rem] border border-white/8 bg-[#080d12]">
-      <div className="grid grid-cols-[3.25rem_minmax(0,1fr)_7.5rem] gap-3 border-b border-white/8 px-3 py-2 text-[9px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+    <div className="overflow-hidden rounded-[0.85rem] border border-white/8 bg-[#080d12] [@media(max-height:900px)]:rounded-[0.7rem]">
+      <div className="grid grid-cols-[3rem_minmax(0,1fr)_6.75rem] gap-2 border-b border-white/8 px-3 py-2 text-[9px] font-semibold uppercase tracking-[0.18em] text-slate-500 [@media(max-height:900px)]:px-2.5 [@media(max-height:900px)]:py-1.5 [@media(max-height:900px)]:text-[8px]">
         <span>Rank</span>
         <span>Player</span>
         <span className="text-right">Balance</span>
@@ -54,16 +54,18 @@ export function BattleScoreboard({
           return (
             <div
               className={cn(
-                "grid grid-cols-[3.25rem_minmax(0,1fr)_7.5rem] items-center gap-3 px-3 py-2 text-xs text-slate-200",
+                "grid grid-cols-[3rem_minmax(0,1fr)_6.75rem] items-center gap-2 px-3 py-2 text-xs text-slate-200 [@media(max-height:900px)]:px-2.5 [@media(max-height:900px)]:py-1.5 [@media(max-height:900px)]:text-[11px]",
                 player.userId === viewerUserId ? "bg-white/[0.04]" : null,
               )}
               key={player.userId}
             >
-              <span className="font-semibold text-slate-400">#{index + 1}</span>
+              <span className="font-semibold text-slate-400 [@media(max-height:900px)]:text-[10px]">
+                #{index + 1}
+              </span>
               <div className="min-w-0">
                 <p
                   className={cn(
-                    "truncate font-semibold text-white",
+                    "truncate font-semibold text-white [@media(max-height:900px)]:text-[11px]",
                     player.userId === viewerUserId ? "text-[#ffe447]" : null,
                   )}
                 >
@@ -72,7 +74,7 @@ export function BattleScoreboard({
                 {statusTone ? (
                   <span
                     className={cn(
-                      "mt-1 inline-flex rounded-full border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.14em]",
+                      "mt-1 inline-flex rounded-full border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.14em] [@media(max-height:900px)]:mt-0.5 [@media(max-height:900px)]:px-1 [@media(max-height:900px)]:text-[8px]",
                       statusTone.className,
                     )}
                   >
@@ -80,7 +82,7 @@ export function BattleScoreboard({
                   </span>
                 ) : null}
               </div>
-              <p className="text-right font-semibold text-white">
+              <p className="text-right font-semibold text-white [@media(max-height:900px)]:text-[11px]">
                 ${player.officialBalance.toLocaleString("en-US", {
                   maximumFractionDigits: 2,
                 })}

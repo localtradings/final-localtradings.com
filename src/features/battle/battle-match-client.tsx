@@ -74,11 +74,11 @@ function HeaderMetric({
   accentClassName?: string;
 }) {
   return (
-    <div className="min-w-0 rounded-[0.7rem] border border-white/8 bg-[#080d12] px-3 py-2">
-      <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+    <div className="min-w-0 rounded-[0.7rem] border border-white/8 bg-[#080d12] px-3 py-2 [@media(max-height:900px)]:rounded-[0.6rem] [@media(max-height:900px)]:px-2.5 [@media(max-height:900px)]:py-1.5">
+      <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-slate-500 [@media(max-height:900px)]:text-[8px]">
         {label}
       </p>
-      <p className={cn("mt-1 truncate text-sm font-semibold text-white", accentClassName)}>
+      <p className={cn("mt-1 truncate text-sm font-semibold text-white [@media(max-height:900px)]:mt-0.5 [@media(max-height:900px)]:text-[13px]", accentClassName)}>
         {value}
       </p>
     </div>
@@ -182,15 +182,15 @@ export function BattleMatchClient({ session }: { session: BattleRoomSession }) {
       : workspace.error;
 
   return (
-    <div className="flex h-[calc(100dvh-5rem)] min-h-[38rem] flex-col gap-2 overflow-hidden text-white">
-      <section className="grid shrink-0 gap-2 xl:grid-cols-[minmax(0,1fr)_24rem]">
+    <div className="flex min-h-[calc(100dvh-5rem)] flex-col gap-2 overflow-x-hidden overflow-y-auto text-white lg:h-[calc(100dvh-5rem)] lg:overflow-y-hidden">
+      <section className="grid shrink-0 gap-2 lg:grid-cols-[minmax(0,1fr)_20rem] xl:grid-cols-[minmax(0,1fr)_24rem] [@media(max-height:900px)]:gap-1.5">
         <div className="space-y-2">
-          <div className="flex flex-wrap items-center gap-2 rounded-[0.9rem] border border-white/8 bg-[#070b10] px-3 py-2.5">
+          <div className="flex flex-wrap items-center gap-2 rounded-[0.9rem] border border-white/8 bg-[#070b10] px-3 py-2.5 [@media(max-height:900px)]:gap-1.5 [@media(max-height:900px)]:rounded-[0.75rem] [@media(max-height:900px)]:px-2.5 [@media(max-height:900px)]:py-2">
             <div className="min-w-0">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-500">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-500 [@media(max-height:900px)]:text-[9px]">
                 Battle Match
               </p>
-              <p className="mt-1 text-sm font-semibold text-white">
+              <p className="mt-1 text-sm font-semibold text-white [@media(max-height:900px)]:mt-0.5 [@media(max-height:900px)]:text-[13px]">
                 Room {roomView.room.roomId.slice(0, 8)}
               </p>
             </div>
@@ -207,28 +207,28 @@ export function BattleMatchClient({ session }: { session: BattleRoomSession }) {
               } />
               <HeaderMetric
                 label="Balance"
-                value={`$${roomView.self.privateBalance.toLocaleString("en-US", {
+                value={`$${workspace.displayBalance.toLocaleString("en-US", {
                   maximumFractionDigits: 2,
                 })}`}
               />
               <HeaderMetric
                 label="Live PnL"
-                value={formatMoney(roomView.self.unrealizedPnl)}
+                value={formatMoney(workspace.liveUnrealizedPnl)}
                 accentClassName={
-                  roomView.self.unrealizedPnl >= 0 ? "text-emerald-300" : "text-rose-300"
+                  workspace.liveUnrealizedPnl >= 0 ? "text-emerald-300" : "text-rose-300"
                 }
               />
             </div>
           </div>
 
           {roomView.self.participationStatus === "warned" ? (
-            <div className="rounded-[0.8rem] border border-amber-200/15 bg-[rgba(191,145,44,0.08)] px-3 py-2 text-xs text-amber-100">
+            <div className="rounded-[0.8rem] border border-amber-200/15 bg-[rgba(191,145,44,0.08)] px-3 py-2 text-xs text-amber-100 [@media(max-height:900px)]:rounded-[0.7rem] [@media(max-height:900px)]:px-2.5 [@media(max-height:900px)]:py-1.5 [@media(max-height:900px)]:text-[11px]">
               Enter one trade within {formatTimer(workspace.participationRemainingMs)} or the room will forfeit this match and apply the 15-minute cooldown.
             </div>
           ) : null}
 
           {lockMessage ? (
-            <div className="rounded-[0.8rem] border border-rose-300/15 bg-[rgba(127,29,29,0.16)] px-3 py-2 text-xs text-rose-100">
+            <div className="rounded-[0.8rem] border border-rose-300/15 bg-[rgba(127,29,29,0.16)] px-3 py-2 text-xs text-rose-100 [@media(max-height:900px)]:rounded-[0.7rem] [@media(max-height:900px)]:px-2.5 [@media(max-height:900px)]:py-1.5 [@media(max-height:900px)]:text-[11px]">
               {lockMessage}
             </div>
           ) : null}
@@ -240,8 +240,8 @@ export function BattleMatchClient({ session }: { session: BattleRoomSession }) {
         />
       </section>
 
-      <section className="grid min-h-0 flex-1 gap-2 lg:grid-cols-[minmax(0,1fr)_18.5rem]">
-        <div className="flex min-h-0 flex-col overflow-hidden rounded-[0.95rem] border border-white/8 bg-[#070b10]">
+      <section className="grid min-h-0 flex-1 content-start gap-2 lg:grid-cols-[minmax(0,1fr)_16.5rem] xl:grid-cols-[minmax(0,1fr)_18.5rem] [@media(max-height:900px)]:gap-1.5">
+        <div className="flex min-h-[22rem] flex-col overflow-hidden rounded-[0.95rem] border border-white/8 bg-[#070b10] lg:min-h-0 [@media(max-height:900px)]:min-h-[18rem]">
           <BacktestingToolbar
             canStepForward={workspace.canStepForward}
             initialCatalog={{
@@ -272,7 +272,7 @@ export function BattleMatchClient({ session }: { session: BattleRoomSession }) {
             lockedSpeedLabel="4x"
           />
 
-          <div className="grid min-h-0 flex-1 grid-rows-[minmax(0,1fr)_auto] px-1 pt-1 pb-0.5">
+          <div className="grid min-h-0 flex-1 grid-rows-[minmax(0,1fr)_auto] px-1 pt-1 pb-0.5 [@media(max-height:900px)]:pt-0.5">
             <div className="min-h-0 overflow-hidden rounded-[0.75rem]">
               <BacktestChart
                 activeDrawingTool={activeDrawingTool}
@@ -318,8 +318,8 @@ export function BattleMatchClient({ session }: { session: BattleRoomSession }) {
           </div>
         </div>
 
-        <aside className="flex min-h-0 flex-col gap-2 overflow-hidden rounded-[0.95rem] border border-white/8 bg-[#070b10] p-2">
-          <div className="rounded-[0.8rem] border border-white/8 bg-[#0b1016] px-3 py-2">
+        <aside className="flex min-h-0 flex-col gap-2 overflow-visible rounded-[0.95rem] border border-white/8 bg-[#070b10] p-2 [@media(max-height:900px)]:gap-1.5 [@media(max-height:900px)]:p-1.5 lg:max-h-full lg:overflow-y-auto lg:overscroll-contain">
+          <div className="rounded-[0.8rem] border border-white/8 bg-[#0b1016] px-3 py-2 [@media(max-height:900px)]:rounded-[0.7rem] [@media(max-height:900px)]:px-2.5 [@media(max-height:900px)]:py-1.5">
             <div className="flex items-center justify-between gap-2">
               <ToolbarLabel>Order Ticket</ToolbarLabel>
               <span
@@ -333,7 +333,7 @@ export function BattleMatchClient({ session }: { session: BattleRoomSession }) {
                 {statusLabel}
               </span>
             </div>
-            <div className="mt-2 grid grid-cols-2 gap-2">
+            <div className="mt-2 grid grid-cols-2 gap-2 [@media(max-height:900px)]:mt-1.5 [@media(max-height:900px)]:gap-1.5">
               <CompactStat
                 label="Replay"
                 value={`${workspace.revealedCandles.length}/${roomView.room.candles.length}`}
@@ -342,7 +342,7 @@ export function BattleMatchClient({ session }: { session: BattleRoomSession }) {
             </div>
           </div>
 
-          <label className="grid gap-1 rounded-[0.8rem] border border-white/8 bg-[#0b1016] p-2">
+          <label className="grid gap-1 rounded-[0.8rem] border border-white/8 bg-[#0b1016] p-2 [@media(max-height:900px)]:rounded-[0.7rem] [@media(max-height:900px)]:p-1.5">
             <ToolbarLabel>Order Type</ToolbarLabel>
             <Select
               className={SELECT_CLASS}
@@ -360,7 +360,7 @@ export function BattleMatchClient({ session }: { session: BattleRoomSession }) {
             </Select>
           </label>
 
-          <div className="grid gap-2 rounded-[0.8rem] border border-white/8 bg-[#0b1016] p-2">
+          <div className="grid gap-2 rounded-[0.8rem] border border-white/8 bg-[#0b1016] p-2 [@media(max-height:900px)]:gap-1.5 [@media(max-height:900px)]:rounded-[0.7rem] [@media(max-height:900px)]:p-1.5">
             <InlineField
               disabled={!workspace.canConfigureDraft || workspace.tradeDraft.orderType === "market"}
               fieldId="battle-entry"
@@ -399,13 +399,13 @@ export function BattleMatchClient({ session }: { session: BattleRoomSession }) {
               value={workspace.tradeDraft.riskPercent}
             />
             {!workspace.hasStop && !workspace.hasTarget ? (
-              <p className="px-1 text-[10px] text-slate-500">
+              <p className="px-1 text-[10px] text-slate-500 [@media(max-height:900px)]:hidden">
                 Add TP or SL from the yellow chart pills.
               </p>
             ) : null}
           </div>
 
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-3 gap-2 [@media(max-height:900px)]:gap-1.5">
             <CompactStat
               label="Notional $"
               value={formatMoney(workspace.riskSettings.riskAmount)}
@@ -425,14 +425,14 @@ export function BattleMatchClient({ session }: { session: BattleRoomSession }) {
           </div>
 
           {validationMessage ? (
-            <div className="rounded-[0.75rem] border border-white/8 bg-[#0b1016] px-3 py-2 text-[11px] leading-5 text-slate-300">
+            <div className="rounded-[0.75rem] border border-white/8 bg-[#0b1016] px-3 py-2 text-[11px] leading-5 text-slate-300 [@media(max-height:900px)]:rounded-[0.7rem] [@media(max-height:900px)]:px-2.5 [@media(max-height:900px)]:py-1.5 [@media(max-height:900px)]:text-[10px] [@media(max-height:900px)]:leading-4">
               {validationMessage}
             </div>
           ) : null}
 
-          <div className="mt-auto grid grid-cols-2 gap-2">
+          <div className="sticky bottom-0 z-10 mt-auto grid grid-cols-2 gap-2 border-t border-white/8 bg-[#070b10]/95 pt-2 backdrop-blur xl:static xl:border-t-0 xl:bg-transparent xl:pt-0 [@media(max-height:900px)]:gap-1.5 [@media(max-height:900px)]:pt-1.5">
             <Button
-              className="h-9 rounded-[0.7rem] border border-[#2563eb] bg-[#1d4ed8] px-3 text-xs font-semibold text-[#eff6ff] hover:bg-[#1e40af]"
+              className="h-9 rounded-[0.7rem] border border-[#2563eb] bg-[#1d4ed8] px-3 text-xs font-semibold text-[#eff6ff] hover:bg-[#1e40af] [@media(max-height:900px)]:h-8 [@media(max-height:900px)]:rounded-[0.6rem] [@media(max-height:900px)]:px-2.5 [@media(max-height:900px)]:text-[11px]"
               disabled={!workspace.canArmBuy}
               onClick={workspace.armBuy}
               type="button"
@@ -441,7 +441,7 @@ export function BattleMatchClient({ session }: { session: BattleRoomSession }) {
               Buy
             </Button>
             <Button
-              className="h-9 rounded-[0.7rem] border border-[#dc2626] bg-[#b91c1c] px-3 text-xs font-semibold text-[#fff1f2] hover:bg-[#991b1b]"
+              className="h-9 rounded-[0.7rem] border border-[#dc2626] bg-[#b91c1c] px-3 text-xs font-semibold text-[#fff1f2] hover:bg-[#991b1b] [@media(max-height:900px)]:h-8 [@media(max-height:900px)]:rounded-[0.6rem] [@media(max-height:900px)]:px-2.5 [@media(max-height:900px)]:text-[11px]"
               disabled={!workspace.canArmSell}
               onClick={workspace.armSell}
               type="button"
@@ -450,7 +450,7 @@ export function BattleMatchClient({ session }: { session: BattleRoomSession }) {
               Sell
             </Button>
             <Button
-              className="h-9 rounded-[0.7rem] border border-white/8 bg-[#0d1319] px-3 text-xs font-semibold text-slate-200 hover:bg-[#121922]"
+              className="h-9 rounded-[0.7rem] border border-white/8 bg-[#0d1319] px-3 text-xs font-semibold text-slate-200 hover:bg-[#121922] [@media(max-height:900px)]:h-8 [@media(max-height:900px)]:rounded-[0.6rem] [@media(max-height:900px)]:px-2.5 [@media(max-height:900px)]:text-[11px]"
               disabled={!workspace.canConfigureDraft}
               onClick={workspace.resetTradeLines}
               type="button"
@@ -459,7 +459,7 @@ export function BattleMatchClient({ session }: { session: BattleRoomSession }) {
               Reset
             </Button>
             <Button
-              className="h-9 rounded-[0.7rem] border border-white/8 bg-[#0d1319] px-3 text-xs font-semibold text-slate-200 hover:bg-[#121922]"
+              className="h-9 rounded-[0.7rem] border border-white/8 bg-[#0d1319] px-3 text-xs font-semibold text-slate-200 hover:bg-[#121922] [@media(max-height:900px)]:h-8 [@media(max-height:900px)]:rounded-[0.6rem] [@media(max-height:900px)]:px-2.5 [@media(max-height:900px)]:text-[11px]"
               disabled={!workspace.canCloseTrade}
               onClick={workspace.closeTrade}
               type="button"

@@ -90,6 +90,31 @@ function buildDraftFromRoom(session: BattleRoomSession["initialView"]) {
   });
 }
 
+function deriveLiveBattleUnrealizedPnl(input: {
+  execution: BacktestTradeExecution | null;
+  direction: BacktestDirection;
+  currentCandleClose: number | null;
+}) {
+  const { execution, direction, currentCandleClose } = input;
+
+  if (
+    !execution ||
+    execution.status !== "active" ||
+    execution.entry === null ||
+    currentCandleClose === null ||
+    typeof execution.volume !== "number"
+  ) {
+    return 0;
+  }
+
+  const priceMove =
+    direction === "Long"
+      ? currentCandleClose - execution.entry
+      : execution.entry - currentCandleClose;
+
+  return priceMove * execution.volume;
+}
+
 function toValidationDraft(draft: BattleTradeForm): BacktestTradeDraft {
   return {
     direction: draft.direction,
@@ -245,6 +270,31 @@ export function useBattleMatch(session: BattleRoomSession) {
     () => deriveLocalExecutionView({ roomView, localReplayIndex }),
     [localReplayIndex, roomView],
   );
+  const liveUnrealizedPnl = useMemo(
+    () =>
+      deriveLiveBattleUnrealizedPnl({
+        execution: activeExecution,
+        direction: authoritativeExecution?.direction ?? tradeDraft.direction,
+        currentCandleClose: currentCandle?.close ?? null,
+      }),
+    [activeExecution, authoritativeExecution?.direction, currentCandle?.close, tradeDraft.direction],
+  );
+  const displayBalance = useMemo(() => {
+    if (!roomView) {
+      return 100_000;
+    }
+
+    if (activeExecution?.status !== "active") {
+      return roomView.self.privateBalance;
+    }
+
+    const officialBalance = roomView.self.privateBalance - roomView.self.unrealizedPnl;
+    return officialBalance + liveUnrealizedPnl;
+  }, [
+    activeExecution?.status,
+    liveUnrealizedPnl,
+    roomView,
+  ]);
   const isLocked =
     roomView?.self.lockReason !== null ||
     roomView?.room.phase !== "active" ||
@@ -825,6 +875,8 @@ export function useBattleMatch(session: BattleRoomSession) {
     canCloseTrade: activeExecution?.status === "active",
     remainingMs,
     participationRemainingMs,
+    displayBalance,
+    liveUnrealizedPnl,
     error,
     isPending: isActionPending,
     updateDraftField,
