@@ -182,8 +182,8 @@ export function BattleMatchClient({ session }: { session: BattleRoomSession }) {
       : workspace.error;
 
   return (
-    <div className="flex min-h-[calc(100dvh-5rem)] flex-col gap-2 overflow-x-hidden overflow-y-auto text-white lg:h-[calc(100dvh-5rem)] lg:overflow-y-hidden">
-      <section className="grid shrink-0 gap-2 lg:grid-cols-[minmax(0,1fr)_20rem] xl:grid-cols-[minmax(0,1fr)_24rem] [@media(max-height:900px)]:gap-1.5">
+    <div className="flex min-h-[calc(100dvh-5rem)] flex-col gap-1.5 overflow-x-hidden overflow-y-auto text-white md:h-[calc(100dvh-5rem)] md:gap-2 md:overflow-y-hidden">
+      <section className="grid shrink-0 gap-1.5 md:gap-2 md:grid-cols-[minmax(0,1fr)_clamp(13.5rem,24vw,18rem)] xl:grid-cols-[minmax(0,1fr)_clamp(15rem,24vw,22rem)] [@media(max-height:900px)]:gap-1.5">
         <div className="space-y-2">
           <div className="flex flex-wrap items-center gap-2 rounded-[0.9rem] border border-white/8 bg-[#070b10] px-3 py-2.5 [@media(max-height:900px)]:gap-1.5 [@media(max-height:900px)]:rounded-[0.75rem] [@media(max-height:900px)]:px-2.5 [@media(max-height:900px)]:py-2">
             <div className="min-w-0">
@@ -240,8 +240,8 @@ export function BattleMatchClient({ session }: { session: BattleRoomSession }) {
         />
       </section>
 
-      <section className="grid min-h-0 flex-1 content-start gap-2 lg:grid-cols-[minmax(0,1fr)_16.5rem] xl:grid-cols-[minmax(0,1fr)_18.5rem] [@media(max-height:900px)]:gap-1.5">
-        <div className="flex min-h-[22rem] flex-col overflow-hidden rounded-[0.95rem] border border-white/8 bg-[#070b10] lg:min-h-0 [@media(max-height:900px)]:min-h-[18rem]">
+      <section className="grid min-h-0 flex-1 items-stretch gap-1.5 md:gap-2 md:grid-cols-[minmax(0,1fr)_clamp(13.5rem,22vw,16rem)] xl:grid-cols-[minmax(0,1fr)_clamp(15rem,22vw,18.5rem)] [@media(max-height:900px)]:gap-1.5">
+        <div className="flex min-h-[18rem] flex-col overflow-hidden rounded-[0.95rem] border border-white/8 bg-[#070b10] sm:min-h-[20rem] md:min-h-0 [@media(max-height:900px)]:min-h-[16rem]">
           <BacktestingToolbar
             canStepForward={workspace.canStepForward}
             initialCatalog={{
@@ -302,7 +302,7 @@ export function BattleMatchClient({ session }: { session: BattleRoomSession }) {
                 windowKey={roomView.room.roomId}
               />
             </div>
-            <div className="flex justify-end pl-16 pr-2 pt-1">
+            <div className="flex justify-end pl-8 pr-2 pt-1 sm:pl-16">
               <p className="whitespace-nowrap text-right text-[10px] text-slate-500">
                 Charts by{" "}
                 <Link
@@ -318,8 +318,8 @@ export function BattleMatchClient({ session }: { session: BattleRoomSession }) {
           </div>
         </div>
 
-        <aside className="flex min-h-0 flex-col gap-2 overflow-visible rounded-[0.95rem] border border-white/8 bg-[#070b10] p-2 [@media(max-height:900px)]:gap-1.5 [@media(max-height:900px)]:p-1.5 lg:max-h-full lg:overflow-y-auto lg:overscroll-contain">
-          <div className="rounded-[0.8rem] border border-white/8 bg-[#0b1016] px-3 py-2 [@media(max-height:900px)]:rounded-[0.7rem] [@media(max-height:900px)]:px-2.5 [@media(max-height:900px)]:py-1.5">
+        <aside className="grid min-h-0 auto-rows-max gap-1.5 overflow-visible rounded-[0.95rem] border border-white/8 bg-[#070b10] p-1.5 sm:max-md:grid-cols-2 md:flex md:flex-col md:max-h-full md:gap-2 md:overflow-y-auto md:overscroll-contain md:p-2 [@media(max-height:900px)]:gap-1.5 [@media(max-height:900px)]:p-1.5">
+          <div className="rounded-[0.8rem] border border-white/8 bg-[#0b1016] px-3 py-2 sm:max-md:col-span-2 [@media(max-height:900px)]:rounded-[0.7rem] [@media(max-height:900px)]:px-2.5 [@media(max-height:900px)]:py-1.5">
             <div className="flex items-center justify-between gap-2">
               <ToolbarLabel>Order Ticket</ToolbarLabel>
               <span
@@ -405,7 +405,7 @@ export function BattleMatchClient({ session }: { session: BattleRoomSession }) {
             ) : null}
           </div>
 
-          <div className="grid grid-cols-3 gap-2 [@media(max-height:900px)]:gap-1.5">
+          <div className="grid grid-cols-3 gap-2 sm:max-md:col-span-2 [@media(max-height:900px)]:gap-1.5">
             <CompactStat
               label="Notional $"
               value={formatMoney(workspace.riskSettings.riskAmount)}
@@ -425,12 +425,12 @@ export function BattleMatchClient({ session }: { session: BattleRoomSession }) {
           </div>
 
           {validationMessage ? (
-            <div className="rounded-[0.75rem] border border-white/8 bg-[#0b1016] px-3 py-2 text-[11px] leading-5 text-slate-300 [@media(max-height:900px)]:rounded-[0.7rem] [@media(max-height:900px)]:px-2.5 [@media(max-height:900px)]:py-1.5 [@media(max-height:900px)]:text-[10px] [@media(max-height:900px)]:leading-4">
+            <div className="rounded-[0.75rem] border border-white/8 bg-[#0b1016] px-3 py-2 text-[11px] leading-5 text-slate-300 sm:max-md:col-span-2 [@media(max-height:900px)]:rounded-[0.7rem] [@media(max-height:900px)]:px-2.5 [@media(max-height:900px)]:py-1.5 [@media(max-height:900px)]:text-[10px] [@media(max-height:900px)]:leading-4">
               {validationMessage}
             </div>
           ) : null}
 
-          <div className="sticky bottom-0 z-10 mt-auto grid grid-cols-2 gap-2 border-t border-white/8 bg-[#070b10]/95 pt-2 backdrop-blur xl:static xl:border-t-0 xl:bg-transparent xl:pt-0 [@media(max-height:900px)]:gap-1.5 [@media(max-height:900px)]:pt-1.5">
+          <div className="sticky bottom-0 z-10 mt-auto grid grid-cols-2 gap-2 border-t border-white/8 bg-[#070b10]/95 pt-2 backdrop-blur sm:max-md:col-span-2 xl:static xl:border-t-0 xl:bg-transparent xl:pt-0 [@media(max-height:900px)]:gap-1.5 [@media(max-height:900px)]:pt-1.5">
             <Button
               className="h-9 rounded-[0.7rem] border border-[#2563eb] bg-[#1d4ed8] px-3 text-xs font-semibold text-[#eff6ff] hover:bg-[#1e40af] [@media(max-height:900px)]:h-8 [@media(max-height:900px)]:rounded-[0.6rem] [@media(max-height:900px)]:px-2.5 [@media(max-height:900px)]:text-[11px]"
               disabled={!workspace.canArmBuy}

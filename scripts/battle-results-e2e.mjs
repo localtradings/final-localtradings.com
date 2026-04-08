@@ -243,7 +243,7 @@ async function main() {
     const page = await browser.newPage({
       viewport: {
         width: 1440,
-        height: 1850,
+        height: 1024,
       },
     });
 
@@ -260,6 +260,11 @@ async function main() {
       });
 
       try {
+        await page.waitForFunction(
+          () => document.body.classList.contains("battle-results-mode"),
+          undefined,
+          { timeout: 60_000 },
+        );
         await page.getByRole("link", { name: /back to battles/i }).waitFor({
           state: "visible",
           timeout: 60_000,
@@ -289,11 +294,34 @@ async function main() {
           timeout: 60_000,
         });
 
+        const viewportMetrics = await page.evaluate(() => {
+          const lastRow = document.querySelector("tbody tr:last-child");
+          const lastRowRect = lastRow?.getBoundingClientRect() ?? null;
+
+          return {
+            scrollY: window.scrollY,
+            innerHeight: window.innerHeight,
+            scrollHeight: document.documentElement.scrollHeight,
+            lastRowBottom: lastRowRect?.bottom ?? null,
+          };
+        });
+
+        assert.equal(viewportMetrics.scrollY, 0, "Expected results page to load without vertical scroll");
+        assert.ok(
+          viewportMetrics.scrollHeight <= viewportMetrics.innerHeight + 2,
+          `Expected battle results to fit within one screen, got scrollHeight ${viewportMetrics.scrollHeight} for viewport ${viewportMetrics.innerHeight}`,
+        );
+        assert.ok(
+          viewportMetrics.lastRowBottom !== null &&
+            viewportMetrics.lastRowBottom <= viewportMetrics.innerHeight,
+          `Expected final leaderboard row to stay inside the viewport, got ${viewportMetrics.lastRowBottom} for viewport ${viewportMetrics.innerHeight}`,
+        );
+
         if (screenshotPath) {
           await mkdir(path.dirname(screenshotPath), { recursive: true });
           await page.screenshot({
             path: screenshotPath,
-            fullPage: true,
+            fullPage: false,
           });
         }
       } catch (error) {

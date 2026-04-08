@@ -41,8 +41,8 @@ export function BattleScoreboard({
   viewerUserId?: string;
 }) {
   return (
-    <div className="overflow-hidden rounded-[0.85rem] border border-white/8 bg-[#080d12] [@media(max-height:900px)]:rounded-[0.7rem]">
-      <div className="grid grid-cols-[3rem_minmax(0,1fr)_6.75rem] gap-2 border-b border-white/8 px-3 py-2 text-[9px] font-semibold uppercase tracking-[0.18em] text-slate-500 [@media(max-height:900px)]:px-2.5 [@media(max-height:900px)]:py-1.5 [@media(max-height:900px)]:text-[8px]">
+    <div className="overflow-hidden rounded-[0.85rem] border border-white/8 bg-[#080d12] [@media(max-height:900px)]:rounded-[0.7rem] max-[1180px]:text-[95%]">
+      <div className="grid grid-cols-[3rem_minmax(0,1fr)_6.75rem] gap-2 border-b border-white/8 px-3 py-2 text-[9px] font-semibold uppercase tracking-[0.18em] text-slate-500 max-[1180px]:grid-cols-[2.35rem_minmax(0,1fr)_5.65rem] max-[1180px]:gap-1.5 max-[1180px]:px-2.5 max-[1180px]:py-1.5 [@media(max-height:900px)]:px-2.5 [@media(max-height:900px)]:py-1.5 [@media(max-height:900px)]:text-[8px]">
         <span>Rank</span>
         <span>Player</span>
         <span className="text-right">Balance</span>
@@ -54,7 +54,7 @@ export function BattleScoreboard({
           return (
             <div
               className={cn(
-                "grid grid-cols-[3rem_minmax(0,1fr)_6.75rem] items-center gap-2 px-3 py-2 text-xs text-slate-200 [@media(max-height:900px)]:px-2.5 [@media(max-height:900px)]:py-1.5 [@media(max-height:900px)]:text-[11px]",
+                "grid grid-cols-[3rem_minmax(0,1fr)_6.75rem] items-center gap-2 px-3 py-2 text-xs text-slate-200 max-[1180px]:grid-cols-[2.35rem_minmax(0,1fr)_5.65rem] max-[1180px]:gap-1.5 max-[1180px]:px-2.5 max-[1180px]:py-1.5 max-[1180px]:text-[11px] [@media(max-height:900px)]:px-2.5 [@media(max-height:900px)]:py-1.5 [@media(max-height:900px)]:text-[11px]",
                 player.userId === viewerUserId ? "bg-white/[0.04]" : null,
               )}
               key={player.userId}
