@@ -83,6 +83,9 @@ function createActiveRoom(): WorkerBattleRoomState {
       "user-1": createPlayerMatchState(0),
     },
     finalizedAt: null,
+    resultsPersistedAt: null,
+    lastResultPersistAttemptAt: null,
+    lastResultPersistError: null,
   };
 }
 
@@ -129,6 +132,9 @@ function createLobbyRoom(): WorkerBattleRoomState {
       "user-2": createPlayerMatchState(0),
     },
     finalizedAt: null,
+    resultsPersistedAt: null,
+    lastResultPersistAttemptAt: null,
+    lastResultPersistError: null,
   };
 }
 
@@ -488,6 +494,103 @@ describe("BattleRoomDO", () => {
     const startedRoom = storage.getRoom();
     expect(startedRoom.phase).toBe("active");
     expect(startedRoom.players.slice(0, 2).every((player) => player.status === "active")).toBe(true);
+
+    fetchSpy.mockRestore();
+  });
+
+  it("persists finalized results immediately when the finalize-room write succeeds", async () => {
+    const room = createActiveRoom();
+    room.officialEndAt = new Date(Date.now() - 1_000).toISOString();
+    const storage = createStorage(room);
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+      const url = String(input);
+
+      if (url.endsWith("/api/battle/internal/finalize-room")) {
+        return new Response(JSON.stringify({ ok: true }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      }
+
+      throw new Error(`Unexpected fetch in test: ${url}`);
+    });
+
+    const battleRoom = new BattleRoomDO(
+      {
+        storage: storage.storage,
+      } as never,
+      {
+        APP_BASE_URL: "http://127.0.0.1:3000",
+        BATTLE_SHARED_SECRET: "test-secret",
+      } as never,
+    );
+
+    await battleRoom.alarm();
+
+    const finishedRoom = storage.getRoom();
+    expect(finishedRoom.phase).toBe("finished");
+    expect(finishedRoom.resultsPersistedAt).not.toBeNull();
+    expect(finishedRoom.lastResultPersistError).toBeNull();
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "http://127.0.0.1:3000/api/battle/internal/finalize-room",
+      expect.objectContaining({ method: "POST" }),
+    );
+
+    fetchSpy.mockRestore();
+  });
+
+  it("retries finalized result persistence after a failed finalize-room write", async () => {
+    const room = createActiveRoom();
+    room.phase = "finished";
+    room.finalizedAt = new Date(Date.now() - 20_000).toISOString();
+    room.resultsPersistedAt = null;
+    room.lastResultPersistAttemptAt = new Date(Date.now() - 20_000).toISOString();
+    room.lastResultPersistError = "finalize_room_failed:500";
+    room.players[0].status = "finished";
+
+    const storage = createStorage(room);
+    let attemptCount = 0;
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+      const url = String(input);
+      if (!url.endsWith("/api/battle/internal/finalize-room")) {
+        throw new Error(`Unexpected fetch in test: ${url}`);
+      }
+
+      attemptCount += 1;
+      if (attemptCount === 1) {
+        return new Response(JSON.stringify({ ok: false, message: "write failed" }), {
+          status: 500,
+          headers: { "content-type": "application/json" },
+        });
+      }
+
+      return new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    });
+
+    const battleRoom = new BattleRoomDO(
+      {
+        storage: storage.storage,
+      } as never,
+      {
+        APP_BASE_URL: "http://127.0.0.1:3000",
+        BATTLE_SHARED_SECRET: "test-secret",
+      } as never,
+    );
+
+    await battleRoom.alarm();
+    const firstPassRoom = storage.getRoom();
+    expect(firstPassRoom.resultsPersistedAt).toBeNull();
+    expect(firstPassRoom.lastResultPersistError).toContain("finalize_room_failed");
+    expect(storage.getAlarm()).not.toBeNull();
+
+    await battleRoom.alarm();
+    const secondPassRoom = storage.getRoom();
+    expect(secondPassRoom.resultsPersistedAt).not.toBeNull();
+    expect(secondPassRoom.lastResultPersistError).toBeNull();
+    expect(attemptCount).toBe(2);
 
     fetchSpy.mockRestore();
   });

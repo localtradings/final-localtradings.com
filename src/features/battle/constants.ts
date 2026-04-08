@@ -21,6 +21,7 @@ export const BATTLE_INITIAL_SYNC_TIMEOUT_MS = 1_500;
 export const BATTLE_CONNECTION_REUSE_WINDOW_MS = 5_000;
 export const BATTLE_SOCKET_RETRY_BASE_MS = 1_000;
 export const BATTLE_SOCKET_RETRY_MAX_MS = 15_000;
+export const BATTLE_RECENT_RESULTS_LIMIT = 10;
 export const BATTLE_PUBLIC_DURATION_MINUTES = [10] as const satisfies readonly BattleDurationMinutes[];
 export const BATTLE_PRIVATE_DURATION_MINUTES = [10, 15, 30, 45] as const satisfies readonly BattleDurationMinutes[];
 export const BATTLE_ALLOWED_DURATION_MINUTES = [

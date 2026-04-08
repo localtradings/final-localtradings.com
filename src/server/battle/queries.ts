@@ -5,6 +5,7 @@ import type {
   BattleResultRecord,
   BattleRoomSession,
 } from "@/features/battle/types";
+import { BATTLE_RECENT_RESULTS_LIMIT } from "@/features/battle/constants";
 import { hasBattleWorkerEnv } from "@/lib/env";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/service-role";
@@ -51,6 +52,7 @@ function isMissingBattleSchemaError(error: { message?: string } | null) {
 
 export async function getBattleHomeData(userId: string): Promise<BattleHomeData> {
   const supabase = await createSupabaseServerClient();
+  const serviceRole = createSupabaseServiceRoleClient();
   const activePenalty = await getActiveBattlePenalty(userId);
 
   if (!supabase) {
@@ -62,23 +64,43 @@ export async function getBattleHomeData(userId: string): Promise<BattleHomeData>
     };
   }
 
-  const [profileResult, resultsResult] = await Promise.all([
+  const [profileResult, membershipResult] = await Promise.all([
     supabase
       .from("profiles")
       .select("is_pro")
       .eq("id", userId)
       .maybeSingle(),
-    supabase
-      .from("battle_results")
-      .select(
-        "room_id, room_type, duration_minutes, symbol, timeframe, started_at, ended_at, winner_user_id, winner_display_name, entries",
-      )
-      .order("ended_at", { ascending: false })
-      .limit(5),
+    (serviceRole ?? supabase)
+      .from("battle_room_players")
+      .select("room_id")
+      .eq("user_id", userId)
+      .order("joined_at", { ascending: false })
+      .limit(200),
   ]);
+
+  const recentRoomIds = Array.from(
+    new Set(
+      (membershipResult.data ?? []).flatMap((row) =>
+        typeof row.room_id === "string" && row.room_id.length > 0 ? [row.room_id] : [],
+      ),
+    ),
+  );
+
+  const resultsResult =
+    recentRoomIds.length > 0
+      ? await (serviceRole ?? supabase)
+          .from("battle_results")
+          .select(
+            "room_id, room_type, duration_minutes, symbol, timeframe, started_at, ended_at, winner_user_id, winner_display_name, entries",
+          )
+          .in("room_id", recentRoomIds)
+          .order("ended_at", { ascending: false })
+          .limit(BATTLE_RECENT_RESULTS_LIMIT)
+      : { data: [], error: null };
 
   const isSchemaMissing =
     isMissingBattleSchemaError(profileResult.error) ||
+    isMissingBattleSchemaError(membershipResult.error) ||
     isMissingBattleSchemaError(resultsResult.error);
 
   return {

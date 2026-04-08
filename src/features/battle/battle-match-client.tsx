@@ -433,7 +433,7 @@ export function BattleMatchClient({ session }: { session: BattleRoomSession }) {
           <div className="sticky bottom-0 z-10 mt-auto grid grid-cols-2 gap-2 border-t border-white/8 bg-[#070b10]/95 pt-2 backdrop-blur sm:max-md:col-span-2 xl:static xl:border-t-0 xl:bg-transparent xl:pt-0 [@media(max-height:900px)]:gap-1.5 [@media(max-height:900px)]:pt-1.5">
             <Button
               className="h-9 rounded-[0.7rem] border border-[#2563eb] bg-[#1d4ed8] px-3 text-xs font-semibold text-[#eff6ff] hover:bg-[#1e40af] [@media(max-height:900px)]:h-8 [@media(max-height:900px)]:rounded-[0.6rem] [@media(max-height:900px)]:px-2.5 [@media(max-height:900px)]:text-[11px]"
-              disabled={!workspace.canArmBuy}
+              disabled={workspace.isPending || !workspace.canArmBuy}
               onClick={workspace.armBuy}
               type="button"
               variant="ghost"
@@ -442,7 +442,7 @@ export function BattleMatchClient({ session }: { session: BattleRoomSession }) {
             </Button>
             <Button
               className="h-9 rounded-[0.7rem] border border-[#dc2626] bg-[#b91c1c] px-3 text-xs font-semibold text-[#fff1f2] hover:bg-[#991b1b] [@media(max-height:900px)]:h-8 [@media(max-height:900px)]:rounded-[0.6rem] [@media(max-height:900px)]:px-2.5 [@media(max-height:900px)]:text-[11px]"
-              disabled={!workspace.canArmSell}
+              disabled={workspace.isPending || !workspace.canArmSell}
               onClick={workspace.armSell}
               type="button"
               variant="ghost"
@@ -451,7 +451,7 @@ export function BattleMatchClient({ session }: { session: BattleRoomSession }) {
             </Button>
             <Button
               className="h-9 rounded-[0.7rem] border border-white/8 bg-[#0d1319] px-3 text-xs font-semibold text-slate-200 hover:bg-[#121922] [@media(max-height:900px)]:h-8 [@media(max-height:900px)]:rounded-[0.6rem] [@media(max-height:900px)]:px-2.5 [@media(max-height:900px)]:text-[11px]"
-              disabled={!workspace.canConfigureDraft}
+              disabled={workspace.isPending || !workspace.canConfigureDraft}
               onClick={workspace.resetTradeLines}
               type="button"
               variant="ghost"
@@ -460,7 +460,7 @@ export function BattleMatchClient({ session }: { session: BattleRoomSession }) {
             </Button>
             <Button
               className="h-9 rounded-[0.7rem] border border-white/8 bg-[#0d1319] px-3 text-xs font-semibold text-slate-200 hover:bg-[#121922] [@media(max-height:900px)]:h-8 [@media(max-height:900px)]:rounded-[0.6rem] [@media(max-height:900px)]:px-2.5 [@media(max-height:900px)]:text-[11px]"
-              disabled={!workspace.canCloseTrade}
+              disabled={workspace.isPending || !workspace.canCloseTrade}
               onClick={workspace.closeTrade}
               type="button"
               variant="ghost"

@@ -48,6 +48,7 @@ const RECONNECT_GRACE_MS = 60_000;
 const PARTICIPATION_WARNING_MS = 5 * 60 * 1_000;
 const PARTICIPATION_GRACE_MS = 60 * 1_000;
 const MAX_REPLAY_CHECKPOINT_DELTA = 48;
+const RESULT_PERSIST_RETRY_MS = 10_000;
 const TOKEN_VERSION = "v1";
 
 type RoomTokenPayload = {
@@ -255,6 +256,11 @@ export class BattleRoomDO {
 
         candidates.push(deadlineAt);
       }
+    }
+
+    if (room.phase === "finished" && room.finalizedAt && !room.resultsPersistedAt) {
+      const lastAttemptAt = room.lastResultPersistAttemptAt ?? room.finalizedAt;
+      candidates.push(Date.parse(lastAttemptAt) + RESULT_PERSIST_RETRY_MS);
     }
 
     const validCandidates = candidates
@@ -681,6 +687,10 @@ export class BattleRoomDO {
       }
     }
 
+    if (room.phase === "finished" && room.finalizedAt && !room.resultsPersistedAt) {
+      changed = (await this.ensureFinalizedResultPersisted(room, nowMs)) || changed;
+    }
+
     rankPlayers(room.players);
     return changed;
   }
@@ -823,6 +833,10 @@ export class BattleRoomDO {
       return false;
     }
 
+    room.resultsPersistedAt = null;
+    room.lastResultPersistAttemptAt = null;
+    room.lastResultPersistError = null;
+
     let seed: WorkerBattleSeedData;
     try {
       seed = await this.fetchSeedData();
@@ -873,40 +887,8 @@ export class BattleRoomDO {
     return true;
   }
 
-  private async finalizeRoom(room: WorkerBattleRoomState, nowMs: number) {
-    if (room.phase === "finished" || room.finalizedAt) {
-      return false;
-    }
-
-    const finalIndex = room.candles.length - 1;
-    const finalCandle = room.candles[finalIndex] ?? null;
-
-    for (const player of room.players) {
-      const state = this.getOrCreatePlayerState(room, player.userId);
-      if (state.execution?.status === "active" && finalCandle) {
-        const resolved = finalizeUnfinishedTrade(
-          state.execution,
-          finalCandle,
-          finalIndex,
-          state.execution.direction,
-        ) as WorkerBattleExecution;
-        settleResolvedExecution(player, resolved);
-        state.execution = null;
-      } else if (state.execution?.status === "armed") {
-        state.execution = null;
-      }
-
-      if (player.status === "active") {
-        player.status = state.hasEnteredTrade ? "finished" : "no_trade";
-      }
-    }
-
-    rankPlayers(room.players);
-    room.winnerUserId = room.players[0]?.userId ?? null;
-    room.phase = "finished";
-    room.finalizedAt = new Date(nowMs).toISOString();
-
-    await fetch(`${this.env.APP_BASE_URL}/api/battle/internal/finalize-room`, {
+  private async postFinalizedResult(room: WorkerBattleRoomState) {
+    const response = await fetch(`${this.env.APP_BASE_URL}/api/battle/internal/finalize-room`, {
       method: "POST",
       headers: {
         "content-type": "application/json",
@@ -944,7 +926,70 @@ export class BattleRoomDO {
               : null,
         })),
       }),
-    }).catch(() => null);
+    });
+
+    if (!response.ok) {
+      throw new Error(`finalize_room_failed:${response.status}`);
+    }
+
+    const payload = (await response.json().catch(() => null)) as { ok?: boolean; message?: string } | null;
+    if (!payload?.ok) {
+      throw new Error(payload?.message ?? "finalize_room_invalid_payload");
+    }
+  }
+
+  private async ensureFinalizedResultPersisted(room: WorkerBattleRoomState, nowMs: number) {
+    room.lastResultPersistAttemptAt = new Date(nowMs).toISOString();
+
+    try {
+      await this.postFinalizedResult(room);
+      room.resultsPersistedAt = new Date(nowMs).toISOString();
+      room.lastResultPersistError = null;
+      return true;
+    } catch (error) {
+      room.lastResultPersistError =
+        error instanceof Error ? error.message : "finalize_room_failed";
+      return true;
+    }
+  }
+
+  private async finalizeRoom(room: WorkerBattleRoomState, nowMs: number) {
+    if (room.phase === "finished" || room.finalizedAt) {
+      return false;
+    }
+
+    const finalIndex = room.candles.length - 1;
+    const finalCandle = room.candles[finalIndex] ?? null;
+
+    for (const player of room.players) {
+      const state = this.getOrCreatePlayerState(room, player.userId);
+      if (state.execution?.status === "active" && finalCandle) {
+        const resolved = finalizeUnfinishedTrade(
+          state.execution,
+          finalCandle,
+          finalIndex,
+          state.execution.direction,
+        ) as WorkerBattleExecution;
+        settleResolvedExecution(player, resolved);
+        state.execution = null;
+      } else if (state.execution?.status === "armed") {
+        state.execution = null;
+      }
+
+      if (player.status === "active") {
+        player.status = state.hasEnteredTrade ? "finished" : "no_trade";
+      }
+    }
+
+    rankPlayers(room.players);
+    room.winnerUserId = room.players[0]?.userId ?? null;
+    room.phase = "finished";
+    room.finalizedAt = new Date(nowMs).toISOString();
+    room.resultsPersistedAt = null;
+    room.lastResultPersistAttemptAt = null;
+    room.lastResultPersistError = null;
+
+    await this.ensureFinalizedResultPersisted(room, nowMs);
 
     return true;
   }
@@ -1014,6 +1059,9 @@ export class BattleRoomDO {
         [creatorId]: createPlayerMatchState(0),
       },
       finalizedAt: null,
+      resultsPersistedAt: null,
+      lastResultPersistAttemptAt: null,
+      lastResultPersistError: null,
     };
 
     await this.saveAndBroadcast(room);

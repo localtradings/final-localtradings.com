@@ -125,6 +125,9 @@ export type WorkerBattleRoomState = {
   players: WorkerBattlePlayer[];
   playerStates: Record<string, WorkerBattlePlayerMatchState>;
   finalizedAt: string | null;
+  resultsPersistedAt: string | null;
+  lastResultPersistAttemptAt: string | null;
+  lastResultPersistError: string | null;
 };
 
 export type WorkerBattleView = {

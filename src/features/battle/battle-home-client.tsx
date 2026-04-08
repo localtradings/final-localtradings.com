@@ -22,6 +22,7 @@ import {
   BATTLE_MIN_PLAYERS,
   BATTLE_PRIVATE_DURATION_MINUTES,
   BATTLE_PUBLIC_DURATION_MINUTES,
+  BATTLE_RECENT_RESULTS_LIMIT,
   BATTLE_REPLAY_BATCH_STEP_COUNT,
 } from "@/features/battle/constants";
 import { formatBattleDuration, formatBattlePenalty } from "@/features/battle/formatters";
@@ -37,10 +38,21 @@ import {
   joinRandomBattleMatchAction,
 } from "@/server/battle/actions";
 
-const HERO_BUTTON_CLIP = "polygon(5% 0%, 95% 0%, 100% 50%, 95% 100%, 5% 100%, 0% 50%)";
+const HERO_BUTTON_CLIP = "inset(0 round 1rem)";
 const PANEL_CLIP = "polygon(4% 0%, 96% 0%, 100% 18%, 100% 82%, 96% 100%, 4% 100%, 0% 82%, 0% 18%)";
 const TITLE_VISIBLE_ASPECT = 2.86;
 const relativeTimeFormatter = new Intl.RelativeTimeFormat("en-US", { numeric: "auto" });
+const recentResultDateFormatter = new Intl.DateTimeFormat("en-US", {
+  month: "short",
+  day: "numeric",
+  timeZone: "UTC",
+});
+const recentResultTimeFormatter = new Intl.DateTimeFormat("en-US", {
+  hour: "numeric",
+  minute: "2-digit",
+  hour12: true,
+  timeZone: "UTC",
+});
 
 type PendingAction = "public" | "code" | "private" | null;
 
@@ -136,7 +148,7 @@ export function BattleHomeClient({
           }
         : null;
 
-  const recentResults = data.recentResults.slice(0, 3);
+  const recentResults = data.recentResults.slice(0, BATTLE_RECENT_RESULTS_LIMIT);
 
   return (
     <div className="learn-tradingview">
@@ -490,23 +502,26 @@ export function BattleHomeClient({
                     <span className="grid h-7.5 w-7.5 place-items-center rounded-full border border-[#ffcc6f]/22 bg-[#1b1408]/82 text-[#ffcf73] shadow-[0_0_18px_rgba(255,191,93,0.12)]">
                       <Trophy className="h-3.25 w-3.25" />
                     </span>
-                    <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3">
                       <p className="text-[0.58rem] font-semibold uppercase tracking-[0.18em] text-[#f8d38a]">
                         Recent Results
                       </p>
+                      <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[0.5rem] font-semibold uppercase tracking-[0.14em] text-white/46">
+                        Your latest {BATTLE_RECENT_RESULTS_LIMIT}
+                      </span>
                     </div>
                   </div>
                 </div>
                 <p className="text-[0.58rem] font-semibold uppercase tracking-[0.14em] text-white/42">
                   {recentResults.length > 0
-                    ? `Last ${recentResults.length} Battle${recentResults.length === 1 ? "" : "s"}`
+                    ? `Showing ${recentResults.length} Official Battle${recentResults.length === 1 ? "" : "s"}`
                     : "No Battles Yet"}
                 </p>
               </div>
 
               {recentResults.length > 0 ? (
                 <div className="relative mt-2 overflow-hidden rounded-[0.9rem] border border-white/7 bg-black/18 lg:mt-1.75">
-                  <div className="hidden grid-cols-[1.85fr_0.95fr_0.75fr_0.75fr_1fr_auto] gap-3 border-b border-white/8 px-3.5 py-1.25 text-[0.52rem] font-semibold uppercase tracking-[0.14em] text-white/40 md:grid">
+                  <div className="hidden shrink-0 grid-cols-[1.85fr_0.95fr_0.75fr_0.75fr_1fr_auto] gap-3 border-b border-white/8 bg-[rgba(8,11,16,0.94)] px-3.5 py-1.25 text-[0.52rem] font-semibold uppercase tracking-[0.14em] text-white/40 md:grid">
                     <p>Winner</p>
                     <p>Symbol</p>
                     <p>Timeframe</p>
@@ -515,19 +530,21 @@ export function BattleHomeClient({
                     <span />
                   </div>
 
-                  <div className="divide-y divide-white/8">
-                    {recentResults.map((result, index) => {
-                      const tone = RESULT_ROW_TONES[index % RESULT_ROW_TONES.length];
+                  <div className="max-h-[13.5rem] min-h-0 overflow-y-auto overscroll-contain">
+                    <div className="divide-y divide-white/8 pr-1">
+                      {recentResults.map((result, index) => {
+                        const tone = RESULT_ROW_TONES[index % RESULT_ROW_TONES.length];
 
-                      return (
-                        <RecentResultRow
-                          endedLabel={formatEndedLabel(result.endedAt, now)}
-                          key={result.roomId}
-                          result={result}
-                          tone={tone}
-                        />
-                      );
-                    })}
+                        return (
+                          <RecentResultRow
+                            endedLabel={formatEndedLabel(result.endedAt, now)}
+                            key={result.roomId}
+                            result={result}
+                            tone={tone}
+                          />
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
               ) : (
@@ -536,7 +553,7 @@ export function BattleHomeClient({
                     No official battles yet
                   </p>
                   <p className="mt-1 text-[0.68rem] leading-5 text-white/48">
-                    Finish a room and the final standings will appear here automatically.
+                    Finish a room and your latest official battle results will appear here automatically.
                   </p>
                 </div>
               )}
@@ -585,12 +602,7 @@ function RecentResultRow({
     result.winnerDisplayName ??
     result.entries.find((entry) => entry.rank === 1)?.displayName ??
     "Pending";
-  const endedAtLabel = new Date(result.endedAt).toLocaleString("en-US", {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
+  const endedAtLabel = formatRecentResultTimestamp(result.endedAt);
 
   return (
     <Link
@@ -679,4 +691,9 @@ function formatEndedLabel(endedAt: string, now: number | null) {
 
   const diffDays = Math.round(diffHours / 24);
   return relativeTimeFormatter.format(diffDays, "day");
+}
+
+function formatRecentResultTimestamp(endedAt: string) {
+  const date = new Date(endedAt);
+  return `${recentResultDateFormatter.format(date)}, ${recentResultTimeFormatter.format(date)} UTC`;
 }
