@@ -368,7 +368,7 @@ export function useBattleMatch(session: BattleRoomSession) {
     }, BATTLE_REPLAY_INTERVAL_MS);
 
     return () => window.clearTimeout(timeout);
-  }, [canStepForward, isActionPending, isPlaying, roomView]);
+  }, [canStepForward, isActionPending, isPlaying, localReplayIndex, roomView]);
 
   useEffect(() => {
     if (!roomView || isActionPending || isLocked) {
@@ -840,6 +840,9 @@ export function useBattleMatch(session: BattleRoomSession) {
       }
 
       setError(null);
+      if (roomView && localReplayIndexRef.current < roomView.self.replayIndex) {
+        setLocalReplayIndex(roomView.self.replayIndex);
+      }
       setIsPlaying((current) => {
         const next = !current;
         if (next) {

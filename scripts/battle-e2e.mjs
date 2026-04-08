@@ -13,6 +13,7 @@ import {
   fastForwardLobbyCountdown,
   getRoomCode,
   headless,
+  readReplayCounter,
   signIn,
   waitForPath,
 } from "./battle-test-helpers.mjs";
@@ -119,19 +120,21 @@ async function runBattleFlow() {
 
     await expectCompactBattleSurface(pageA);
 
-    const replayBeforeText = await pageA.locator("body").innerText();
-    const replayBeforeMatch = replayBeforeText.match(/Replay\s+(\d+)\/(\d+)/i);
-    assert.ok(replayBeforeMatch, "Expected replay counter before starting playback");
+    const replayBefore = await readReplayCounter(pageA);
 
     await pageA.getByRole("button", { name: "Play" }).click();
-    await pageA.waitForTimeout(2_600);
+    await pageA.waitForTimeout(1_400);
+    const replayMid = await readReplayCounter(pageA);
+    await pageA.waitForTimeout(1_400);
     await pageA.getByRole("button", { name: "Pause" }).click();
-    const replayAfterText = await pageA.locator("body").innerText();
-    const replayAfterMatch = replayAfterText.match(/Replay\s+(\d+)\/(\d+)/i);
-    assert.ok(replayAfterMatch, "Expected replay counter after playback");
+    const replayAfter = await readReplayCounter(pageA);
     assert.ok(
-      Number(replayAfterMatch[1]) > Number(replayBeforeMatch[1]),
-      `Expected replay counter to advance during playback, got ${replayBeforeMatch[0]} -> ${replayAfterMatch[0]}`,
+      replayMid.revealed > replayBefore.revealed,
+      `Expected replay counter to advance soon after playback started, got ${replayBefore.label} -> ${replayMid.label}`,
+    );
+    assert.ok(
+      replayAfter.revealed > replayMid.revealed,
+      `Expected replay counter to keep advancing while playback remained active, got ${replayMid.label} -> ${replayAfter.label}`,
     );
     await pageA.getByRole("button", { name: "Reset" }).click();
 

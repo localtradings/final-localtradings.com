@@ -13,6 +13,7 @@ import {
   expectCompactBattleSurface,
   getRoomCode,
   headless,
+  readReplayCounter,
   signIn,
   waitForPath,
 } from "./battle-test-helpers.mjs";
@@ -137,19 +138,21 @@ async function main() {
       );
     }
 
-    const hostReplayBeforeText = await host.locator("body").innerText();
-    const hostReplayBeforeMatch = hostReplayBeforeText.match(/Replay\s+(\d+)\/(\d+)/i);
-    assert.ok(hostReplayBeforeMatch, "Expected host replay counter before playback");
+    const hostReplayBefore = await readReplayCounter(host);
 
     await host.getByRole("button", { name: "Play" }).click();
-    await host.waitForTimeout(1_500);
+    await host.waitForTimeout(1_400);
+    const hostReplayMid = await readReplayCounter(host);
+    await host.waitForTimeout(1_400);
     await host.getByRole("button", { name: "Pause" }).click();
-    const hostReplayAfterText = await host.locator("body").innerText();
-    const hostReplayAfterMatch = hostReplayAfterText.match(/Replay\s+(\d+)\/(\d+)/i);
-    assert.ok(hostReplayAfterMatch, "Expected host replay counter after playback");
+    const hostReplayAfter = await readReplayCounter(host);
     assert.ok(
-      Number(hostReplayAfterMatch[1]) > Number(hostReplayBeforeMatch[1]),
-      `Expected host replay counter to advance, got ${hostReplayBeforeMatch[0]} -> ${hostReplayAfterMatch[0]}`,
+      hostReplayMid.revealed > hostReplayBefore.revealed,
+      `Expected host replay counter to advance after starting playback, got ${hostReplayBefore.label} -> ${hostReplayMid.label}`,
+    );
+    assert.ok(
+      hostReplayAfter.revealed > hostReplayMid.revealed,
+      `Expected host replay counter to keep advancing during playback, got ${hostReplayMid.label} -> ${hostReplayAfter.label}`,
     );
     await host.getByRole("button", { name: "Reset" }).click();
     await host.locator("#battle-order-type").selectOption("market");

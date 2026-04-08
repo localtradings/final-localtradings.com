@@ -212,3 +212,15 @@ export async function expectCompactBattleSurface(page) {
   await page.getByRole("button", { name: "+ TP" }).waitFor({ state: "visible", timeout: 60_000 });
   await page.getByRole("button", { name: "+ SL" }).waitFor({ state: "visible", timeout: 60_000 });
 }
+
+export async function readReplayCounter(page) {
+  const bodyText = await page.locator("body").innerText();
+  const match = bodyText.match(/Replay\s+(\d+)\/(\d+)/i);
+  assert.ok(match, "Expected replay counter on the battle surface");
+
+  return {
+    revealed: Number(match[1]),
+    total: Number(match[2]),
+    label: match[0],
+  };
+}

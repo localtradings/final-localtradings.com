@@ -27,7 +27,10 @@ export async function persistBattleRoomSnapshot(room: BattleRoomSnapshot) {
     updated_at: new Date().toISOString(),
   });
 
-  if (room.players.length === 0) {
+  const playerIds = room.players.map((player) => player.userId);
+
+  if (playerIds.length === 0) {
+    await supabase.from("battle_room_players").delete().eq("room_id", room.roomId);
     return;
   }
 
@@ -59,4 +62,22 @@ export async function persistBattleRoomSnapshot(room: BattleRoomSnapshot) {
     })),
     { onConflict: "room_id,user_id" },
   );
+
+  const { data: persistedPlayers } = await supabase
+    .from("battle_room_players")
+    .select("user_id")
+    .eq("room_id", room.roomId);
+
+  const stalePlayerIds =
+    persistedPlayers
+      ?.map((player) => player.user_id)
+      .filter((userId): userId is string => !playerIds.includes(userId)) ?? [];
+
+  if (stalePlayerIds.length > 0) {
+    await supabase
+      .from("battle_room_players")
+      .delete()
+      .eq("room_id", room.roomId)
+      .in("user_id", stalePlayerIds);
+  }
 }
