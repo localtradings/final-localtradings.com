@@ -44,6 +44,23 @@ body {
   color: var(--foreground);
 }
 
+body.battle-results-mode .theme-product {
+  display: block;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+body.battle-results-mode .theme-product > aside,
+body.battle-results-mode .theme-product > nav {
+  display: none !important;
+}
+
+body.battle-results-mode .theme-product > main {
+  min-height: 100vh;
+  overflow: visible !important;
+  padding: 0 !important;
+}
+
 a {
   color: inherit;
   text-decoration: none;

@@ -127,6 +127,7 @@ export type BattleRoomSnapshot = {
   players: BattleRoomPlayerSnapshot[];
   leaderboard: BattleLeaderboardEntry[];
   currentCandleIndex: number | null;
+  initialRevealCount: number;
   candles: BacktestCandle[];
 };
 

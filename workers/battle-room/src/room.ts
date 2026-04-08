@@ -15,6 +15,7 @@ import {
   buildViewerState,
   createLobbyPlayer,
   createPlayerMatchState,
+  getUnlockedReplayIndex,
   getPlayerMatchState,
   getReplayCandle,
   markDisconnectedForfeits,
@@ -1101,12 +1102,23 @@ export class BattleRoomDO {
     };
     const requestedReplayIndex = Number(body.replayIndex);
     const maxReplayIndex = room.candles.length - 1;
+    const unlockedReplayIndex = getUnlockedReplayIndex(room, nowMs);
 
     if (!Number.isInteger(requestedReplayIndex) || requestedReplayIndex > maxReplayIndex) {
       return this.jsonFailure(
         "invalid_replay_progression",
         "Replay progression is outside the canonical dataset.",
         400,
+        room,
+        userId,
+      );
+    }
+
+    if (requestedReplayIndex > unlockedReplayIndex) {
+      return this.jsonFailure(
+        "invalid_replay_progression",
+        "Replay progression has reached the live battle frontier.",
+        409,
         room,
         userId,
       );

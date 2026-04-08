@@ -84,6 +84,10 @@ export function normalizeBattleRoomView(
     getFiniteNumber(rawSelf.revealedCandleCount) ??
     getFiniteNumber(fallbackSelf?.revealedCandleCount) ??
     (normalizedReplayIndex + 1);
+  const normalizedInitialRevealCount =
+    getFiniteNumber(roomView.room.initialRevealCount) ??
+    getFiniteNumber(fallbackRoomView?.room.initialRevealCount) ??
+    Math.max(1, normalizedRevealedCandleCount);
   const normalizedPrivateBalance =
     getFiniteNumber(rawSelf.privateBalance) ??
     getFiniteNumber(fallbackSelf?.privateBalance) ??
@@ -99,6 +103,10 @@ export function normalizeBattleRoomView(
 
   return {
     ...roomView,
+    room: {
+      ...roomView.room,
+      initialRevealCount: normalizedInitialRevealCount,
+    },
     self: {
       ...roomView.self,
       activePenaltyUntil: rawSelf.activePenaltyUntil ?? fallbackSelf?.activePenaltyUntil ?? null,

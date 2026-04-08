@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildViewerState,
   createPlayerMatchState,
+  getUnlockedReplayIndex,
   markDisconnectedForfeits,
   normalizePlayerMatchState,
 } from "./state";
@@ -79,6 +80,17 @@ describe("battle room state helpers", () => {
     const normalized = normalizePlayerMatchState(room, state);
 
     expect(normalized.replayIndex).toBe(0);
+  });
+
+  it("unlocks replay candles gradually across the official match duration", () => {
+    const room = createRoom();
+    room.initialRevealCount = 2;
+    room.playerStates["viewer-1"].replayIndex = 1;
+    room.candles.push({ time: 4, open: 102.5, high: 104, low: 102, close: 103.5, volume: 11 });
+
+    expect(getUnlockedReplayIndex(room, Date.parse("2026-01-01T00:00:00.000Z"))).toBe(2);
+    expect(getUnlockedReplayIndex(room, Date.parse("2026-01-01T00:05:00.000Z"))).toBe(2);
+    expect(getUnlockedReplayIndex(room, Date.parse("2026-01-01T00:10:00.000Z"))).toBe(3);
   });
 
   it("forfeits only truly disconnected active players after the grace window", () => {

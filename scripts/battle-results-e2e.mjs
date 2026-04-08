@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
+import { mkdir } from "node:fs/promises";
+import path from "node:path";
 
 import { createClient } from "@supabase/supabase-js";
 import { chromium } from "playwright";
@@ -9,6 +11,7 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
 const battleSecret = process.env.BATTLE_SHARED_SECRET ?? "uHa2TkCpd3ukITf8SfeA488zPMJssQ2dp5G6w8frZtQ=";
 const headless = process.env.PLAYWRIGHT_HEADLESS !== "false";
+const screenshotPath = process.env.BATTLE_RESULTS_SCREENSHOT_PATH?.trim() || "";
 
 function requireEnv(name, value) {
   assert.ok(value.trim().length > 0, `Missing required environment variable: ${name}`);
@@ -28,10 +31,11 @@ async function main() {
   const stamp = Date.now();
   const email = `battle-results-${stamp}@example.com`;
   const password = `BattlePass-${stamp}`;
-  const displayName = "Battle Results User";
+  const displayName = "TraderKillah";
   const roomId = randomUUID();
   const lobbyCode = `R${stamp.toString(36).slice(-5).toUpperCase()}`;
   let userId = null;
+  const extraUserIds = [];
 
   try {
     const createdUser = await admin.auth.admin.createUser({
@@ -61,34 +65,163 @@ async function main() {
       throw profileError;
     }
 
+    const extraPlayers = [
+      { displayName: "MarketMaverick", email: `battle-results-mm-${stamp}@example.com` },
+      { displayName: "LocalTrader", email: `battle-results-lt-${stamp}@example.com` },
+      { displayName: "ChartMaster", email: `battle-results-cm-${stamp}@example.com` },
+      { displayName: "AlphaWolf", email: `battle-results-aw-${stamp}@example.com` },
+      { displayName: "QuickScalp", email: `battle-results-qs-${stamp}@example.com` },
+      { displayName: "NightTrader", email: `battle-results-nt-${stamp}@example.com` },
+      { displayName: "SwingKing", email: `battle-results-sk-${stamp}@example.com` },
+    ];
+
+    for (const player of extraPlayers) {
+      const createdExtra = await admin.auth.admin.createUser({
+        email: player.email,
+        password: password,
+        email_confirm: true,
+        user_metadata: {
+          full_name: player.displayName,
+        },
+      });
+
+      if (createdExtra.error) {
+        throw createdExtra.error;
+      }
+
+      const extraId = createdExtra.data.user?.id ?? null;
+      assert.ok(extraId, `Failed to create result test user for ${player.displayName}`);
+      extraUserIds.push(extraId);
+
+      const { error: extraProfileError } = await admin.from("profiles").upsert({
+        id: extraId,
+        email: player.email,
+        full_name: player.displayName,
+        display_name: player.displayName,
+        updated_at: new Date().toISOString(),
+      });
+
+      if (extraProfileError) {
+        throw extraProfileError;
+      }
+    }
+
+    const startedAt = "2024-12-13T14:00:15.000Z";
+    const endedAt = "2024-12-13T14:30:15.000Z";
+    const seededPlayers = [
+      {
+        userId,
+        displayName,
+        status: "finished",
+        finalBalance: 1215.4,
+        realizedPnl: 215.4,
+        rank: 1,
+        totalTrades: 15,
+        winningTrades: 10,
+        losingTrades: 5,
+        penaltyReason: null,
+      },
+      {
+        userId: extraUserIds[0],
+        displayName: "MarketMaverick",
+        status: "finished",
+        finalBalance: 1143.2,
+        realizedPnl: 143.2,
+        rank: 2,
+        totalTrades: 12,
+        winningTrades: 8,
+        losingTrades: 4,
+        penaltyReason: null,
+      },
+      {
+        userId: extraUserIds[1],
+        displayName: "LocalTrader",
+        status: "finished",
+        finalBalance: 978.5,
+        realizedPnl: 78.5,
+        rank: 3,
+        totalTrades: 9,
+        winningTrades: 6,
+        losingTrades: 3,
+        penaltyReason: null,
+      },
+      {
+        userId: extraUserIds[2],
+        displayName: "ChartMaster",
+        status: "finished",
+        finalBalance: 912.3,
+        realizedPnl: -12.3,
+        rank: 4,
+        totalTrades: 7,
+        winningTrades: 3,
+        losingTrades: 4,
+        penaltyReason: null,
+      },
+      {
+        userId: extraUserIds[3],
+        displayName: "AlphaWolf",
+        status: "no_trade",
+        finalBalance: 1000,
+        realizedPnl: 0,
+        rank: 5,
+        totalTrades: 0,
+        winningTrades: 0,
+        losingTrades: 0,
+        penaltyReason: "no_trade",
+      },
+      {
+        userId: extraUserIds[4],
+        displayName: "QuickScalp",
+        status: "left_early",
+        finalBalance: 0,
+        realizedPnl: 0,
+        rank: 6,
+        totalTrades: 6,
+        winningTrades: 2,
+        losingTrades: 2,
+        penaltyReason: "left_early",
+      },
+      {
+        userId: extraUserIds[5],
+        displayName: "NightTrader",
+        status: "forfeit",
+        finalBalance: 0,
+        realizedPnl: 0,
+        rank: 7,
+        totalTrades: 0,
+        winningTrades: 0,
+        losingTrades: 0,
+        penaltyReason: "forfeit",
+      },
+      {
+        userId: extraUserIds[6],
+        displayName: "SwingKing",
+        status: "no_trade",
+        finalBalance: 0,
+        realizedPnl: 0,
+        rank: 8,
+        totalTrades: 0,
+        winningTrades: 0,
+        losingTrades: 0,
+        penaltyReason: "no_trade",
+      },
+    ];
+
     const finalizePayload = {
       room: {
         roomId,
         roomType: "private",
-        durationMinutes: 10,
-        symbol: "EURUSD",
-        timeframe: "5min",
+        durationMinutes: 30,
+        symbol: "XAUUSD",
+        timeframe: "15min",
         phase: "finished",
-        startedAt: new Date(Date.now() - 10 * 60_000).toISOString(),
-        endedAt: new Date().toISOString(),
+        startedAt,
+        endedAt,
         winnerUserId: userId,
         cancelReason: null,
         lobbyCode,
       },
-      players: [
-        {
-          userId,
-          displayName,
-          status: "finished",
-          finalBalance: 101_250,
-          realizedPnl: 1_250,
-          rank: 1,
-          totalTrades: 3,
-          winningTrades: 2,
-          losingTrades: 1,
-          penaltyReason: null,
-        },
-      ],
+      players: seededPlayers,
     };
 
     const finalizeResponse = await fetch(`${baseUrl}/api/battle/internal/finalize-room`, {
@@ -107,7 +240,12 @@ async function main() {
     );
 
     const browser = await chromium.launch({ headless });
-    const page = await browser.newPage();
+    const page = await browser.newPage({
+      viewport: {
+        width: 1440,
+        height: 1850,
+      },
+    });
 
     try {
       await page.goto(`${baseUrl}/sign-in`, { waitUntil: "domcontentloaded", timeout: 60_000 });
@@ -122,7 +260,15 @@ async function main() {
       });
 
       try {
+        await page.getByRole("link", { name: /back to battles/i }).waitFor({
+          state: "visible",
+          timeout: 60_000,
+        });
         await page.getByText("Battle Results", { exact: true }).waitFor({
+          state: "visible",
+          timeout: 60_000,
+        });
+        await page.getByText("Official battle results", { exact: false }).waitFor({
           state: "visible",
           timeout: 60_000,
         });
@@ -130,10 +276,26 @@ async function main() {
           state: "visible",
           timeout: 60_000,
         });
-        await page.getByText("EURUSD • 5min", { exact: true }).waitFor({
+        await page.getByText("XAUUSD", { exact: true }).waitFor({
           state: "visible",
           timeout: 60_000,
         });
+        await page.getByText("15min", { exact: true }).waitFor({
+          state: "visible",
+          timeout: 60_000,
+        });
+        await page.getByText("Full Leaderboard", { exact: true }).waitFor({
+          state: "visible",
+          timeout: 60_000,
+        });
+
+        if (screenshotPath) {
+          await mkdir(path.dirname(screenshotPath), { recursive: true });
+          await page.screenshot({
+            path: screenshotPath,
+            fullPage: true,
+          });
+        }
       } catch (error) {
         const bodyText = await page.locator("body").innerText().catch(() => "");
         throw new Error(
@@ -163,6 +325,9 @@ async function main() {
       await admin.from("battle_results").delete().eq("room_id", roomId);
       await admin.from("battle_room_players").delete().eq("room_id", roomId);
       await admin.from("battle_rooms").delete().eq("id", roomId);
+      for (const extraUserId of extraUserIds) {
+        await admin.auth.admin.deleteUser(extraUserId);
+      }
       await admin.auth.admin.deleteUser(userId);
     }
   }

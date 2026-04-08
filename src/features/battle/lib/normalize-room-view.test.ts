@@ -23,6 +23,7 @@ function createRoomView(partial?: Partial<BattleRoomView["self"]>): BattleRoomVi
       cancelReason: null,
       winnerUserId: null,
       currentCandleIndex: 252,
+      initialRevealCount: 250,
       candles: [
         { time: 1, open: 1, high: 1, low: 1, close: 1, volume: 0 },
         { time: 2, open: 2, high: 2, low: 2, close: 2, volume: 0 },

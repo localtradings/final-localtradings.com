@@ -62,6 +62,52 @@ export function normalizePlayerMatchState(
   return state;
 }
 
+export function getUnlockedReplayIndex(
+  room: WorkerBattleRoomState,
+  nowMs: number,
+) {
+  const maxReplayIndex = Math.max(room.candles.length - 1, 0);
+  const initialReplayIndex = Math.max(
+    0,
+    Math.min(Math.max(room.initialRevealCount - 1, 0), maxReplayIndex),
+  );
+  const minimumUnlockedReplayIndex = Math.min(initialReplayIndex + 1, maxReplayIndex);
+
+  if (room.phase === "finished" || room.phase === "cancelled") {
+    return maxReplayIndex;
+  }
+
+  if (room.phase !== "active" || !room.officialStartAt || !room.officialEndAt) {
+    return minimumUnlockedReplayIndex;
+  }
+
+  const startMs = Date.parse(room.officialStartAt);
+  const endMs = Date.parse(room.officialEndAt);
+  if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs <= startMs) {
+    return maxReplayIndex;
+  }
+
+  if (nowMs <= startMs) {
+    return minimumUnlockedReplayIndex;
+  }
+
+  if (nowMs >= endMs) {
+    return maxReplayIndex;
+  }
+
+  const replayWindow = maxReplayIndex - minimumUnlockedReplayIndex;
+  if (replayWindow <= 0) {
+    return maxReplayIndex;
+  }
+
+  const progress = (nowMs - startMs) / (endMs - startMs);
+  const unlockedAdditional = Math.floor(progress * replayWindow);
+  return Math.max(
+    minimumUnlockedReplayIndex,
+    Math.min(minimumUnlockedReplayIndex + unlockedAdditional, maxReplayIndex),
+  );
+}
+
 function getViewerLockReason(
   room: WorkerBattleRoomState,
   player: WorkerBattlePlayer | undefined,
@@ -199,6 +245,7 @@ export function buildViewerState(
       cancelReason: room.cancelReason,
       winnerUserId: room.winnerUserId,
       currentCandleIndex: room.currentCandleIndex,
+      initialRevealCount: room.initialRevealCount,
       candles: room.candles,
       players: rankedPlayers.map((entry) => ({
         ...entry,

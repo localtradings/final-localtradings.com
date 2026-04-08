@@ -145,6 +145,7 @@ export type WorkerBattleView = {
     cancelReason: string | null;
     winnerUserId: string | null;
     currentCandleIndex: number | null;
+    initialRevealCount: number;
     candles: WorkerBattleCandle[];
     players: Array<WorkerBattlePlayer & { hasOpenTrade: boolean }>;
     leaderboard: Array<{

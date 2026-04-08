@@ -446,7 +446,6 @@ export function createBattleRoomSyncStoreRegistry(): BattleRoomSyncStoreRegistry
       const existing = stores.get(storeKey);
 
       if (existing) {
-        existing.updateSession(session);
         return existing;
       }
 

@@ -194,6 +194,7 @@ describe("BattleRoomDO", () => {
 
   it("accepts bounded replay checkpoints and advances the authoritative replay index", async () => {
     const room = createActiveRoom();
+    room.initialRevealCount = 5;
     const storage = createStorage(room);
     const fetchSpy = vi.spyOn(globalThis, "fetch");
     const battleRoom = new BattleRoomDO(
@@ -219,6 +220,35 @@ describe("BattleRoomDO", () => {
     expect(storage.getRoom().playerStates["user-1"].replayIndex).toBe(4);
     expect(fetchSpy).not.toHaveBeenCalled();
     fetchSpy.mockRestore();
+  });
+
+  it("rejects replay checkpoints beyond the unlocked live frontier", async () => {
+    const room = createActiveRoom();
+    room.officialStartAt = new Date().toISOString();
+    room.officialEndAt = new Date(Date.now() + 10 * 60 * 1_000).toISOString();
+    const storage = createStorage(room);
+    const battleRoom = new BattleRoomDO(
+      {
+        storage: storage.storage,
+      } as never,
+      {
+        APP_BASE_URL: "http://127.0.0.1:3000",
+        BATTLE_SHARED_SECRET: "test-secret",
+      } as never,
+    );
+
+    const response = await battleRoom.fetch(
+      new Request("https://battle-room/sync-replay", {
+        method: "POST",
+        body: JSON.stringify({ userId: "user-1", replayIndex: 2 }),
+      }),
+    );
+    const payload = (await response.json()) as { reason: string; message: string };
+
+    expect(response.ok).toBe(false);
+    expect(payload.reason).toBe("invalid_replay_progression");
+    expect(payload.message).toContain("live battle frontier");
+    expect(storage.getRoom().playerStates["user-1"].replayIndex).toBe(0);
   });
 
   it("rejects oversized replay checkpoint jumps", async () => {

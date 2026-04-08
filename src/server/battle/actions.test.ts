@@ -89,6 +89,7 @@ describe("joinRandomBattleMatchAction", () => {
             players: [],
             leaderboard: [],
             currentCandleIndex: null,
+            initialRevealCount: 0,
             candles: [],
           },
           self: {

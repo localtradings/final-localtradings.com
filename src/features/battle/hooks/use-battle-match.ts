@@ -128,6 +128,65 @@ function toValidationDraft(draft: BattleTradeForm): BacktestTradeDraft {
   };
 }
 
+function deriveUnlockedReplayIndex(input: {
+  roomView: BattleRoomView | null;
+  now: number | null;
+}) {
+  const roomView = input.roomView;
+  if (!roomView || roomView.room.candles.length === 0) {
+    return 0;
+  }
+
+  const maxReplayIndex = roomView.room.candles.length - 1;
+  const initialRevealCount = Number.isFinite(roomView.room.initialRevealCount)
+    ? roomView.room.initialRevealCount
+    : Math.max(1, roomView.self.replayIndex + 1);
+  const initialReplayIndex = Math.max(
+    0,
+    Math.min(initialRevealCount - 1, maxReplayIndex),
+  );
+  const minimumUnlockedReplayIndex = Math.min(initialReplayIndex + 1, maxReplayIndex);
+
+  if (roomView.room.phase === "finished" || roomView.room.phase === "cancelled") {
+    return maxReplayIndex;
+  }
+
+  if (
+    roomView.room.phase !== "active" ||
+    input.now === null ||
+    !roomView.room.officialStartAt ||
+    !roomView.room.officialEndAt
+  ) {
+    return Math.max(roomView.self.replayIndex, minimumUnlockedReplayIndex);
+  }
+
+  const startMs = Date.parse(roomView.room.officialStartAt);
+  const endMs = Date.parse(roomView.room.officialEndAt);
+  if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs <= startMs) {
+    return maxReplayIndex;
+  }
+
+  if (input.now <= startMs) {
+    return Math.max(roomView.self.replayIndex, minimumUnlockedReplayIndex);
+  }
+
+  if (input.now >= endMs) {
+    return roomView.self.replayIndex;
+  }
+
+  const replayWindow = maxReplayIndex - minimumUnlockedReplayIndex;
+  if (replayWindow <= 0) {
+    return maxReplayIndex;
+  }
+
+  const progress = (input.now - startMs) / (endMs - startMs);
+  const unlockedAdditional = Math.floor(progress * replayWindow);
+  return Math.max(
+    roomView.self.replayIndex,
+    Math.min(minimumUnlockedReplayIndex + unlockedAdditional, maxReplayIndex),
+  );
+}
+
 function deriveLocalExecutionView(input: {
   roomView: BattleRoomView | null;
   localReplayIndex: number;
@@ -299,13 +358,18 @@ export function useBattleMatch(session: BattleRoomSession) {
     roomView?.self.lockReason !== null ||
     roomView?.room.phase !== "active" ||
     roomView?.self.participationStatus === "eliminated";
+  const unlockedReplayIndex = useMemo(
+    () => deriveUnlockedReplayIndex({ roomView, now }),
+    [now, roomView],
+  );
   const canConfigureDraft =
     !isLocked &&
     (!activeExecution ||
       (activeExecution.status !== "armed" && activeExecution.status !== "active"));
-  const canStepForward =
+  const canAdvanceReplay =
     !isLocked &&
-    localReplayIndex < (roomView?.room.candles.length ?? 0) - 1;
+    localReplayIndex < unlockedReplayIndex;
+  const canStepForward = canAdvanceReplay || (!isLocked && isPlaying);
 
   useEffect(() => {
     if (!roomView) {
@@ -409,16 +473,16 @@ export function useBattleMatch(session: BattleRoomSession) {
   }, [setError, setRoomView]);
 
   useEffect(() => {
-    if (!roomView || !isPlaying || isActionPending || !canStepForward) {
+    if (!roomView || !isPlaying || isActionPending || !canAdvanceReplay) {
       return;
     }
 
     const timeout = window.setTimeout(() => {
-      setLocalReplayIndex((current) => Math.min(current + 1, roomView.room.candles.length - 1));
+      setLocalReplayIndex((current) => Math.min(current + 1, unlockedReplayIndex));
     }, BATTLE_REPLAY_INTERVAL_MS);
 
     return () => window.clearTimeout(timeout);
-  }, [canStepForward, isActionPending, isPlaying, localReplayIndex, roomView]);
+  }, [canAdvanceReplay, isActionPending, isPlaying, localReplayIndex, roomView, unlockedReplayIndex]);
 
   useEffect(() => {
     if (!roomView || isActionPending || isLocked) {
@@ -444,6 +508,7 @@ export function useBattleMatch(session: BattleRoomSession) {
 
     const shouldFlushReplay =
       !isPlaying ||
+      !canAdvanceReplay ||
       (localExecutionRequiresSync &&
         (delta >= BATTLE_REPLAY_BATCH_STEP_COUNT ||
           elapsedSinceLastFlushMs >= BATTLE_REPLAY_BATCH_INTERVAL_MS)) ||
@@ -461,13 +526,17 @@ export function useBattleMatch(session: BattleRoomSession) {
     isPlaying,
     localReplayIndex,
     roomView,
+    canAdvanceReplay,
   ]);
 
   useEffect(() => {
-    if (!canStepForward) {
+    if (
+      roomView &&
+      (isLocked || roomView.room.phase !== "active" || localReplayIndex >= roomView.room.candles.length - 1)
+    ) {
       setIsPlaying(false);
     }
-  }, [canStepForward]);
+  }, [isLocked, localReplayIndex, roomView]);
 
   useEffect(() => {
     if (!roomView) {
@@ -887,7 +956,7 @@ export function useBattleMatch(session: BattleRoomSession) {
     updateRiskPercent,
     resetTradeLines,
     togglePlayback: () => {
-      if (!canStepForward || isLocked) {
+      if (isLocked) {
         return;
       }
 
@@ -896,6 +965,14 @@ export function useBattleMatch(session: BattleRoomSession) {
         setLocalReplayIndex(roomView.self.replayIndex);
       }
       setIsPlaying((current) => {
+        if (current) {
+          return false;
+        }
+
+        if (!canAdvanceReplay) {
+          return current;
+        }
+
         const next = !current;
         if (next) {
           lastReplayFlushAtRef.current = Date.now();
