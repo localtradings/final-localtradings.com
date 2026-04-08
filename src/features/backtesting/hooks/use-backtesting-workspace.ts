@@ -9,6 +9,8 @@ import {
 import {
   BACKTEST_INITIAL_REVEAL_COUNT,
   BACKTEST_INSTRUMENTS,
+  BACKTEST_REFILL_BARS_REQUESTED,
+  BACKTEST_REFILL_TRIGGER_COUNT,
   BACKTEST_STATUS_LABELS,
   BACKTEST_TIMEFRAMES,
   DEFAULT_BACKTEST_ACCOUNT,
@@ -141,6 +143,7 @@ export function useBacktestingWorkspace(
   const pendingSaveExecutionKeyRef = useRef<string | null>(null);
   const sessionStartedAtRef = useRef(new Date().toISOString());
   const resetCompletedTradeKeyRef = useRef<string | null>(null);
+  const refillPromiseRef = useRef<Promise<boolean> | null>(null);
 
   useEffect(() => {
     datasetRef.current = dataset;
@@ -343,6 +346,7 @@ export function useBacktestingWorkspace(
       setLoadError(null);
       setNotice(null);
       setReplay((current) => ({ ...current, isPlaying: false }));
+      refillPromiseRef.current = null;
 
       const requestId = requestIdRef.current + 1;
       requestIdRef.current = requestId;
@@ -432,6 +436,70 @@ export function useBacktestingWorkspace(
     void loadRandomWindow(DEFAULT_BACKTEST_SELECTION);
   }, [loadRandomWindow]);
 
+  const extendReplayWindow = useCallback(async () => {
+    const activeDataset = datasetRef.current;
+    if (!activeDataset) {
+      return false;
+    }
+
+    if (refillPromiseRef.current) {
+      return refillPromiseRef.current;
+    }
+
+    const nextBarsRequested = activeDataset.candles.length + BACKTEST_REFILL_BARS_REQUESTED;
+    const refillPromise = (async () => {
+      try {
+        const params = new URLSearchParams({
+          symbol: activeDataset.selection.symbol,
+          timeframe: activeDataset.selection.timeframe,
+          windowStartAt: activeDataset.selection.windowStartAt,
+          barsRequested: String(nextBarsRequested),
+        });
+
+        const response = await fetch(`/api/backtesting/candles?${params.toString()}`, {
+          cache: "no-store",
+        });
+        let payload: unknown = null;
+
+        try {
+          payload = await response.json();
+        } catch {
+          payload = null;
+        }
+
+        if (!response.ok || !isBacktestCandlesResponse(payload)) {
+          return false;
+        }
+
+        if (payload.candles.length <= activeDataset.candles.length) {
+          return false;
+        }
+
+        setDataset(payload);
+        return true;
+      } catch {
+        return false;
+      }
+    })();
+
+    refillPromiseRef.current = refillPromise;
+
+    try {
+      const extended = await refillPromise;
+
+      if (!extended) {
+        const latestDataset = datasetRef.current;
+        if (latestDataset && replayRef.current.replayIndex >= latestDataset.candles.length - 1) {
+          setReplay((current) => ({ ...current, isPlaying: false }));
+        }
+      }
+
+      return extended;
+    } finally {
+      refillPromiseRef.current = null;
+    }
+  }, []);
+
   const stepReplayForward = useCallback(() => {
     const activeDataset = datasetRef.current;
     const replayState = replayRef.current;
@@ -442,7 +510,16 @@ export function useBacktestingWorkspace(
       return;
     }
 
+    const remainingCandlesAhead = activeDataset.candles.length - 1 - replayState.replayIndex;
+    if (remainingCandlesAhead < BACKTEST_REFILL_TRIGGER_COUNT) {
+      void extendReplayWindow();
+    }
+
     if (replayState.replayIndex >= activeDataset.candles.length - 1) {
+      if (refillPromiseRef.current) {
+        return;
+      }
+
       setReplay((current) => ({ ...current, isPlaying: false }));
       return;
     }
@@ -505,7 +582,7 @@ export function useBacktestingWorkspace(
         setNotice(nextNotice);
       }
     }
-  }, []);
+  }, [extendReplayWindow]);
 
   useEffect(() => {
     if (!dataset || !replay.isPlaying) {

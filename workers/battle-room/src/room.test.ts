@@ -31,6 +31,14 @@ function createStorage(initialRoom: WorkerBattleRoomState) {
 function createActiveRoom(): WorkerBattleRoomState {
   const nowMs = Date.now();
   const nowIso = new Date(nowMs).toISOString();
+  const candles = Array.from({ length: 160 }, (_, index) => ({
+    time: index + 1,
+    open: 100 + index,
+    high: 101 + index,
+    low: 99 + index,
+    close: 100 + index,
+    volume: 10,
+  }));
 
   return {
     roomId: "room-1",
@@ -50,14 +58,7 @@ function createActiveRoom(): WorkerBattleRoomState {
     winnerUserId: null,
     currentCandleIndex: 0,
     initialRevealCount: 1,
-    candles: [
-      { time: 1, open: 100, high: 101, low: 99, close: 100, volume: 10 },
-      { time: 2, open: 100, high: 102, low: 100, close: 101, volume: 10 },
-      { time: 3, open: 101, high: 103, low: 101, close: 102, volume: 10 },
-      { time: 4, open: 102, high: 104, low: 102, close: 103, volume: 10 },
-      { time: 5, open: 103, high: 105, low: 103, close: 104, volume: 10 },
-      { time: 6, open: 104, high: 106, low: 104, close: 105, volume: 10 },
-    ],
+    candles,
     pendingSeedData: null,
     players: [
       {
@@ -159,6 +160,21 @@ function mockSeedFetch() {
 
     if (url.endsWith("/api/battle/internal/persist-room")) {
       return new Response(null, { status: 200 });
+    }
+
+    if (url.endsWith("/api/battle/internal/refill-room")) {
+      return new Response(
+        JSON.stringify({
+          ok: true,
+          data: {
+            candles: [
+              { time: 161, open: 260, high: 261, low: 259, close: 260, volume: 10 },
+              { time: 162, open: 261, high: 262, low: 260, close: 261, volume: 10 },
+            ],
+          },
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      );
     }
 
     throw new Error(`Unexpected fetch in test: ${url}`);
@@ -275,6 +291,36 @@ describe("BattleRoomDO", () => {
     expect(response.ok).toBe(false);
     expect(payload.reason).toBe("invalid_replay_progression");
     expect(storage.getRoom().playerStates["user-1"].replayIndex).toBe(0);
+  });
+
+  it("tops up the active room candle buffer when the remaining frontier drops below the threshold", async () => {
+    const room = createActiveRoom();
+    room.currentCandleIndex = 70;
+    room.playerStates["user-1"].replayIndex = 70;
+    const storage = createStorage(room);
+    const battleRoom = new BattleRoomDO(
+      {
+        storage: storage.storage,
+      } as never,
+      {
+        APP_BASE_URL: "http://127.0.0.1:3000",
+        BATTLE_SHARED_SECRET: "test-secret",
+      } as never,
+    );
+
+    const fetchSpy = mockSeedFetch();
+
+    await battleRoom.alarm();
+
+    expect(storage.getRoom().candles).toHaveLength(162);
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "http://127.0.0.1:3000/api/battle/internal/refill-room",
+      expect.objectContaining({
+        method: "POST",
+      }),
+    );
+
+    fetchSpy.mockRestore();
   });
 
   it("removes a lobby player from the room when they leave", async () => {

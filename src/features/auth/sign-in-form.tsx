@@ -24,12 +24,16 @@ const initialState: ActionState = {
 
 type SignInFormProps = {
   missingConfig?: boolean;
+  noticeMessage?: string;
+  noticeTone?: "error" | "success" | "info";
   reason?: string;
   redirectTo?: string;
 };
 
 export function SignInForm({
   missingConfig = false,
+  noticeMessage,
+  noticeTone = "info",
   reason,
   redirectTo = "/app",
 }: SignInFormProps) {
@@ -58,6 +62,10 @@ export function SignInForm({
             message="Sign in to continue into the workspace."
             tone="info"
           />
+        ) : null}
+
+        {!missingConfig && noticeMessage ? (
+          <AuthNotice message={noticeMessage} tone={noticeTone} />
         ) : null}
 
         {state.message ? (
@@ -95,7 +103,7 @@ export function SignInForm({
 
         <div className="flex flex-wrap items-center justify-between gap-3 text-[0.93rem]">
           <AuthCheckbox defaultChecked id="rememberMe" label="Remember me" name="rememberMe" />
-          <Link className="font-medium text-[#15f58e] transition hover:text-[#7cffbf]" href="/help">
+          <Link className="font-medium text-[#15f58e] transition hover:text-[#7cffbf]" href="/forgot-password">
             Forgot password?
           </Link>
         </div>
@@ -106,7 +114,7 @@ export function SignInForm({
       </div>
 
       <AuthDivider />
-      <AuthSocialButtons />
+      <AuthSocialButtons mode="sign-in" redirectTo={redirectTo} />
       <AuthFooterLink href="/sign-up" label="Sign up" prompt="Don't have an account?" />
     </form>
   );

@@ -22,7 +22,17 @@ const initialState: ActionState = {
   status: "idle",
 };
 
-export function SignUpForm() {
+type SignUpFormProps = {
+  noticeMessage?: string;
+  noticeTone?: "error" | "success" | "info";
+  redirectTo?: string;
+};
+
+export function SignUpForm({
+  noticeMessage,
+  noticeTone = "info",
+  redirectTo = "/app",
+}: SignUpFormProps) {
   const [state, formAction, isPending] = useActionState(signUp, initialState);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -61,15 +71,24 @@ export function SignUpForm() {
           return;
         }
 
+        if (!passwordChecks.length || !passwordChecks.number || !passwordChecks.special) {
+          event.preventDefault();
+          setLocalError("Password must meet all listed requirements before you can register.");
+          return;
+        }
+
         setLocalError(null);
       }}
     >
+      <input name="redirectTo" type="hidden" value={redirectTo} />
+
       <AuthPanelHeading
         description="Join the arena and start competing."
         title="Create Your Account"
       />
 
       <div className="mt-4 space-y-3">
+        {noticeMessage ? <AuthNotice message={noticeMessage} tone={noticeTone} /> : null}
         {localError ? <AuthNotice message={localError} tone="error" /> : null}
         {state.message ? (
           <AuthNotice
@@ -190,7 +209,7 @@ export function SignUpForm() {
       </div>
 
       <AuthDivider />
-      <AuthSocialButtons />
+      <AuthSocialButtons mode="sign-up" redirectTo={redirectTo} />
       <AuthFooterLink href="/sign-in" label="Sign in" prompt="Already have an account?" />
     </form>
   );

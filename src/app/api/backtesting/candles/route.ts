@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import {
   BACKTEST_INSTRUMENTS,
+  BACKTEST_MAX_BARS_REQUESTED,
   BACKTEST_TIMEFRAMES,
 } from "@/features/backtesting/constants";
 import type { BacktestTimeframe } from "@/features/backtesting/types";
@@ -14,6 +15,8 @@ import { TwelveDataError } from "@/server/backtesting/providers/twelve-data";
 const querySchema = z.object({
   symbol: z.enum(BACKTEST_INSTRUMENTS.map((item) => item.symbol) as [string, ...string[]]),
   timeframe: z.enum(BACKTEST_TIMEFRAMES as [string, ...string[]]),
+  windowStartAt: z.iso.datetime().optional(),
+  barsRequested: z.coerce.number().int().positive().max(BACKTEST_MAX_BARS_REQUESTED).optional(),
 });
 
 export async function GET(request: NextRequest) {
@@ -39,6 +42,8 @@ export async function GET(request: NextRequest) {
   const parsed = querySchema.safeParse({
     symbol: request.nextUrl.searchParams.get("symbol"),
     timeframe: request.nextUrl.searchParams.get("timeframe"),
+    windowStartAt: request.nextUrl.searchParams.get("windowStartAt") ?? undefined,
+    barsRequested: request.nextUrl.searchParams.get("barsRequested") ?? undefined,
   });
 
   if (!parsed.success) {
@@ -52,6 +57,9 @@ export async function GET(request: NextRequest) {
     const payload = await getHistoricalBacktestCandles({
       symbol: parsed.data.symbol,
       timeframe: parsed.data.timeframe as BacktestTimeframe,
+    }, {
+      windowStartAt: parsed.data.windowStartAt,
+      barsRequested: parsed.data.barsRequested,
     });
 
     return NextResponse.json(payload);

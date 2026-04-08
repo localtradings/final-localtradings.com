@@ -136,20 +136,20 @@ function InfoTile({
   accent?: string;
 }) {
   return (
-    <div className="rounded-[1rem] border border-emerald-500/35 bg-[#07120f]/82 px-4 py-3 shadow-[0_0_0_1px_rgba(16,185,129,0.05),0_18px_48px_rgba(0,0,0,0.28)] backdrop-blur-sm lg:px-4 lg:py-3">
-      <div className="flex items-start gap-2.5">
-        <div className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-[0.9rem] border border-white/10 bg-white/[0.03] ${accent}`}>
+    <div className="rounded-[0.95rem] border border-emerald-500/28 bg-[#07120f]/78 px-3 py-2.5 shadow-[0_0_0_1px_rgba(16,185,129,0.05),0_14px_40px_rgba(0,0,0,0.24)] backdrop-blur-sm">
+      <div className="flex items-start gap-2.25">
+        <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-[0.8rem] border border-white/10 bg-white/[0.03] ${accent}`}>
           {icon}
         </div>
         <div className="min-w-0">
-          <p className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-white/58">
+          <p className="text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-white/56">
             {label}
           </p>
-          <div className="mt-1.5 text-[1.02rem] font-semibold tracking-[-0.02em] text-white lg:text-[1.08rem]">
+          <div className="mt-1 text-[0.98rem] font-semibold tracking-[-0.02em] text-white">
             {value}
           </div>
           {secondary ? (
-            <div className="mt-0.5 text-[0.82rem] text-white/62 lg:text-[0.88rem]">{secondary}</div>
+            <div className="mt-0.5 text-[0.76rem] text-white/58">{secondary}</div>
           ) : null}
         </div>
       </div>
@@ -169,16 +169,16 @@ function SummaryMetric({
   pill?: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-[4.4rem] items-center gap-2.5 border-r border-emerald-500/18 px-4 py-3 last:border-r-0 max-lg:last:border-r-0 max-md:border-r-0 lg:min-h-[4.7rem]">
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[0.9rem] border border-white/10 bg-white/[0.03] text-emerald-300 lg:h-10 lg:w-10">
+    <div className="flex min-h-[3.8rem] items-center gap-2 border-r border-emerald-500/14 px-3 py-2.5 last:border-r-0 max-lg:last:border-r-0 max-md:border-r-0">
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[0.8rem] border border-white/10 bg-white/[0.03] text-emerald-300">
         {icon}
       </div>
       <div className="min-w-0">
-        <p className="text-[0.66rem] font-semibold uppercase tracking-[0.18em] text-white/58 lg:text-[0.7rem]">
+        <p className="text-[0.58rem] font-semibold uppercase tracking-[0.18em] text-white/56">
           {label}
         </p>
-        <div className="mt-1 flex flex-wrap items-center gap-1.5 lg:mt-1.5 lg:gap-2">
-          <span className="text-[0.98rem] font-semibold tracking-[-0.02em] text-white lg:text-[1.06rem]">
+        <div className="mt-1 flex flex-wrap items-center gap-1.25">
+          <span className="text-[0.92rem] font-semibold tracking-[-0.02em] text-white">
             {value}
           </span>
           {pill}
@@ -206,31 +206,31 @@ function PodiumCard({
   return (
     <article
       className={[
-        "relative overflow-hidden rounded-[1.15rem] border bg-[#07100d]/90 shadow-[0_16px_42px_rgba(0,0,0,0.32)]",
+        "relative overflow-hidden rounded-[1rem] border bg-[#07100d]/90 shadow-[0_16px_42px_rgba(0,0,0,0.32)]",
         tone.border,
-        emphasize ? "lg:translate-y-[-0.5rem] xl:translate-y-0" : "",
+        emphasize ? "lg:-translate-y-2" : "",
       ].join(" ")}
     >
       <div className={`pointer-events-none absolute inset-0 bg-gradient-to-b ${tone.glow}`} />
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/55 to-transparent" />
 
-      <div className="relative px-4 pb-4 pt-4 lg:px-5 lg:pb-4 lg:pt-4">
+      <div className="relative px-3.5 pb-3.5 pt-3.5 lg:px-4 lg:pb-3.5 lg:pt-3.5">
         <div className="flex items-start justify-between gap-4">
-          <div className={`flex h-10 w-10 items-center justify-center rounded-[0.85rem] border text-base font-semibold ${tone.badge}`}>
+          <div className={`flex h-9 w-9 items-center justify-center rounded-[0.8rem] border text-[0.95rem] font-semibold ${tone.badge}`}>
             {entry.rank}
           </div>
           {entry.rank === 1 ? (
             <div className="text-[#ffd56a]">
-              <Trophy className="h-6 w-6" />
+              <Trophy className="h-5 w-5" />
             </div>
           ) : null}
         </div>
 
-        <div className="mt-4 flex justify-center">
-          <div className={`flex h-[4.5rem] w-[4.5rem] items-center justify-center rounded-full border bg-black/35 shadow-[0_0_32px_rgba(16,185,129,0.18)] ${tone.iconRing} lg:h-20 lg:w-20`}>
+        <div className="mt-3.5 flex justify-center">
+          <div className={`flex h-[4.15rem] w-[4.15rem] items-center justify-center rounded-full border bg-black/35 shadow-[0_0_32px_rgba(16,185,129,0.18)] ${tone.iconRing} lg:h-[4.5rem] lg:w-[4.5rem]`}>
             <Image
               alt=""
-              className="h-9 w-9 object-contain lg:h-10 lg:w-10"
+              className="h-8 w-8 object-contain"
               height={40}
               src="/new LOGO.png"
               width={40}
@@ -238,37 +238,37 @@ function PodiumCard({
           </div>
         </div>
 
-        <div className="mt-4 text-center">
-          <h3 className="truncate text-[1.45rem] font-semibold tracking-[-0.05em] text-white lg:text-[1.6rem]">
+        <div className="mt-3.5 text-center">
+          <h3 className="truncate text-[1.2rem] font-semibold tracking-[-0.05em] text-white lg:text-[1.28rem]">
             {entry.displayName}
           </h3>
-          <p className="mt-0.5 text-[0.8rem] text-white/62 lg:text-[0.85rem]">
+          <p className="mt-0.5 text-[0.76rem] text-white/62">
             User ID: {formatShortId(entry.userId)}
           </p>
         </div>
 
-        <div className="mt-4 grid grid-cols-3 divide-x divide-white/10 rounded-[0.9rem] border border-white/8 bg-black/18 px-2 py-2.5 text-center lg:mt-5">
+        <div className="mt-3.5 grid grid-cols-3 divide-x divide-white/10 rounded-[0.85rem] border border-white/8 bg-black/18 px-2 py-2 text-center">
           <div>
-            <p className="text-[1.05rem] font-semibold text-white lg:text-[1.15rem]">{entry.totalTrades}</p>
+            <p className="text-[0.98rem] font-semibold text-white">{entry.totalTrades}</p>
             <p className="mt-0.5 text-[0.64rem] uppercase tracking-[0.16em] text-white/45">Trades</p>
           </div>
           <div>
-            <p className="text-[1.05rem] font-semibold text-white lg:text-[1.15rem]">{entry.winningTrades}</p>
+            <p className="text-[0.98rem] font-semibold text-white">{entry.winningTrades}</p>
             <p className="mt-0.5 text-[0.64rem] uppercase tracking-[0.16em] text-white/45">Wins</p>
           </div>
           <div>
-            <p className="text-[1.05rem] font-semibold text-white lg:text-[1.15rem]">{entry.losingTrades}</p>
+            <p className="text-[0.98rem] font-semibold text-white">{entry.losingTrades}</p>
             <p className="mt-0.5 text-[0.64rem] uppercase tracking-[0.16em] text-white/45">Losses</p>
           </div>
         </div>
       </div>
 
-      <div className={`relative grid grid-cols-2 gap-3 border-t px-4 py-3 lg:px-5 lg:py-3 ${tone.footer}`}>
+      <div className={`relative grid grid-cols-2 gap-3 border-t px-3.5 py-2.5 lg:px-4 lg:py-2.5 ${tone.footer}`}>
         <div>
           <p className="text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-white/45">
             Final Balance
           </p>
-          <p className="mt-1 text-[1.25rem] font-semibold tracking-[-0.04em] text-white lg:text-[1.35rem]">
+          <p className="mt-1 text-[1.05rem] font-semibold tracking-[-0.04em] text-white">
             {formatMoney(entry.finalBalance)}
           </p>
         </div>
@@ -276,7 +276,7 @@ function PodiumCard({
           <p className="text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-white/45">
             Net Profit
           </p>
-          <p className={`mt-1 text-[1.18rem] font-semibold tracking-[-0.04em] lg:text-[1.28rem] ${profitClass}`}>
+          <p className={`mt-1 text-[1rem] font-semibold tracking-[-0.04em] ${profitClass}`}>
             {formatSignedMoney(entry.netProfit)}
           </p>
         </div>
@@ -323,7 +323,7 @@ export function BattleResultsClient({ result }: { result: BattleResultRecord | n
         />
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(16,185,129,0.16),transparent_38%),linear-gradient(180deg,rgba(2,7,6,0.58),rgba(2,7,6,0.92)_18%,rgba(2,7,6,0.98))]" />
 
-        <div className="relative mx-auto flex min-h-full max-w-[88rem] flex-col px-4 py-4 sm:px-5 sm:py-5 lg:h-full lg:px-8 lg:py-5 xl:origin-top xl:scale-[0.89] xl:px-10">
+        <div className="relative mx-auto flex min-h-full max-w-[88rem] flex-col px-4 py-4 sm:px-5 sm:py-5 lg:h-full lg:px-7 lg:py-4 xl:max-w-[92rem] xl:px-8">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center">
@@ -350,67 +350,67 @@ export function BattleResultsClient({ result }: { result: BattleResultRecord | n
             </Link>
           </div>
 
-          <div className="mt-4 flex items-start gap-3 lg:mt-5">
-            <div className="flex h-[3.25rem] w-[3.25rem] shrink-0 items-center justify-center rounded-[1rem] border border-emerald-500/45 bg-emerald-500/10 text-emerald-300 shadow-[0_0_34px_rgba(16,185,129,0.12)] lg:h-14 lg:w-14">
-              <Trophy className="h-7 w-7" />
+          <div className="mt-3 grid items-start gap-3 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+            <div className="flex items-start gap-3">
+              <div className="flex h-[3rem] w-[3rem] shrink-0 items-center justify-center rounded-[0.9rem] border border-emerald-500/45 bg-emerald-500/10 text-emerald-300 shadow-[0_0_34px_rgba(16,185,129,0.12)] lg:h-12 lg:w-12">
+                <Trophy className="h-6 w-6" />
+              </div>
+              <div>
+                <p className="text-[1.75rem] font-semibold uppercase leading-none tracking-[-0.06em] text-white sm:text-[2rem] lg:text-[2.35rem]">
+                  Battle <span className="text-emerald-400">Results</span>
+                </p>
+                <p className="mt-1 text-[0.82rem] text-white/68 lg:text-[0.9rem]">
+                  Official battle results <span className="mx-2 text-white/28">•</span> Only participants can view
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="text-[2rem] font-semibold uppercase leading-none tracking-[-0.06em] text-white sm:text-[2.3rem] lg:text-[2.7rem]">
-                Battle <span className="text-emerald-400">Results</span>
-              </p>
-              <p className="mt-1 text-[0.9rem] text-white/68 lg:text-[0.98rem]">
-                Official battle results <span className="mx-2 text-white/28">•</span> Only participants can view
-              </p>
+
+            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+              <SummaryMetric
+                icon={<ChartCandlestick className="h-4.5 w-4.5" />}
+                label="Symbol"
+                value={result.symbol}
+              />
+              <SummaryMetric
+                icon={<Clock3 className="h-4.5 w-4.5" />}
+                label="Timeframe"
+                value={result.timeframe}
+              />
+              <SummaryMetric
+                icon={<CalendarDays className="h-4.5 w-4.5" />}
+                label="Duration"
+                value={formatDurationLabel(result.durationMinutes)}
+              />
+              <SummaryMetric
+                icon={<Hash className="h-4.5 w-4.5" />}
+                label="Room ID"
+                value={result.roomId.slice(0, 8).toUpperCase()}
+              />
+              <SummaryMetric
+                icon={<LockKeyhole className="h-4.5 w-4.5" />}
+                label="Room Type"
+                pill={
+                  <span className="inline-flex items-center rounded-full border border-sky-500/35 bg-sky-500/12 px-2 py-0.5 text-[0.66rem] font-medium text-sky-200">
+                    {formatRoomType(result.roomType)}
+                  </span>
+                }
+                value={formatRoomType(result.roomType)}
+              />
             </div>
           </div>
 
-          <div className="mt-4 grid min-h-0 flex-1 grid-rows-[auto_auto_1fr] gap-3 lg:mt-5 lg:gap-3.5">
-            <section className="overflow-hidden rounded-[1.2rem] border border-emerald-500/35 bg-[#07120f]/82 shadow-[0_0_0_1px_rgba(16,185,129,0.05)] backdrop-blur-sm">
-              <div className="grid md:grid-cols-2 xl:grid-cols-5">
-                <SummaryMetric
-                  icon={<ChartCandlestick className="h-5 w-5" />}
-                  label="Symbol"
-                  value={result.symbol}
-                />
-                <SummaryMetric
-                  icon={<Clock3 className="h-5 w-5" />}
-                  label="Timeframe"
-                  value={result.timeframe}
-                />
-                <SummaryMetric
-                  icon={<CalendarDays className="h-5 w-5" />}
-                  label="Duration"
-                  value={formatDurationLabel(result.durationMinutes)}
-                />
-                <SummaryMetric
-                  icon={<Hash className="h-5 w-5" />}
-                  label="Room ID"
-                  value={result.roomId.slice(0, 8).toUpperCase()}
-                />
-                <SummaryMetric
-                  icon={<LockKeyhole className="h-5 w-5" />}
-                  label="Room Type"
-                  pill={
-                    <span className="inline-flex items-center rounded-full border border-sky-500/35 bg-sky-500/12 px-2.5 py-1 text-xs font-medium text-sky-200">
-                      {formatRoomType(result.roomType)}
-                    </span>
-                  }
-                  value={formatRoomType(result.roomType)}
-                />
-              </div>
-            </section>
-
-            <section className="grid gap-3 xl:grid-cols-4">
+          <div className="mt-3 grid min-h-0 flex-1 grid-rows-[auto_1fr] gap-3">
+            <section className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-4">
               <InfoTile
                 accent="text-[#ffd56a]"
-                icon={<Trophy className="h-5 w-5" />}
+                icon={<Trophy className="h-4.5 w-4.5" />}
                 label="Winner"
                 secondary={`User ID: ${formatShortId(result.winnerUserId)}`}
                 value={
                   <div className="flex flex-wrap items-center gap-2">
                     <span>{result.winnerDisplayName ?? "Pending"}</span>
                     {result.winnerDisplayName ? (
-                      <span className="inline-flex rounded-full border border-emerald-500/35 bg-emerald-500/14 px-2.5 py-1 text-xs font-semibold text-emerald-300">
+                      <span className="inline-flex rounded-full border border-emerald-500/35 bg-emerald-500/14 px-2 py-0.5 text-[0.66rem] font-semibold text-emerald-300">
                         #1
                       </span>
                     ) : null}
@@ -418,40 +418,40 @@ export function BattleResultsClient({ result }: { result: BattleResultRecord | n
                 }
               />
               <InfoTile
-                icon={<CalendarDays className="h-5 w-5" />}
+                icon={<CalendarDays className="h-4.5 w-4.5" />}
                 label="Started"
                 secondary={formatTimeLine(result.startedAt)}
                 value={formatDateLine(result.startedAt)}
               />
               <InfoTile
-                icon={<Flag className="h-5 w-5" />}
+                icon={<Flag className="h-4.5 w-4.5" />}
                 label="Ended"
                 secondary={formatTimeLine(result.endedAt)}
                 value={formatDateLine(result.endedAt)}
               />
               <InfoTile
-                icon={<Users className="h-5 w-5" />}
+                icon={<Users className="h-4.5 w-4.5" />}
                 label="Players"
                 secondary="Total Participants"
                 value={result.entries.length}
               />
             </section>
 
-            <div className="grid min-h-0 gap-3 xl:grid-cols-[minmax(0,0.82fr)_minmax(0,1.38fr)]">
-              <section className="flex min-h-0 flex-col rounded-[1.3rem] border border-emerald-500/22 bg-[#040907]/84 px-4 py-4 shadow-[0_20px_56px_rgba(0,0,0,0.26)] sm:px-5 lg:px-5 lg:py-4">
+            <div className="grid min-h-0 gap-3 xl:grid-cols-[minmax(0,1.2fr)_minmax(22rem,0.92fr)]">
+              <section className="flex min-h-0 flex-col rounded-[1.2rem] border border-emerald-500/22 bg-[#040907]/84 px-4 py-3.5 shadow-[0_20px_56px_rgba(0,0,0,0.26)]">
                 <div className="flex items-start gap-3 border-b border-emerald-500/14 pb-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-[0.9rem] border border-white/10 bg-white/[0.03] text-emerald-300">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-[0.85rem] border border-white/10 bg-white/[0.03] text-emerald-300">
                     <Medal className="h-5 w-5" />
                   </div>
                   <div>
-                    <h2 className="text-[1.35rem] font-semibold uppercase tracking-[-0.05em] text-white lg:text-[1.45rem]">
+                    <h2 className="text-[1.2rem] font-semibold uppercase tracking-[-0.05em] text-white">
                       Podium
                     </h2>
-                    <p className="mt-0.5 text-[0.88rem] text-white/64">Top 3 traders</p>
+                    <p className="mt-0.5 text-[0.8rem] text-white/64">Top 3 traders</p>
                   </div>
                 </div>
 
-                <div className="mt-4 grid gap-3 lg:grid-cols-3 lg:items-end xl:min-h-0 xl:grid-cols-1 xl:content-start">
+                <div className="mt-3.5 grid flex-1 content-center gap-3 lg:grid-cols-3 lg:items-center">
                   {podiumOrder.map((entry) => (
                     <PodiumCard
                       emphasize={entry.rank === 1}
@@ -462,32 +462,32 @@ export function BattleResultsClient({ result }: { result: BattleResultRecord | n
                 </div>
               </section>
 
-              <section className="flex min-h-0 flex-col rounded-[1.3rem] border border-emerald-500/24 bg-[#040907]/88 px-4 py-4 shadow-[0_20px_56px_rgba(0,0,0,0.26)] sm:px-5 lg:px-5 lg:py-4">
+              <section className="flex min-h-0 flex-col rounded-[1.2rem] border border-emerald-500/24 bg-[#040907]/88 px-4 py-3.5 shadow-[0_20px_56px_rgba(0,0,0,0.26)]">
                 <div className="flex items-start gap-3 border-b border-emerald-500/14 pb-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-[0.9rem] border border-white/10 bg-white/[0.03] text-emerald-300">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-[0.85rem] border border-white/10 bg-white/[0.03] text-emerald-300">
                     <Users className="h-5 w-5" />
                   </div>
                   <div>
-                    <h2 className="text-[1.35rem] font-semibold uppercase tracking-[-0.05em] text-white lg:text-[1.45rem]">
+                    <h2 className="text-[1.2rem] font-semibold uppercase tracking-[-0.05em] text-white">
                       Full Leaderboard
                     </h2>
-                    <p className="mt-0.5 text-[0.88rem] text-white/64">Complete results for all participants</p>
+                    <p className="mt-0.5 text-[0.8rem] text-white/64">Complete results for all participants</p>
                   </div>
                 </div>
 
                 <div className="mt-3 min-h-0 overflow-hidden rounded-[1rem] border border-white/10 bg-black/18">
-                  <div className="h-full overflow-x-auto overflow-y-auto lg:overflow-hidden">
-                    <table className="min-w-[49rem] w-full border-collapse">
+                  <div className="h-full overflow-x-auto overflow-y-auto">
+                    <table className="min-w-[43rem] w-full border-collapse">
                     <thead>
-                      <tr className="border-b border-white/10 bg-white/[0.03] text-left text-[0.62rem] font-semibold uppercase tracking-[0.14em] text-white/56 lg:text-[0.66rem]">
-                        <th className="px-3 py-2.5 lg:px-4 lg:py-3">Rank</th>
-                        <th className="px-3 py-2.5 lg:px-4 lg:py-3">Trader</th>
-                        <th className="px-3 py-2.5 text-right lg:px-4 lg:py-3">Final Balance</th>
-                        <th className="px-3 py-2.5 text-right lg:px-4 lg:py-3">Net Profit</th>
-                        <th className="px-3 py-2.5 text-center lg:px-4 lg:py-3">Trades</th>
-                        <th className="px-3 py-2.5 text-center lg:px-4 lg:py-3">Wins</th>
-                        <th className="px-3 py-2.5 text-center lg:px-4 lg:py-3">Losses</th>
-                        <th className="px-3 py-2.5 text-right lg:px-4 lg:py-3">Status</th>
+                      <tr className="border-b border-white/10 bg-white/[0.03] text-left text-[0.58rem] font-semibold uppercase tracking-[0.14em] text-white/56">
+                        <th className="px-3 py-2">Rank</th>
+                        <th className="px-3 py-2">Trader</th>
+                        <th className="px-3 py-2 text-right">Final Balance</th>
+                        <th className="px-3 py-2 text-right">Net Profit</th>
+                        <th className="px-3 py-2 text-center">Trades</th>
+                        <th className="px-3 py-2 text-center">Wins</th>
+                        <th className="px-3 py-2 text-center">Losses</th>
+                        <th className="px-3 py-2 text-right">Status</th>
                       </tr>
                     </thead>
                       <tbody>
@@ -504,10 +504,10 @@ export function BattleResultsClient({ result }: { result: BattleResultRecord | n
                               className="border-b border-white/6 last:border-b-0"
                               key={entry.userId}
                             >
-                              <td className="px-3 py-2.5 lg:px-4 lg:py-3">
+                              <td className="px-3 py-2">
                                 <div
                                   className={[
-                                    "flex h-8 w-8 items-center justify-center rounded-[0.8rem] border text-[0.88rem] font-semibold lg:h-9 lg:w-9 lg:text-sm",
+                                    "flex h-8 w-8 items-center justify-center rounded-[0.8rem] border text-[0.84rem] font-semibold",
                                     entry.rank === 1
                                       ? "border-[#f7c85b]/45 bg-[#f7c85b]/14 text-[#ffd56a]"
                                       : entry.rank === 2
@@ -520,44 +520,44 @@ export function BattleResultsClient({ result }: { result: BattleResultRecord | n
                                   {entry.rank}
                                 </div>
                               </td>
-                              <td className="px-3 py-2.5 lg:px-4 lg:py-3">
+                              <td className="px-3 py-2">
                                 <div className="flex items-center gap-2.5">
-                                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-emerald-500/45 bg-emerald-500/10 lg:h-10 lg:w-10">
+                                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-emerald-500/45 bg-emerald-500/10">
                                     <Image
                                       alt=""
-                                      className="h-4 w-4 object-contain lg:h-[1.125rem] lg:w-[1.125rem]"
+                                      className="h-4 w-4 object-contain"
                                       height={18}
                                       src="/new LOGO.png"
                                       width={18}
                                     />
                                   </div>
                                   <div className="min-w-0">
-                                    <p className="truncate text-[0.98rem] font-medium tracking-[-0.02em] text-white lg:text-[1.02rem]">
+                                    <p className="truncate text-[0.94rem] font-medium tracking-[-0.02em] text-white">
                                       {entry.displayName}
                                     </p>
-                                    <p className="mt-0.5 text-[0.78rem] text-white/50 lg:text-[0.82rem]">
+                                    <p className="mt-0.5 text-[0.74rem] text-white/50">
                                       {formatShortId(entry.userId)}
                                     </p>
                                   </div>
                                 </div>
                               </td>
-                              <td className="px-3 py-2.5 text-right text-[1rem] font-semibold tracking-[-0.03em] text-white lg:px-4 lg:py-3 lg:text-[1.08rem]">
+                              <td className="px-3 py-2 text-right text-[0.96rem] font-semibold tracking-[-0.03em] text-white">
                                 {formatMoney(entry.finalBalance)}
                               </td>
-                              <td className={`px-3 py-2.5 text-right text-[0.98rem] font-semibold tracking-[-0.03em] lg:px-4 lg:py-3 lg:text-[1.05rem] ${profitClass}`}>
+                              <td className={`px-3 py-2 text-right text-[0.94rem] font-semibold tracking-[-0.03em] ${profitClass}`}>
                                 {formatSignedMoney(entry.netProfit)}
                               </td>
-                              <td className="px-3 py-2.5 text-center text-[0.95rem] font-medium text-white lg:px-4 lg:py-3 lg:text-[1rem]">
+                              <td className="px-3 py-2 text-center text-[0.92rem] font-medium text-white">
                                 {entry.totalTrades}
                               </td>
-                              <td className="px-3 py-2.5 text-center text-[0.95rem] font-medium text-white lg:px-4 lg:py-3 lg:text-[1rem]">
+                              <td className="px-3 py-2 text-center text-[0.92rem] font-medium text-white">
                                 {entry.winningTrades}
                               </td>
-                              <td className="px-3 py-2.5 text-center text-[0.95rem] font-medium text-white lg:px-4 lg:py-3 lg:text-[1rem]">
+                              <td className="px-3 py-2 text-center text-[0.92rem] font-medium text-white">
                                 {entry.losingTrades}
                               </td>
-                              <td className="px-3 py-2.5 text-right lg:px-4 lg:py-3">
-                                <span className={`inline-flex rounded-full border px-3 py-1 text-[0.76rem] font-medium lg:px-3.5 lg:py-1.5 lg:text-[0.8rem] ${statusClasses(entry.status)}`}>
+                              <td className="px-3 py-2 text-right">
+                                <span className={`inline-flex rounded-full border px-3 py-1 text-[0.72rem] font-medium ${statusClasses(entry.status)}`}>
                                   {formatBattleResultStatus(entry.status)}
                                 </span>
                               </td>

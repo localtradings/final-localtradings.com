@@ -10,20 +10,24 @@ export const metadata: Metadata = {
 
 type SignInRouteProps = {
   searchParams: Promise<{
+    message?: string;
     redirectTo?: string;
     reason?: string;
+    status?: "error" | "success" | "info";
   }>;
 };
 
 export default async function SignInRoute({
   searchParams,
 }: SignInRouteProps) {
-  const { redirectTo, reason } = await searchParams;
+  const { message, redirectTo, reason, status } = await searchParams;
 
   return (
     <AuthShell mode="sign-in">
       <SignInForm
         missingConfig={!hasSupabaseEnv()}
+        noticeMessage={message}
+        noticeTone={status}
         reason={reason}
         redirectTo={redirectTo}
       />

@@ -110,7 +110,10 @@ export const TRADING_TIMEFRAMES: BacktestTimeframe[] = [
 ];
 
 export const TRADING_INITIAL_REVEAL_COUNT = 250;
-export const TRADING_BARS_REQUESTED = 1000;
+export const TRADING_BARS_REQUESTED = 800;
+export const TRADING_REFILL_TRIGGER_COUNT = 100;
+export const TRADING_REFILL_BARS_REQUESTED = 400;
+export const TRADING_MAX_BARS_REQUESTED = 20_000;
 
 export const TRADING_REPLAY_SPEEDS: ReplaySpeed[] = [
   { id: "1x", label: "1x", intervalMs: 1200 },

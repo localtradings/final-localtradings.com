@@ -11,6 +11,7 @@ import {
   manuallyCloseTrade,
   validateTradeDraft,
 } from "../../../src/features/trading-shared/execution-engine";
+import { BACKTEST_REFILL_TRIGGER_COUNT } from "../../../src/features/backtesting/constants";
 import {
   buildViewerState,
   createLobbyPlayer,
@@ -672,6 +673,7 @@ export class BattleRoomDO {
     }
 
     if (room.phase === "active") {
+      changed = (await this.ensureReplayBuffer(room)) || changed;
       changed = (await this.enforceParticipationRule(room, nowMs)) || changed;
 
       if (room.officialEndAt && Date.parse(room.officialEndAt) <= nowMs) {
@@ -724,6 +726,96 @@ export class BattleRoomDO {
       },
       candles: payload.data.candles,
     };
+  }
+
+  private async fetchRefillCandles(input: {
+    symbol: string;
+    timeframe: NonNullable<WorkerBattleRoomState["timeframe"]>;
+    afterTime: number;
+  }) {
+    const response = await fetch(`${this.env.APP_BASE_URL}/api/battle/internal/refill-room`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-battle-internal-secret": this.env.BATTLE_SHARED_SECRET,
+      },
+      body: JSON.stringify({
+        selection: {
+          symbol: input.symbol,
+          timeframe: input.timeframe,
+        },
+        afterTime: input.afterTime,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`refill_room_failed:${response.status}`);
+    }
+
+    const payload = (await response.json()) as {
+      ok: boolean;
+      data?: {
+        candles: Array<{
+          time: number;
+          open: number;
+          high: number;
+          low: number;
+          close: number;
+          volume: number;
+        }>;
+      };
+    };
+
+    if (!payload.ok || !payload.data) {
+      throw new Error("refill_room_invalid_payload");
+    }
+
+    return payload.data.candles;
+  }
+
+  private async ensureReplayBuffer(room: WorkerBattleRoomState) {
+    if (room.phase !== "active" || !room.symbol || !room.timeframe || room.candles.length === 0) {
+      return false;
+    }
+
+    this.syncRoomCurrentIndex(room);
+    const currentReplayIndex = Math.max(
+      0,
+      Math.min(room.currentCandleIndex ?? 0, room.candles.length - 1),
+    );
+    const remainingCandlesAhead = room.candles.length - 1 - currentReplayIndex;
+
+    if (remainingCandlesAhead >= BACKTEST_REFILL_TRIGGER_COUNT) {
+      return false;
+    }
+
+    const lastCandleTime = room.candles[room.candles.length - 1]?.time ?? null;
+    if (lastCandleTime === null) {
+      return false;
+    }
+
+    try {
+      const refillCandles = await this.fetchRefillCandles({
+        symbol: room.symbol,
+        timeframe: room.timeframe,
+        afterTime: lastCandleTime,
+      });
+
+      if (refillCandles.length === 0) {
+        return false;
+      }
+
+      const existingTimes = new Set(room.candles.map((candle) => candle.time));
+      const uniqueCandles = refillCandles.filter((candle) => !existingTimes.has(candle.time));
+      if (uniqueCandles.length === 0) {
+        return false;
+      }
+
+      room.candles = [...room.candles, ...uniqueCandles].sort((left, right) => left.time - right.time);
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   private async startRoom(room: WorkerBattleRoomState, nowMs: number) {

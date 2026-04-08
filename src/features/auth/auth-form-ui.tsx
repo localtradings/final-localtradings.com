@@ -146,28 +146,44 @@ export function AuthDivider() {
 }
 
 function SocialButton({
+  href,
   icon,
   label,
 }: {
+  href: string;
   icon: ReactNode;
   label: string;
 }) {
   return (
-    <button
+    <Link
       className="inline-flex h-[2.8rem] w-full items-center justify-center gap-2.5 rounded-[0.9rem] border border-white/12 bg-transparent px-4 text-[0.82rem] font-medium text-white transition hover:border-white/20 hover:bg-white/[0.03]"
-      type="button"
+      href={href}
+      prefetch={false}
     >
       {icon}
       <span>{label}</span>
-    </button>
+    </Link>
   );
 }
 
-export function AuthSocialButtons() {
+export function AuthSocialButtons({
+  mode,
+  redirectTo = "/app",
+}: {
+  mode: "sign-in" | "sign-up";
+  redirectTo?: string;
+}) {
+  const next = redirectTo.startsWith("/app") ? redirectTo : "/app";
+
   return (
     <div className="mt-3.5 grid gap-2.5 sm:grid-cols-2">
-      <SocialButton icon={<Apple className="h-5 w-5" strokeWidth={2.1} />} label="Continue with Apple" />
       <SocialButton
+        href={`/auth/oauth?provider=apple&source=${mode}&next=${encodeURIComponent(next)}`}
+        icon={<Apple className="h-5 w-5" strokeWidth={2.1} />}
+        label="Continue with Apple"
+      />
+      <SocialButton
+        href={`/auth/oauth?provider=google&source=${mode}&next=${encodeURIComponent(next)}`}
         icon={
           <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-white text-[0.9rem] font-black text-[#1f1f1f]">
             G

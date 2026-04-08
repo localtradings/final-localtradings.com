@@ -15,7 +15,9 @@ import { createSupabaseServiceRoleClient } from "@/lib/supabase/service-role";
 
 import {
   BattleSeedProviderError,
-  getBattleCandleBatchSize,
+  fetchTwelveDataBattleCandlesAfter,
+  getBattleInitialCandleBatchSize,
+  getBattleRefillBatchSize,
   getBattleTwelveDataSelections,
   fetchTwelveDataBattleCandles,
 } from "./twelve-data";
@@ -106,7 +108,7 @@ async function readBattleCandleCache(selection: BacktestSelection) {
     .eq("symbol", selection.symbol)
     .eq("timeframe", selection.timeframe)
     .eq("provider", BATTLE_CANDLE_PROVIDER)
-    .eq("bars_count", getBattleCandleBatchSize())
+    .eq("bars_count", getBattleInitialCandleBatchSize())
     .gt("expires_at", new Date().toISOString())
     .order("expires_at", { ascending: false })
     .limit(1)
@@ -117,7 +119,7 @@ async function readBattleCandleCache(selection: BacktestSelection) {
   }
 
   const candles = normalizeCachedCandles(data.candles_json);
-  if (!candles || candles.length < getBattleCandleBatchSize()) {
+  if (!candles || candles.length < getBattleInitialCandleBatchSize()) {
     return null;
   }
 
@@ -142,7 +144,7 @@ async function writeBattleCandleCache(selection: BacktestSelection, candles: Bac
       symbol: selection.symbol,
       timeframe: selection.timeframe,
       provider: BATTLE_CANDLE_PROVIDER,
-      bars_count: getBattleCandleBatchSize(),
+      bars_count: getBattleInitialCandleBatchSize(),
       candles_json: candles,
       last_candle_time: lastCandleTime,
       fetched_at: now.toISOString(),
@@ -159,7 +161,7 @@ async function getCanonicalBattleCandles(selection: BacktestSelection) {
     return cached.candles_json;
   }
 
-  const candles = await fetchTwelveDataBattleCandles(selection);
+  const candles = await fetchTwelveDataBattleCandles(selection, getBattleInitialCandleBatchSize());
   await writeBattleCandleCache(selection, candles);
   return candles;
 }
@@ -170,7 +172,7 @@ function toBattleResponse(selection: BacktestSelection, candles: BacktestCandle[
     selection: {
       ...selection,
       windowStartAt: new Date((candles[0]?.time ?? Math.floor(Date.now() / 1000)) * 1000).toISOString(),
-      barsRequested: getBattleCandleBatchSize(),
+      barsRequested: getBattleInitialCandleBatchSize(),
       initialRevealCount: Math.min(BACKTEST_INITIAL_REVEAL_COUNT, candles.length),
     },
     candles,
@@ -199,4 +201,15 @@ export async function createBattleRoomSeed(selection?: BacktestSelection) {
   }
 
   throw lastError ?? new Error("Battle seed loading failed.");
+}
+
+export async function extendBattleRoomCandles(input: {
+  selection: BacktestSelection;
+  afterTime: number;
+}) {
+  return fetchTwelveDataBattleCandlesAfter({
+    selection: input.selection,
+    afterTime: input.afterTime,
+    barsRequested: getBattleRefillBatchSize(),
+  });
 }

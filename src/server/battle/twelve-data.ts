@@ -1,12 +1,17 @@
 import "server-only";
 
-import { BACKTEST_INSTRUMENTS, getBacktestInstrument } from "@/features/backtesting/constants";
+import {
+  BACKTEST_INSTRUMENTS,
+  BACKTEST_BARS_REQUESTED,
+  BACKTEST_REFILL_BARS_REQUESTED,
+  BACKTEST_REFILL_TRIGGER_COUNT,
+  getBacktestInstrument,
+} from "@/features/backtesting/constants";
 import type { BacktestCandle, BacktestSelection } from "@/features/backtesting/types";
 import { getTimeframeMs } from "@/features/trading-shared/market";
 import { env, hasTwelveDataEnv } from "@/lib/env";
 
 const TWELVE_DATA_API_BASE_URL = "https://api.twelvedata.com";
-const BATTLE_TWELVE_DATA_BARS = 500;
 
 type TwelveDataValue = {
   datetime?: string;
@@ -110,11 +115,23 @@ export function getBattleTwelveDataSelections() {
   return BACKTEST_INSTRUMENTS.map((instrument) => instrument.symbol);
 }
 
-export function getBattleCandleBatchSize() {
-  return BATTLE_TWELVE_DATA_BARS;
+export function getBattleInitialCandleBatchSize() {
+  return BACKTEST_BARS_REQUESTED;
 }
 
-export async function fetchTwelveDataBattleCandles(selection: BacktestSelection) {
+export function getBattleRefillTriggerCount() {
+  return BACKTEST_REFILL_TRIGGER_COUNT;
+}
+
+export function getBattleRefillBatchSize() {
+  return BACKTEST_REFILL_BARS_REQUESTED;
+}
+
+async function fetchBattleCandlesInRange(input: {
+  selection: BacktestSelection;
+  startAt: Date;
+  endAt: Date;
+}) {
   if (!hasTwelveDataEnv()) {
     throw new BattleSeedProviderError(
       "Battle candles require TWELVE_DATA_API_KEY in your environment.",
@@ -122,28 +139,21 @@ export async function fetchTwelveDataBattleCandles(selection: BacktestSelection)
     );
   }
 
-  if (!isSupportedBattleSymbol(selection.symbol)) {
+  if (!isSupportedBattleSymbol(input.selection.symbol)) {
     throw new BattleSeedProviderError(
-      `Battle symbol ${selection.symbol} is not mapped for Twelve Data.`,
+      `Battle symbol ${input.selection.symbol} is not mapped for Twelve Data.`,
       400,
     );
   }
 
-  const instrument = getBacktestInstrument(selection.symbol);
-  const barsRequested = getBattleCandleBatchSize();
-  const now = new Date();
-  const bufferMultiplier = getRecentFetchBufferMultiplier(selection.symbol);
-  const startAt = new Date(
-    now.getTime() -
-      getTimeframeMs(selection.timeframe) * Math.ceil(barsRequested * bufferMultiplier),
-  );
+  const instrument = getBacktestInstrument(input.selection.symbol);
 
   const params = new URLSearchParams({
     apikey: env.twelveDataApiKey,
     symbol: instrument.providerSymbol,
-    interval: selection.timeframe,
-    start_date: formatTwelveDataDate(startAt),
-    end_date: formatTwelveDataDate(now),
+    interval: input.selection.timeframe,
+    start_date: formatTwelveDataDate(input.startAt),
+    end_date: formatTwelveDataDate(input.endAt),
     order: "ASC",
     timezone: "UTC",
   });
@@ -160,13 +170,29 @@ export async function fetchTwelveDataBattleCandles(selection: BacktestSelection)
     );
   }
 
-  const candles = dedupeCandles(
+  return dedupeCandles(
     (payload.values ?? [])
       .map((value) => normalizeBattleCandle(value, instrument.pricePrecision))
       .filter((value): value is BacktestCandle => Boolean(value))
-      .sort((left, right) => left.time - right.time)
-      .slice(-barsRequested),
+      .sort((left, right) => left.time - right.time),
   );
+}
+
+export async function fetchTwelveDataBattleCandles(
+  selection: BacktestSelection,
+  barsRequested = getBattleInitialCandleBatchSize(),
+) {
+  const now = new Date();
+  const bufferMultiplier = getRecentFetchBufferMultiplier(selection.symbol);
+  const startAt = new Date(
+    now.getTime() -
+      getTimeframeMs(selection.timeframe) * Math.ceil(barsRequested * bufferMultiplier),
+  );
+  const candles = (await fetchBattleCandlesInRange({
+    selection,
+    startAt,
+    endAt: now,
+  })).slice(-barsRequested);
 
   if (candles.length < barsRequested) {
     throw new BattleSeedProviderError(
@@ -176,4 +202,29 @@ export async function fetchTwelveDataBattleCandles(selection: BacktestSelection)
   }
 
   return candles;
+}
+
+export async function fetchTwelveDataBattleCandlesAfter(input: {
+  selection: BacktestSelection;
+  afterTime: number;
+  barsRequested?: number;
+}) {
+  const barsRequested = input.barsRequested ?? getBattleRefillBatchSize();
+  const timeframeMs = getTimeframeMs(input.selection.timeframe);
+  const startAt = new Date((input.afterTime + timeframeMs / 1000) * 1000);
+  const endAt = new Date();
+
+  if (endAt.getTime() <= startAt.getTime()) {
+    return [] as BacktestCandle[];
+  }
+
+  const candles = await fetchBattleCandlesInRange({
+    selection: input.selection,
+    startAt,
+    endAt,
+  });
+
+  return candles
+    .filter((candle) => candle.time > input.afterTime)
+    .slice(0, barsRequested);
 }

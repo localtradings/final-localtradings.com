@@ -7,10 +7,26 @@ export const metadata: Metadata = {
   title: "Register",
 };
 
-export default function SignUpRoute() {
+type SignUpRouteProps = {
+  searchParams: Promise<{
+    message?: string;
+    redirectTo?: string;
+    status?: "error" | "success" | "info";
+  }>;
+};
+
+export default async function SignUpRoute({
+  searchParams,
+}: SignUpRouteProps) {
+  const { message, redirectTo, status } = await searchParams;
+
   return (
     <AuthShell mode="sign-up">
-      <SignUpForm />
+      <SignUpForm
+        noticeMessage={message}
+        noticeTone={status}
+        redirectTo={redirectTo}
+      />
     </AuthShell>
   );
 }

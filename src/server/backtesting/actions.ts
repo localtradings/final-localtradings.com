@@ -5,6 +5,7 @@ import { z } from "zod";
 import {
   BACKTEST_BARS_REQUESTED,
   BACKTEST_INSTRUMENTS,
+  BACKTEST_MAX_BARS_REQUESTED,
   BACKTEST_TIMEFRAMES,
 } from "@/features/backtesting/constants";
 import type {
@@ -62,7 +63,7 @@ const backtestSessionSchema = z.object({
   ),
   timeframe: z.enum(BACKTEST_TIMEFRAMES as [string, ...string[]]),
   windowStartAt: z.iso.datetime(),
-  barsRequested: z.number().int().positive().max(BACKTEST_BARS_REQUESTED),
+  barsRequested: z.number().int().positive().max(BACKTEST_MAX_BARS_REQUESTED),
   direction: z.enum(["Long", "Short"]),
   orderType: z.enum(["market", "limit", "stop"]).nullable(),
   volume: z.number().positive().nullable(),
