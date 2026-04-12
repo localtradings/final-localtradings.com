@@ -35,7 +35,8 @@ export async function submitFeedback(input: FeedbackInput) {
   });
 
   if (error) {
-    return { ok: false, message: error.message };
+    console.error("[feedback] insert_failed", error.message);
+    return { ok: false, message: "Feedback could not be submitted right now." };
   }
 
   return { ok: true };

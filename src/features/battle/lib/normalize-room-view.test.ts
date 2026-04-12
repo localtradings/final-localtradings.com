@@ -12,6 +12,8 @@ function createRoomView(partial?: Partial<BattleRoomView["self"]>): BattleRoomVi
       roomType: "private",
       phase: "active",
       durationMinutes: 10,
+      riskLimitPercent: null,
+      maxDrawdownPercent: null,
       symbol: "BTCUSD",
       timeframe: "15min",
       maxPlayers: 5,

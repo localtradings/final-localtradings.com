@@ -832,6 +832,14 @@ export function useBattleMatch(session: BattleRoomSession) {
       return;
     }
 
+    if (
+      typeof roomView.room.riskLimitPercent === "number" &&
+      parsedRiskPercent > roomView.room.riskLimitPercent
+    ) {
+      setError(`Risk per trade cannot exceed ${roomView.room.riskLimitPercent.toFixed(2)}% in this match.`);
+      return;
+    }
+
     if (!volumePreview || !Number.isFinite(volumePreview) || volumePreview <= 0) {
       setError("This setup cannot derive a valid position size.");
       return;

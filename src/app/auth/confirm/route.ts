@@ -1,6 +1,7 @@
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
+import { getTrustedAppOrigin } from "@/lib/security/origin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   ensureProfileForUser,
@@ -11,6 +12,7 @@ import {
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
+  const appOrigin = getTrustedAppOrigin(requestUrl);
   const tokenHash = requestUrl.searchParams.get("token_hash");
   const type = parseEmailOtpType(requestUrl.searchParams.get("type"));
   const nextPath =
@@ -20,7 +22,7 @@ export async function GET(request: Request) {
   const errorSourcePath = type === "recovery" ? "/forgot-password" : "/sign-up";
 
   if (!tokenHash || !type) {
-    const invalidUrl = new URL("/sign-in", requestUrl.origin);
+    const invalidUrl = new URL("/sign-in", appOrigin);
     invalidUrl.searchParams.set("status", "error");
     invalidUrl.searchParams.set("message", "Email confirmation link is missing required auth data.");
     invalidUrl.searchParams.set("redirectTo", nextPath);
@@ -29,7 +31,7 @@ export async function GET(request: Request) {
 
   const supabase = await createSupabaseServerClient();
   if (!supabase) {
-    const configUrl = new URL("/sign-in", requestUrl.origin);
+    const configUrl = new URL("/sign-in", appOrigin);
     configUrl.searchParams.set("status", "error");
     configUrl.searchParams.set("message", "Supabase auth is not configured yet.");
     configUrl.searchParams.set("redirectTo", nextPath);
@@ -42,7 +44,7 @@ export async function GET(request: Request) {
   });
 
   if (error) {
-    const errorUrl = new URL(errorSourcePath, requestUrl.origin);
+    const errorUrl = new URL(errorSourcePath, appOrigin);
     errorUrl.searchParams.set("status", "error");
     errorUrl.searchParams.set("message", mapAuthErrorMessage(error.message));
     errorUrl.searchParams.set("redirectTo", nextPath);
@@ -53,10 +55,10 @@ export async function GET(request: Request) {
   revalidatePath("/app");
 
   if (data.session || data.user) {
-    return NextResponse.redirect(new URL(nextPath, requestUrl.origin));
+    return NextResponse.redirect(new URL(nextPath, appOrigin));
   }
 
-  const successUrl = new URL(type === "recovery" ? "/reset-password" : "/sign-in", requestUrl.origin);
+  const successUrl = new URL(type === "recovery" ? "/reset-password" : "/sign-in", appOrigin);
   successUrl.searchParams.set("status", "success");
   successUrl.searchParams.set(
     "message",

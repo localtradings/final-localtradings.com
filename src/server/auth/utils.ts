@@ -3,7 +3,7 @@ import "server-only";
 import type { EmailOtpType, User } from "@supabase/supabase-js";
 import { headers } from "next/headers";
 
-import { env } from "@/lib/env";
+import { getTrustedAppOrigin } from "@/lib/security/origin";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/service-role";
 
 const emailOtpTypes: EmailOtpType[] = [
@@ -22,9 +22,8 @@ export function getSafeAuthNextPath(value: unknown) {
 export async function resolveRequestOrigin() {
   const requestHeaders = await headers();
   const originHeader = requestHeaders.get("origin");
-
   if (originHeader) {
-    return originHeader;
+    return getTrustedAppOrigin(originHeader);
   }
 
   const forwardedHost = requestHeaders.get("x-forwarded-host");
@@ -34,10 +33,10 @@ export async function resolveRequestOrigin() {
     (host?.startsWith("localhost") || host?.startsWith("127.0.0.1") ? "http" : "https");
 
   if (host) {
-    return `${protocol}://${host}`;
+    return getTrustedAppOrigin(`${protocol}://${host}`);
   }
 
-  return env.appUrl;
+  return getTrustedAppOrigin();
 }
 
 export function parseEmailOtpType(value: string | null): EmailOtpType | null {

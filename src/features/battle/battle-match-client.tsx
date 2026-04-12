@@ -232,6 +232,29 @@ export function BattleMatchClient({ session }: { session: BattleRoomSession }) {
               {lockMessage}
             </div>
           ) : null}
+
+          <div className="flex flex-wrap gap-2">
+            <HeaderMetric
+              label="Mode"
+              value={roomView.room.roomType === "open" ? "Open Room" : roomView.room.roomType === "private" ? "Private Room" : "Public Match"}
+            />
+            <HeaderMetric
+              label="Risk Cap"
+              value={
+                typeof roomView.room.riskLimitPercent === "number"
+                  ? `${roomView.room.riskLimitPercent.toFixed(2)}%`
+                  : "Flexible"
+              }
+            />
+            <HeaderMetric
+              label="Drawdown"
+              value={
+                typeof roomView.room.maxDrawdownPercent === "number"
+                  ? `${roomView.room.maxDrawdownPercent.toFixed(2)}%`
+                  : "Flexible"
+              }
+            />
+          </div>
         </div>
 
         <BattleScoreboard
@@ -308,7 +331,7 @@ export function BattleMatchClient({ session }: { session: BattleRoomSession }) {
                 <Link
                   className="text-slate-300 underline decoration-white/20 underline-offset-2 transition hover:text-white"
                   href="https://www.tradingview.com/"
-                  rel="noreferrer"
+                  rel="noopener noreferrer"
                   target="_blank"
                 >
                   TradingView

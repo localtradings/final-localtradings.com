@@ -243,7 +243,7 @@ export function BacktestingClient({
             <Link
               className="text-slate-300 underline decoration-white/20 underline-offset-2 transition hover:text-white"
               href="https://www.tradingview.com/"
-              rel="noreferrer"
+              rel="noopener noreferrer"
               target="_blank"
             >
               TradingView

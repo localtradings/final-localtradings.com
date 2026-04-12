@@ -9,12 +9,14 @@ export async function persistBattleRoomSnapshot(room: BattleRoomSnapshot) {
     return;
   }
 
-  await supabase.from("battle_rooms").upsert({
+  const { error: roomError } = await supabase.from("battle_rooms").upsert({
     id: room.roomId,
     creator_user_id: room.players.find((player) => player.isCreator)?.userId ?? null,
     room_type: room.roomType,
     status: room.phase,
     duration_minutes: room.durationMinutes,
+    risk_limit_percent: room.riskLimitPercent,
+    max_drawdown_percent: room.maxDrawdownPercent,
     symbol: room.symbol,
     timeframe: room.timeframe,
     lobby_code: room.lobbyCode,
@@ -27,14 +29,25 @@ export async function persistBattleRoomSnapshot(room: BattleRoomSnapshot) {
     updated_at: new Date().toISOString(),
   });
 
+  if (roomError) {
+    throw new Error(roomError.message);
+  }
+
   const playerIds = room.players.map((player) => player.userId);
 
   if (playerIds.length === 0) {
-    await supabase.from("battle_room_players").delete().eq("room_id", room.roomId);
+    const { error: deletePlayersError } = await supabase
+      .from("battle_room_players")
+      .delete()
+      .eq("room_id", room.roomId);
+
+    if (deletePlayersError) {
+      throw new Error(deletePlayersError.message);
+    }
     return;
   }
 
-  await supabase.from("battle_room_players").upsert(
+  const { error: upsertPlayersError } = await supabase.from("battle_room_players").upsert(
     room.players.map((player) => ({
       room_id: room.roomId,
       user_id: player.userId,
@@ -63,10 +76,18 @@ export async function persistBattleRoomSnapshot(room: BattleRoomSnapshot) {
     { onConflict: "room_id,user_id" },
   );
 
-  const { data: persistedPlayers } = await supabase
+  if (upsertPlayersError) {
+    throw new Error(upsertPlayersError.message);
+  }
+
+  const { data: persistedPlayers, error: persistedPlayersError } = await supabase
     .from("battle_room_players")
     .select("user_id")
     .eq("room_id", room.roomId);
+
+  if (persistedPlayersError) {
+    throw new Error(persistedPlayersError.message);
+  }
 
   const stalePlayerIds =
     persistedPlayers
@@ -74,10 +95,14 @@ export async function persistBattleRoomSnapshot(room: BattleRoomSnapshot) {
       .filter((userId): userId is string => !playerIds.includes(userId)) ?? [];
 
   if (stalePlayerIds.length > 0) {
-    await supabase
+    const { error: staleDeleteError } = await supabase
       .from("battle_room_players")
       .delete()
       .eq("room_id", room.roomId)
       .in("user_id", stalePlayerIds);
+
+    if (staleDeleteError) {
+      throw new Error(staleDeleteError.message);
+    }
   }
 }

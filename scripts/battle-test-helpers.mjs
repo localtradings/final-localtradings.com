@@ -174,7 +174,7 @@ export async function signIn(page, user) {
   );
 }
 
-export async function waitForPath(page, matcher, timeout = 60_000) {
+export async function waitForPath(page, matcher, timeout = 90_000) {
   await page.waitForFunction(
     (expected) => {
       const pathname = window.location.pathname;

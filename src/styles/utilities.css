@@ -218,6 +218,29 @@
   box-shadow: none;
 }
 
+@keyframes battle-public-cta-glow {
+  0%,
+  100% {
+    opacity: 0.22;
+    transform: scaleX(0.9) scaleY(0.88);
+  }
+
+  50% {
+    opacity: 0.72;
+    transform: scaleX(1.08) scaleY(1.16);
+  }
+}
+
+.battle-public-cta-glow {
+  animation: battle-public-cta-glow 2.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .battle-public-cta-glow {
+    animation: none;
+  }
+}
+
 .learn-tv-kicker {
   font-size: 0.62rem;
   font-weight: 700;

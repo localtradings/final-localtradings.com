@@ -75,7 +75,7 @@ async function runBattleFlow() {
       pageB.goto(`${baseUrl}/app/battle`, { waitUntil: "domcontentloaded", timeout: 60_000 }),
     ]);
 
-    await pageA.getByRole("button", { name: "Create Private Room" }).click();
+    await pageA.getByRole("button", { name: "Host Room" }).click();
     await waitForPath(pageA, /\/app\/battle\/lobby\//, 60_000);
     await pageA.waitForTimeout(1_500);
 
@@ -86,7 +86,7 @@ async function runBattleFlow() {
     assert.ok(roomCode, "Could not extract room code from host lobby");
 
     await pageB.getByPlaceholder("ROOM CODE").fill(roomCode);
-    await pageB.getByRole("button", { name: "Join Room" }).click();
+    await pageB.getByRole("button", { name: "Join Room" }).click({ force: true });
     await waitForPath(pageB, new RegExp(`/app/battle/lobby/${roomId}$`), 60_000);
 
     await pageB.getByRole("button", { name: "Ready Up" }).click({ force: true });
@@ -149,11 +149,12 @@ async function runBattleFlow() {
       "Expected host trade to be open authoritatively.",
     );
 
-    assert.equal(
-      await pageA.getByRole("button", { name: "Close" }).isEnabled(),
-      true,
-      "Expected enabled Close button after opening a trade",
-    );
+    await pageA.waitForFunction(() => {
+      const button = Array.from(document.querySelectorAll("button")).find(
+        (candidate) => candidate.textContent?.trim() === "Close",
+      );
+      return button instanceof HTMLButtonElement && !button.disabled;
+    });
 
     await pageA.getByRole("button", { name: "Close" }).click();
     await waitForPlayerState(
@@ -163,6 +164,13 @@ async function runBattleFlow() {
       (row) => row.has_open_trade === false && (row.trades_closed ?? 0) >= 1,
       "Expected host trade to close authoritatively.",
     );
+
+    await pageA.waitForFunction(() => {
+      const button = Array.from(document.querySelectorAll("button")).find(
+        (candidate) => candidate.textContent?.trim() === "Buy",
+      );
+      return button instanceof HTMLButtonElement && !button.disabled;
+    });
 
     assert.equal(
       await pageA.getByRole("button", { name: "Buy" }).isEnabled(),

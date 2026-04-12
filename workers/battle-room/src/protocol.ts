@@ -1,4 +1,4 @@
-export type WorkerBattleRoomType = "public" | "private";
+export type WorkerBattleRoomType = "public" | "private" | "open";
 export type WorkerBattlePhase = "lobby" | "active" | "finished" | "cancelled";
 export type WorkerBattlePlayerStatus =
   | "joined"
@@ -9,7 +9,8 @@ export type WorkerBattlePlayerStatus =
   | "left_lobby"
   | "left_early"
   | "forfeit"
-  | "no_trade";
+  | "no_trade"
+  | "drawdown_limit";
 
 export type WorkerBattleDirection = "Long" | "Short";
 export type WorkerBattleTimeframe =
@@ -21,7 +22,7 @@ export type WorkerBattleTimeframe =
   | "4h"
   | "1day";
 
-export type WorkerBattleDurationMinutes = 10 | 15 | 30 | 45;
+export type WorkerBattleDurationMinutes = 10 | 15 | 30 | 45 | 60;
 
 export type WorkerBattleCandle = {
   time: number;
@@ -108,6 +109,8 @@ export type WorkerBattleRoomState = {
   roomType: WorkerBattleRoomType;
   phase: WorkerBattlePhase;
   durationMinutes: WorkerBattleDurationMinutes;
+  riskLimitPercent: number | null;
+  maxDrawdownPercent: number | null;
   symbol: string | null;
   timeframe: WorkerBattleTimeframe | null;
   maxPlayers: number;
@@ -137,6 +140,8 @@ export type WorkerBattleView = {
     roomType: WorkerBattleRoomType;
     phase: WorkerBattlePhase;
     durationMinutes: WorkerBattleDurationMinutes;
+    riskLimitPercent: number | null;
+    maxDrawdownPercent: number | null;
     symbol: string | null;
     timeframe: WorkerBattleTimeframe | null;
     maxPlayers: number;
@@ -164,7 +169,14 @@ export type WorkerBattleView = {
     activePenaltyUntil: string | null;
     replayIndex: number;
     revealedCandleCount: number;
-    lockReason: "no_trade" | "forfeit" | "left_early" | "finished" | "cancelled" | null;
+    lockReason:
+      | "no_trade"
+      | "forfeit"
+      | "left_early"
+      | "drawdown_limit"
+      | "finished"
+      | "cancelled"
+      | null;
     hasEnteredTrade: boolean;
     participationStatus: "clear" | "warned" | "eliminated";
     participationWarningIssuedAt: string | null;

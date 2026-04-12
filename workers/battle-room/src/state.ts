@@ -132,6 +132,10 @@ function getViewerLockReason(
     return "left_early" as const;
   }
 
+  if (player?.status === "drawdown_limit") {
+    return "drawdown_limit" as const;
+  }
+
   return null;
 }
 
@@ -187,6 +191,7 @@ export function rankPlayers(players: WorkerBattlePlayer[]) {
     "active",
     "ready",
     "joined",
+    "drawdown_limit",
     "no_trade",
     "left_early",
     "forfeit",
@@ -234,6 +239,8 @@ export function buildViewerState(
       roomType: room.roomType,
       phase: room.phase,
       durationMinutes: room.durationMinutes,
+      riskLimitPercent: room.riskLimitPercent,
+      maxDrawdownPercent: room.maxDrawdownPercent,
       symbol: room.symbol,
       timeframe: room.timeframe,
       maxPlayers: room.maxPlayers,

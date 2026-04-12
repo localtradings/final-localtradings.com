@@ -6,6 +6,8 @@ export const metadata: Metadata = {
   title: "Battle",
 };
 
+export const dynamic = "force-dynamic";
+
 export default function BattleRoute() {
   return <BattleHomePage />;
 }

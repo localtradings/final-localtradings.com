@@ -28,6 +28,17 @@ async function main() {
     },
   });
 
+  const schemaCheck = await admin
+    .from("battle_results")
+    .select("room_id, room_type, risk_limit_percent, max_drawdown_percent")
+    .limit(1);
+
+  assert.equal(
+    schemaCheck.error,
+    null,
+    `Battle result schema is not applied in Supabase yet: ${schemaCheck.error?.message}. Apply migration 0012_battle_open_rooms_and_rules.sql first.`,
+  );
+
   const stamp = Date.now();
   const email = `battle-results-${stamp}@example.com`;
   const password = `BattlePass-${stamp}`;
@@ -212,6 +223,8 @@ async function main() {
         roomId,
         roomType: "private",
         durationMinutes: 30,
+        riskLimitPercent: null,
+        maxDrawdownPercent: null,
         symbol: "XAUUSD",
         timeframe: "15min",
         phase: "finished",

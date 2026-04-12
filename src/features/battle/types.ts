@@ -6,9 +6,9 @@ import type {
   BacktestTimeframe,
 } from "@/features/backtesting/types";
 
-export type BattleRoomType = "public" | "private";
+export type BattleRoomType = "public" | "private" | "open";
 
-export type BattleDurationMinutes = 10 | 15 | 30 | 45;
+export type BattleDurationMinutes = 10 | 15 | 30 | 45 | 60;
 
 export type BattleRoomPhase = "lobby" | "active" | "finished" | "cancelled";
 
@@ -26,13 +26,15 @@ export type BattlePlayerStatus =
   | "left_lobby"
   | "left_early"
   | "forfeit"
-  | "no_trade";
+  | "no_trade"
+  | "drawdown_limit";
 
 export type BattleResultStatus =
   | "finished"
   | "left_early"
   | "forfeit"
-  | "no_trade";
+  | "no_trade"
+  | "drawdown_limit";
 
 export type BattlePenaltyReason = "left_early" | "forfeit" | "no_trade";
 
@@ -41,6 +43,7 @@ export type BattleMatchLockReason =
   | "no_trade"
   | "forfeit"
   | "left_early"
+  | "drawdown_limit"
   | "finished"
   | "cancelled";
 
@@ -114,6 +117,8 @@ export type BattleRoomSnapshot = {
   roomType: BattleRoomType;
   phase: BattleRoomPhase;
   durationMinutes: BattleDurationMinutes;
+  riskLimitPercent: number | null;
+  maxDrawdownPercent: number | null;
   symbol: string | null;
   timeframe: BacktestTimeframe | null;
   maxPlayers: number;
@@ -179,6 +184,8 @@ export type BattleResultRecord = {
   roomId: string;
   roomType: BattleRoomType;
   durationMinutes: BattleDurationMinutes;
+  riskLimitPercent: number | null;
+  maxDrawdownPercent: number | null;
   symbol: string;
   timeframe: BacktestTimeframe;
   startedAt: string;
@@ -188,11 +195,26 @@ export type BattleResultRecord = {
   entries: BattleResultEntry[];
 };
 
+export type BattleOpenRoomListing = {
+  roomId: string;
+  roomType: Extract<BattleRoomType, "open">;
+  lobbyCode: string | null;
+  durationMinutes: BattleDurationMinutes;
+  maxPlayers: number;
+  riskLimitPercent: number | null;
+  maxDrawdownPercent: number | null;
+  createdAt: string;
+  hostUserId: string | null;
+  hostDisplayName: string | null;
+  joinedPlayers: number;
+};
+
 export type BattleHomeData = {
   isWorkerConfigured: boolean;
   isPro: boolean;
   activePenalty: BattlePenaltyRecord | null;
   recentResults: BattleResultRecord[];
+  openRooms: BattleOpenRoomListing[];
 };
 
 export type BattleRoomSession = {
@@ -218,6 +240,7 @@ export type BattleHomeActionResult =
         | "battle_worker_not_configured"
         | "not_authenticated"
         | "invalid_duration"
+        | "invalid_max_players"
         | "pro_required"
         | "cooldown_active"
         | "room_not_found"
@@ -267,6 +290,8 @@ export type BattleFinalizePayload = {
     roomId: string;
     roomType: BattleRoomType;
     durationMinutes: BattleDurationMinutes;
+    riskLimitPercent: number | null;
+    maxDrawdownPercent: number | null;
     symbol: string;
     timeframe: BacktestTimeframe;
     phase: Extract<BattleRoomPhase, "finished" | "cancelled">;

@@ -12,6 +12,7 @@ import {
   Info,
   LogOut,
   Plus,
+  ShieldPlus,
   User,
   Users,
   WifiOff,
@@ -104,12 +105,25 @@ export function BattleLobbyClient({ session }: { session: BattleRoomSession }) {
       label: "Each player has 30s to ready after joining the lobby",
     },
     {
-      icon: Zap,
-      label: "If everyone is ready, the room starts immediately",
+      icon: ShieldPlus,
+      label:
+        typeof roomView.room.riskLimitPercent === "number"
+          ? `Risk cap: ${roomView.room.riskLimitPercent.toFixed(2)}% max per trade`
+          : "Flexible per-trade risk is allowed in this room",
     },
     {
-      icon: Users,
-      label: "At least 2 ready players are required when the lobby timer ends",
+      icon: Flag,
+      label:
+        typeof roomView.room.maxDrawdownPercent === "number"
+          ? `Drawdown: ${roomView.room.maxDrawdownPercent.toFixed(2)}% max realized loss`
+          : "At least 2 ready players are required when the lobby timer ends",
+    },
+    {
+      icon: Zap,
+      label:
+        roomView.room.roomType === "public" || roomView.room.roomType === "open"
+          ? "Symbol and timeframe stay hidden until match start"
+          : "Private rooms reveal the market only when the match begins",
     },
   ];
 
@@ -341,7 +355,7 @@ export function BattleLobbyClient({ session }: { session: BattleRoomSession }) {
               className="relative bg-[linear-gradient(180deg,rgba(7,11,13,0.94),rgba(4,7,9,0.94))] px-3 py-1.75"
               style={{ clipPath: PANEL_CLIP }}
             >
-              <div className="grid gap-1.75 lg:grid-cols-[10.75rem_repeat(3,minmax(0,1fr))] lg:items-center">
+              <div className="grid gap-1.75 lg:grid-cols-[10.75rem_repeat(4,minmax(0,1fr))] lg:items-center">
                 <div className="flex items-center gap-2 border-b border-white/8 pb-1.25 lg:border-b-0 lg:border-r lg:border-white/8 lg:pb-0 lg:pr-2.75">
                   <Flag className="h-4 w-4 text-[#19ff9d]" />
                   <p className="text-[0.84rem] font-semibold uppercase tracking-[0.04em] text-white">
@@ -422,7 +436,7 @@ function PlayerLobbyCard({
   player: BattleRoomPlayerSnapshot;
   position: number;
   viewerUserId: string;
-  roomType: "public" | "private";
+  roomType: "public" | "private" | "open";
   now: number | null;
 }) {
   const state = getPlayerDisplayState(player);
@@ -462,7 +476,7 @@ function PlayerLobbyCard({
                 <span className={cn("inline-flex rounded-full px-1.75 py-0.65 text-[0.52rem] font-bold uppercase tracking-[0.06em]", state.chipClassName)}>
                   {state.label}
                 </span>
-                {roomType === "private" && player.isCreator ? (
+                {(roomType === "private" || roomType === "open") && player.isCreator ? (
                   <span className="inline-flex rounded-full border border-white/14 bg-white/[0.05] px-1.75 py-0.55 text-[0.5rem] font-bold uppercase tracking-[0.08em] text-white/72">
                     Host
                   </span>

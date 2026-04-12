@@ -1,0 +1,251 @@
+[
+  {
+    "id": 1,
+    "size": 33,
+    "files": [
+      "package.json",
+      "scripts/battle-5p-e2e.mjs",
+      "scripts/battle-e2e.mjs",
+      "scripts/battle-participation-e2e.mjs",
+      "scripts/battle-results-e2e.mjs",
+      "scripts/battle-test-helpers.mjs",
+      "src/app/layout.tsx",
+      "src/features/battle/battle-home-client.tsx",
+      "src/features/battle/battle-lobby-client.tsx",
+      "src/features/battle/battle-lobby-page.tsx",
+      "src/features/battle/battle-match-client.tsx",
+      "src/features/battle/battle-match-page.tsx",
+      "src/features/battle/components/battle-scoreboard.tsx",
+      "src/features/battle/constants.ts",
+      "src/features/battle/formatters.ts",
+      "src/features/battle/hooks/use-battle-lobby.ts",
+      "src/features/battle/hooks/use-battle-match.ts",
+      "src/features/battle/hooks/use-battle-room-sync.ts",
+      "src/features/battle/lib/room-sync-store.ts",
+      "src/features/battle/types.ts",
+      "src/features/trading-shared/trade-core.ts",
+      "src/server/battle/actions.ts",
+      "src/server/battle/penalties.ts",
+      "src/server/battle/persist-room.ts",
+      "src/server/battle/queries.ts",
+      "src/server/battle/room-session.ts",
+      "src/server/battle/worker-client.ts",
+      "workers/battle-room/src/index.ts",
+      "workers/battle-room/src/protocol.ts",
+      "workers/battle-room/src/room.test.ts",
+      "workers/battle-room/src/room.ts",
+      "workers/battle-room/src/state.test.ts",
+      "workers/battle-room/src/state.ts"
+    ],
+    "maintainers": [
+      {
+        "person_id": "localtradings.com@gmail.com",
+        "name": "lanceian1978",
+        "touches": 124,
+        "touch_share": 1.0,
+        "recency_share": 1.0,
+        "sensitive_share": 0.0,
+        "primary_tz_offset": "+08:00"
+      }
+    ],
+    "bus_factor": 1,
+    "owner_count": 1,
+    "totals": {
+      "touches": 124,
+      "recency_weight": 121.531273,
+      "sensitive_weight": 0
+    }
+  },
+  {
+    "id": 2,
+    "size": 27,
+    "files": [
+      "src/app/(auth)/sign-in/page.tsx",
+      "src/app/(product)/app/backtesting/layout.tsx",
+      "src/app/(product)/app/layout.tsx",
+      "src/app/api/backtesting/candles/route.ts",
+      "src/components/layout/product-topbar.tsx",
+      "src/content/help/backtesting-controls.mdx",
+      "src/content/marketing/site-copy.ts",
+      "src/features/auth/sign-in-form.tsx",
+      "src/features/backtesting/components/backtest-chart-helpers.ts",
+      "src/features/backtesting/components/backtest-chart.tsx",
+      "src/features/backtesting/components/backtesting-client-shell.tsx",
+      "src/features/backtesting/components/backtesting-client.tsx",
+      "src/features/backtesting/components/backtesting-ui.tsx",
+      "src/features/backtesting/constants.ts",
+      "src/features/backtesting/hooks/use-backtesting-history-persistence.ts",
+      "src/features/backtesting/hooks/use-backtesting-workspace.ts",
+      "src/features/backtesting/types.ts",
+      "src/features/backtesting/utils/session-state.test.ts",
+      "src/features/backtesting/utils/session-state.ts",
+      "src/features/backtesting/utils/share-card.ts",
+      "src/features/backtesting/utils/trade-engine.test.ts",
+      "src/features/backtesting/utils/trade-engine.ts",
+      "src/features/backtesting/utils/workspace-helpers.test.ts",
+      "src/features/backtesting/utils/workspace-helpers.ts",
+      "src/server/backtesting/actions.ts",
+      "src/server/backtesting/provider-candles.ts",
+      "src/server/backtesting/queries.ts"
+    ],
+    "maintainers": [
+      {
+        "person_id": "localtradings.com@gmail.com",
+        "name": "lanceian1978",
+        "touches": 135,
+        "touch_share": 1.0,
+        "recency_share": 1.0,
+        "sensitive_share": 1.0,
+        "primary_tz_offset": "+08:00"
+      }
+    ],
+    "bus_factor": 1,
+    "owner_count": 1,
+    "totals": {
+      "touches": 135,
+      "recency_weight": 129.302726,
+      "sensitive_weight": 5.0
+    }
+  },
+  {
+    "id": 3,
+    "size": 8,
+    "files": [
+      "README.md",
+      "src/app/(product)/app/learn/layout.tsx",
+      "src/features/learn/learn-hub-client.tsx",
+      "src/features/learn/learn-progress-provider.tsx",
+      "src/features/learn/lesson-page-client.tsx",
+      "src/features/learn/module-page-client.tsx",
+      "src/server/learn/actions.ts",
+      "src/server/learn/queries.ts"
+    ],
+    "maintainers": [
+      {
+        "person_id": "localtradings.com@gmail.com",
+        "name": "lanceian1978",
+        "touches": 22,
+        "touch_share": 1.0,
+        "recency_share": 1.0,
+        "sensitive_share": 0.0,
+        "primary_tz_offset": "+08:00"
+      }
+    ],
+    "bus_factor": 1,
+    "owner_count": 1,
+    "totals": {
+      "touches": 22,
+      "recency_weight": 21.048211,
+      "sensitive_weight": 0
+    }
+  },
+  {
+    "id": 4,
+    "size": 5,
+    "files": [
+      "src/features/battle/battle-results-client.tsx",
+      "src/features/trading-shared/market.ts",
+      "src/lib/env.ts",
+      "src/server/battle/seed.ts",
+      "src/server/battle/twelve-data.ts"
+    ],
+    "maintainers": [
+      {
+        "person_id": "localtradings.com@gmail.com",
+        "name": "lanceian1978",
+        "touches": 14,
+        "touch_share": 1.0,
+        "recency_share": 1.0,
+        "sensitive_share": 0.0,
+        "primary_tz_offset": "+08:00"
+      }
+    ],
+    "bus_factor": 1,
+    "owner_count": 1,
+    "totals": {
+      "touches": 14,
+      "recency_weight": 13.67099,
+      "sensitive_weight": 0
+    }
+  },
+  {
+    "id": 5,
+    "size": 4,
+    "files": [
+      "src/app/(auth)/sign-up/page.tsx",
+      "src/features/auth/auth-form-ui.tsx",
+      "src/features/auth/sign-up-form.tsx",
+      "src/server/auth/actions.ts"
+    ],
+    "maintainers": [
+      {
+        "person_id": "localtradings.com@gmail.com",
+        "name": "lanceian1978",
+        "touches": 13,
+        "touch_share": 1.0,
+        "recency_share": 1.0,
+        "sensitive_share": 1.0,
+        "primary_tz_offset": "+08:00"
+      }
+    ],
+    "bus_factor": 1,
+    "owner_count": 1,
+    "totals": {
+      "touches": 13,
+      "recency_weight": 12.598088,
+      "sensitive_weight": 9.0
+    }
+  },
+  {
+    "id": 6,
+    "size": 2,
+    "files": [
+      "src/features/battle/lib/normalize-room-view.test.ts",
+      "src/features/battle/lib/normalize-room-view.ts"
+    ],
+    "maintainers": [
+      {
+        "person_id": "localtradings.com@gmail.com",
+        "name": "lanceian1978",
+        "touches": 4,
+        "touch_share": 1.0,
+        "recency_share": 1.0,
+        "sensitive_share": 0.0,
+        "primary_tz_offset": "+08:00"
+      }
+    ],
+    "bus_factor": 1,
+    "owner_count": 1,
+    "totals": {
+      "touches": 4,
+      "recency_weight": 3.941639,
+      "sensitive_weight": 0
+    }
+  },
+  {
+    "id": 7,
+    "size": 2,
+    "files": [
+      "src/components/layout/nav-link.tsx",
+      "src/components/layout/product-sidebar.tsx"
+    ],
+    "maintainers": [
+      {
+        "person_id": "localtradings.com@gmail.com",
+        "name": "lanceian1978",
+        "touches": 8,
+        "touch_share": 1.0,
+        "recency_share": 1.0,
+        "sensitive_share": 0.0,
+        "primary_tz_offset": "+08:00"
+      }
+    ],
+    "bus_factor": 1,
+    "owner_count": 1,
+    "totals": {
+      "touches": 8,
+      "recency_weight": 7.613768,
+      "sensitive_weight": 0
+    }
+  }
+]

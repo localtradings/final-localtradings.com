@@ -46,6 +46,8 @@ function createActiveRoom(): WorkerBattleRoomState {
     roomType: "private",
     phase: "active",
     durationMinutes: 10,
+    riskLimitPercent: null,
+    maxDrawdownPercent: null,
     symbol: "XAUUSD",
     timeframe: "15min",
     maxPlayers: 5,
@@ -99,6 +101,8 @@ function createLobbyRoom(): WorkerBattleRoomState {
     roomType: "public",
     phase: "lobby",
     durationMinutes: 10,
+    riskLimitPercent: 2,
+    maxDrawdownPercent: 10,
     symbol: null,
     timeframe: null,
     maxPlayers: 5,
@@ -242,6 +246,186 @@ describe("BattleRoomDO", () => {
     expect(storage.getRoom().playerStates["user-1"].replayIndex).toBe(4);
     expect(fetchSpy).not.toHaveBeenCalled();
     fetchSpy.mockRestore();
+  });
+
+  it("rejects public trades above the 2% risk cap", async () => {
+    const room = createActiveRoom();
+    room.roomType = "public";
+    room.durationMinutes = 15;
+    room.riskLimitPercent = 2;
+    room.maxDrawdownPercent = 10;
+    const storage = createStorage(room);
+    const battleRoom = new BattleRoomDO(
+      { storage: storage.storage } as never,
+      {
+        APP_BASE_URL: "http://127.0.0.1:3000",
+        BATTLE_SHARED_SECRET: "test-secret",
+      } as never,
+    );
+
+    const response = await battleRoom.fetch(
+      new Request("https://battle-room/open-trade", {
+        method: "POST",
+        body: JSON.stringify({
+          userId: "user-1",
+          replayIndex: 0,
+          direction: "Long",
+          orderType: "market",
+          entryPrice: null,
+          stopLoss: 99,
+          takeProfit: 102,
+          riskPercent: 2.01,
+        }),
+      }),
+    );
+    const payload = (await response.json()) as { reason: string; message: string };
+
+    expect(response.ok).toBe(false);
+    expect(payload.reason).toBe("invalid_trade_payload");
+    expect(payload.message).toContain("2.00%");
+  });
+
+  it("accepts public trades at the 2% risk cap", async () => {
+    const room = createActiveRoom();
+    room.roomType = "public";
+    room.durationMinutes = 15;
+    room.riskLimitPercent = 2;
+    room.maxDrawdownPercent = 10;
+    const storage = createStorage(room);
+    const battleRoom = new BattleRoomDO(
+      { storage: storage.storage } as never,
+      {
+        APP_BASE_URL: "http://127.0.0.1:3000",
+        BATTLE_SHARED_SECRET: "test-secret",
+      } as never,
+    );
+
+    const response = await battleRoom.fetch(
+      new Request("https://battle-room/open-trade", {
+        method: "POST",
+        body: JSON.stringify({
+          userId: "user-1",
+          replayIndex: 0,
+          direction: "Long",
+          orderType: "market",
+          entryPrice: null,
+          stopLoss: 99,
+          takeProfit: 102,
+          riskPercent: 2,
+        }),
+      }),
+    );
+    const payload = (await response.json()) as { ok: boolean; data: { room: { self: { execution: { riskPercent: number } } } } };
+
+    expect(response.ok).toBe(true);
+    expect(payload.data.room.self.execution.riskPercent).toBe(2);
+  });
+
+  it("locks the player when realized drawdown drops below 90,000", async () => {
+    const room = createActiveRoom();
+    room.roomType = "public";
+    room.durationMinutes = 15;
+    room.riskLimitPercent = 2;
+    room.maxDrawdownPercent = 10;
+    room.players[0].officialBalance = 90_049;
+    room.playerStates["user-1"].execution = {
+      id: "trade-1",
+      status: "active",
+      direction: "Long",
+      orderType: "market",
+      entry: 100,
+      stop: 95,
+      target: 105,
+      riskPercent: 2,
+      riskAmount: 2_000,
+      volume: 10,
+      balanceBeforeTrade: 90_049,
+      openedAtIndex: 0,
+      openedAtTime: 1,
+      closedAtIndex: null,
+      closedAtTime: null,
+      exitPrice: null,
+      resultR: null,
+      resultAmount: null,
+      balanceAfterTrade: null,
+      maxFavorableR: null,
+      maxAdverseR: null,
+      durationBars: null,
+    };
+    room.candles[1] = { time: 2, open: 100, high: 100, low: 94.9, close: 94.9, volume: 10 };
+    const storage = createStorage(room);
+    const battleRoom = new BattleRoomDO(
+      { storage: storage.storage } as never,
+      {
+        APP_BASE_URL: "http://127.0.0.1:3000",
+        BATTLE_SHARED_SECRET: "test-secret",
+      } as never,
+    );
+
+    const response = await battleRoom.fetch(
+      new Request("https://battle-room/sync-replay", {
+        method: "POST",
+        body: JSON.stringify({ userId: "user-1", replayIndex: 1 }),
+      }),
+    );
+
+    expect(response.ok).toBe(true);
+    expect(storage.getRoom().players[0].officialBalance).toBeLessThan(90_000);
+    expect(storage.getRoom().players[0].status).toBe("drawdown_limit");
+    expect(storage.getRoom().playerStates["user-1"].execution).toBeNull();
+  });
+
+  it("does not lock the player at exactly 90,000 realized balance", async () => {
+    const room = createActiveRoom();
+    room.roomType = "public";
+    room.durationMinutes = 15;
+    room.riskLimitPercent = 2;
+    room.maxDrawdownPercent = 10;
+    room.players[0].officialBalance = 90_050;
+    room.playerStates["user-1"].execution = {
+      id: "trade-1",
+      status: "active",
+      direction: "Long",
+      orderType: "market",
+      entry: 100,
+      stop: 95,
+      target: 105,
+      riskPercent: 2,
+      riskAmount: 2_000,
+      volume: 10,
+      balanceBeforeTrade: 90_050,
+      openedAtIndex: 0,
+      openedAtTime: 1,
+      closedAtIndex: null,
+      closedAtTime: null,
+      exitPrice: null,
+      resultR: null,
+      resultAmount: null,
+      balanceAfterTrade: null,
+      maxFavorableR: null,
+      maxAdverseR: null,
+      durationBars: null,
+    };
+    room.candles[1] = { time: 2, open: 100, high: 100, low: 95, close: 95, volume: 10 };
+    const storage = createStorage(room);
+    const battleRoom = new BattleRoomDO(
+      { storage: storage.storage } as never,
+      {
+        APP_BASE_URL: "http://127.0.0.1:3000",
+        BATTLE_SHARED_SECRET: "test-secret",
+      } as never,
+    );
+
+    const response = await battleRoom.fetch(
+      new Request("https://battle-room/sync-replay", {
+        method: "POST",
+        body: JSON.stringify({ userId: "user-1", replayIndex: 1 }),
+      }),
+    );
+
+    expect(response.ok).toBe(true);
+    expect(storage.getRoom().players[0].officialBalance).toBe(90_000);
+    expect(storage.getRoom().players[0].status).toBe("active");
   });
 
   it("rejects replay checkpoints beyond the unlocked live frontier", async () => {

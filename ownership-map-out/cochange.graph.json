@@ -1,0 +1,3556 @@
+{
+  "directed": false,
+  "multigraph": false,
+  "graph": {
+    "community_maintainers": [
+      {
+        "id": 1,
+        "size": 33,
+        "maintainers": [
+          {
+            "person_id": "localtradings.com@gmail.com",
+            "name": "lanceian1978",
+            "touches": 124,
+            "touch_share": 1.0,
+            "recency_share": 1.0,
+            "sensitive_share": 0.0,
+            "primary_tz_offset": "+08:00"
+          }
+        ],
+        "bus_factor": 1,
+        "owner_count": 1,
+        "totals": {
+          "touches": 124,
+          "recency_weight": 121.531273,
+          "sensitive_weight": 0
+        }
+      },
+      {
+        "id": 2,
+        "size": 27,
+        "maintainers": [
+          {
+            "person_id": "localtradings.com@gmail.com",
+            "name": "lanceian1978",
+            "touches": 135,
+            "touch_share": 1.0,
+            "recency_share": 1.0,
+            "sensitive_share": 1.0,
+            "primary_tz_offset": "+08:00"
+          }
+        ],
+        "bus_factor": 1,
+        "owner_count": 1,
+        "totals": {
+          "touches": 135,
+          "recency_weight": 129.302726,
+          "sensitive_weight": 5.0
+        }
+      },
+      {
+        "id": 3,
+        "size": 8,
+        "maintainers": [
+          {
+            "person_id": "localtradings.com@gmail.com",
+            "name": "lanceian1978",
+            "touches": 22,
+            "touch_share": 1.0,
+            "recency_share": 1.0,
+            "sensitive_share": 0.0,
+            "primary_tz_offset": "+08:00"
+          }
+        ],
+        "bus_factor": 1,
+        "owner_count": 1,
+        "totals": {
+          "touches": 22,
+          "recency_weight": 21.048211,
+          "sensitive_weight": 0
+        }
+      },
+      {
+        "id": 4,
+        "size": 5,
+        "maintainers": [
+          {
+            "person_id": "localtradings.com@gmail.com",
+            "name": "lanceian1978",
+            "touches": 14,
+            "touch_share": 1.0,
+            "recency_share": 1.0,
+            "sensitive_share": 0.0,
+            "primary_tz_offset": "+08:00"
+          }
+        ],
+        "bus_factor": 1,
+        "owner_count": 1,
+        "totals": {
+          "touches": 14,
+          "recency_weight": 13.67099,
+          "sensitive_weight": 0
+        }
+      },
+      {
+        "id": 5,
+        "size": 4,
+        "maintainers": [
+          {
+            "person_id": "localtradings.com@gmail.com",
+            "name": "lanceian1978",
+            "touches": 13,
+            "touch_share": 1.0,
+            "recency_share": 1.0,
+            "sensitive_share": 1.0,
+            "primary_tz_offset": "+08:00"
+          }
+        ],
+        "bus_factor": 1,
+        "owner_count": 1,
+        "totals": {
+          "touches": 13,
+          "recency_weight": 12.598088,
+          "sensitive_weight": 9.0
+        }
+      },
+      {
+        "id": 6,
+        "size": 2,
+        "maintainers": [
+          {
+            "person_id": "localtradings.com@gmail.com",
+            "name": "lanceian1978",
+            "touches": 4,
+            "touch_share": 1.0,
+            "recency_share": 1.0,
+            "sensitive_share": 0.0,
+            "primary_tz_offset": "+08:00"
+          }
+        ],
+        "bus_factor": 1,
+        "owner_count": 1,
+        "totals": {
+          "touches": 4,
+          "recency_weight": 3.941639,
+          "sensitive_weight": 0
+        }
+      },
+      {
+        "id": 7,
+        "size": 2,
+        "maintainers": [
+          {
+            "person_id": "localtradings.com@gmail.com",
+            "name": "lanceian1978",
+            "touches": 8,
+            "touch_share": 1.0,
+            "recency_share": 1.0,
+            "sensitive_share": 0.0,
+            "primary_tz_offset": "+08:00"
+          }
+        ],
+        "bus_factor": 1,
+        "owner_count": 1,
+        "totals": {
+          "touches": 8,
+          "recency_weight": 7.613768,
+          "sensitive_weight": 0
+        }
+      }
+    ]
+  },
+  "nodes": [
+    {
+      "community_id": 1,
+      "id": "src/features/battle/battle-home-client.tsx"
+    },
+    {
+      "community_id": 1,
+      "id": "src/features/battle/battle-match-client.tsx"
+    },
+    {
+      "community_id": 1,
+      "id": "src/features/battle/constants.ts"
+    },
+    {
+      "community_id": 1,
+      "id": "src/server/battle/queries.ts"
+    },
+    {
+      "community_id": 1,
+      "id": "workers/battle-room/src/protocol.ts"
+    },
+    {
+      "community_id": 1,
+      "id": "workers/battle-room/src/room.test.ts"
+    },
+    {
+      "community_id": 1,
+      "id": "workers/battle-room/src/room.ts"
+    },
+    {
+      "community_id": 2,
+      "id": "src/app/(auth)/sign-in/page.tsx"
+    },
+    {
+      "community_id": 2,
+      "id": "src/app/api/backtesting/candles/route.ts"
+    },
+    {
+      "community_id": 2,
+      "id": "src/features/auth/sign-in-form.tsx"
+    },
+    {
+      "community_id": 2,
+      "id": "src/features/backtesting/constants.ts"
+    },
+    {
+      "community_id": 2,
+      "id": "src/features/backtesting/hooks/use-backtesting-workspace.ts"
+    },
+    {
+      "community_id": 2,
+      "id": "src/server/backtesting/actions.ts"
+    },
+    {
+      "community_id": 2,
+      "id": "src/server/backtesting/provider-candles.ts"
+    },
+    {
+      "community_id": 5,
+      "id": "src/app/(auth)/sign-up/page.tsx"
+    },
+    {
+      "community_id": 5,
+      "id": "src/features/auth/auth-form-ui.tsx"
+    },
+    {
+      "community_id": 5,
+      "id": "src/features/auth/sign-up-form.tsx"
+    },
+    {
+      "community_id": 5,
+      "id": "src/server/auth/actions.ts"
+    },
+    {
+      "community_id": 4,
+      "id": "src/features/battle/battle-results-client.tsx"
+    },
+    {
+      "community_id": 4,
+      "id": "src/features/trading-shared/market.ts"
+    },
+    {
+      "community_id": 4,
+      "id": "src/lib/env.ts"
+    },
+    {
+      "community_id": 4,
+      "id": "src/server/battle/seed.ts"
+    },
+    {
+      "community_id": 4,
+      "id": "src/server/battle/twelve-data.ts"
+    },
+    {
+      "community_id": 1,
+      "id": "scripts/battle-results-e2e.mjs"
+    },
+    {
+      "community_id": 1,
+      "id": "src/features/battle/components/battle-scoreboard.tsx"
+    },
+    {
+      "community_id": 1,
+      "id": "src/features/battle/battle-match-page.tsx"
+    },
+    {
+      "community_id": 1,
+      "id": "src/features/battle/hooks/use-battle-match.ts"
+    },
+    {
+      "community_id": 1,
+      "id": "src/features/battle/lib/room-sync-store.ts"
+    },
+    {
+      "community_id": 1,
+      "id": "src/features/battle/types.ts"
+    },
+    {
+      "community_id": 1,
+      "id": "workers/battle-room/src/state.test.ts"
+    },
+    {
+      "community_id": 1,
+      "id": "workers/battle-room/src/state.ts"
+    },
+    {
+      "community_id": 6,
+      "id": "src/features/battle/lib/normalize-room-view.test.ts"
+    },
+    {
+      "community_id": 6,
+      "id": "src/features/battle/lib/normalize-room-view.ts"
+    },
+    {
+      "community_id": 1,
+      "id": "scripts/battle-5p-e2e.mjs"
+    },
+    {
+      "community_id": 1,
+      "id": "scripts/battle-e2e.mjs"
+    },
+    {
+      "community_id": 1,
+      "id": "scripts/battle-test-helpers.mjs"
+    },
+    {
+      "community_id": 1,
+      "id": "src/server/battle/persist-room.ts"
+    },
+    {
+      "community_id": 1,
+      "id": "package.json"
+    },
+    {
+      "community_id": 1,
+      "id": "scripts/battle-participation-e2e.mjs"
+    },
+    {
+      "community_id": 1,
+      "id": "src/features/battle/battle-lobby-client.tsx"
+    },
+    {
+      "community_id": 1,
+      "id": "src/features/battle/hooks/use-battle-lobby.ts"
+    },
+    {
+      "community_id": 1,
+      "id": "src/server/battle/actions.ts"
+    },
+    {
+      "community_id": 1,
+      "id": "workers/battle-room/src/index.ts"
+    },
+    {
+      "community_id": 1,
+      "id": "src/server/battle/worker-client.ts"
+    },
+    {
+      "community_id": 1,
+      "id": "src/app/layout.tsx"
+    },
+    {
+      "community_id": 2,
+      "id": "src/features/backtesting/components/backtest-chart.tsx"
+    },
+    {
+      "community_id": 2,
+      "id": "src/features/backtesting/components/backtesting-ui.tsx"
+    },
+    {
+      "community_id": 2,
+      "id": "src/features/backtesting/utils/trade-engine.ts"
+    },
+    {
+      "community_id": 1,
+      "id": "src/features/battle/battle-lobby-page.tsx"
+    },
+    {
+      "community_id": 1,
+      "id": "src/features/battle/formatters.ts"
+    },
+    {
+      "community_id": 1,
+      "id": "src/features/battle/hooks/use-battle-room-sync.ts"
+    },
+    {
+      "community_id": 1,
+      "id": "src/features/trading-shared/trade-core.ts"
+    },
+    {
+      "community_id": 1,
+      "id": "src/server/battle/penalties.ts"
+    },
+    {
+      "community_id": 1,
+      "id": "src/server/battle/room-session.ts"
+    },
+    {
+      "community_id": 7,
+      "id": "src/components/layout/nav-link.tsx"
+    },
+    {
+      "community_id": 7,
+      "id": "src/components/layout/product-sidebar.tsx"
+    },
+    {
+      "community_id": 2,
+      "id": "src/features/backtesting/hooks/use-backtesting-history-persistence.ts"
+    },
+    {
+      "community_id": 2,
+      "id": "src/content/marketing/site-copy.ts"
+    },
+    {
+      "community_id": 2,
+      "id": "src/features/backtesting/types.ts"
+    },
+    {
+      "community_id": 2,
+      "id": "src/server/backtesting/queries.ts"
+    },
+    {
+      "community_id": 2,
+      "id": "src/content/help/backtesting-controls.mdx"
+    },
+    {
+      "community_id": 2,
+      "id": "src/features/backtesting/utils/share-card.ts"
+    },
+    {
+      "community_id": 2,
+      "id": "src/features/backtesting/utils/session-state.test.ts"
+    },
+    {
+      "community_id": 2,
+      "id": "src/features/backtesting/utils/session-state.ts"
+    },
+    {
+      "community_id": 2,
+      "id": "src/features/backtesting/utils/trade-engine.test.ts"
+    },
+    {
+      "community_id": 2,
+      "id": "src/features/backtesting/utils/workspace-helpers.test.ts"
+    },
+    {
+      "community_id": 2,
+      "id": "src/features/backtesting/utils/workspace-helpers.ts"
+    },
+    {
+      "community_id": 2,
+      "id": "src/app/(product)/app/backtesting/layout.tsx"
+    },
+    {
+      "community_id": 2,
+      "id": "src/features/backtesting/components/backtesting-client-shell.tsx"
+    },
+    {
+      "community_id": 2,
+      "id": "src/features/backtesting/components/backtesting-client.tsx"
+    },
+    {
+      "community_id": 2,
+      "id": "src/app/(product)/app/layout.tsx"
+    },
+    {
+      "community_id": 2,
+      "id": "src/features/backtesting/components/backtest-chart-helpers.ts"
+    },
+    {
+      "community_id": 3,
+      "id": "README.md"
+    },
+    {
+      "community_id": 3,
+      "id": "src/app/(product)/app/learn/layout.tsx"
+    },
+    {
+      "community_id": 3,
+      "id": "src/features/learn/learn-hub-client.tsx"
+    },
+    {
+      "community_id": 3,
+      "id": "src/features/learn/learn-progress-provider.tsx"
+    },
+    {
+      "community_id": 3,
+      "id": "src/features/learn/lesson-page-client.tsx"
+    },
+    {
+      "community_id": 3,
+      "id": "src/features/learn/module-page-client.tsx"
+    },
+    {
+      "community_id": 3,
+      "id": "src/server/learn/actions.ts"
+    },
+    {
+      "community_id": 3,
+      "id": "src/server/learn/queries.ts"
+    },
+    {
+      "community_id": 2,
+      "id": "src/components/layout/product-topbar.tsx"
+    }
+  ],
+  "edges": [
+    {
+      "weight": 0.25,
+      "count": 2,
+      "source": "src/features/battle/battle-home-client.tsx",
+      "target": "src/features/battle/battle-match-client.tsx"
+    },
+    {
+      "weight": 0.4,
+      "count": 2,
+      "source": "src/features/battle/battle-home-client.tsx",
+      "target": "src/features/battle/constants.ts"
+    },
+    {
+      "weight": 0.5,
+      "count": 2,
+      "source": "src/features/battle/battle-home-client.tsx",
+      "target": "src/server/battle/queries.ts"
+    },
+    {
+      "weight": 0.2,
+      "count": 2,
+      "source": "src/features/battle/battle-home-client.tsx",
+      "target": "src/features/battle/hooks/use-battle-match.ts"
+    },
+    {
+      "weight": 0.4,
+      "count": 2,
+      "source": "src/features/battle/battle-home-client.tsx",
+      "target": "src/server/battle/worker-client.ts"
+    },
+    {
+      "weight": 0.571429,
+      "count": 4,
+      "source": "src/features/battle/battle-match-client.tsx",
+      "target": "src/features/battle/constants.ts"
+    },
+    {
+      "weight": 0.428571,
+      "count": 3,
+      "source": "src/features/battle/battle-match-client.tsx",
+      "target": "src/server/battle/queries.ts"
+    },
+    {
+      "weight": 0.25,
+      "count": 2,
+      "source": "src/features/battle/battle-match-client.tsx",
+      "target": "workers/battle-room/src/protocol.ts"
+    },
+    {
+      "weight": 0.333333,
+      "count": 3,
+      "source": "src/features/battle/battle-match-client.tsx",
+      "target": "workers/battle-room/src/room.test.ts"
+    },
+    {
+      "weight": 0.333333,
+      "count": 3,
+      "source": "src/features/battle/battle-match-client.tsx",
+      "target": "workers/battle-room/src/room.ts"
+    },
+    {
+      "weight": 0.375,
+      "count": 3,
+      "source": "src/features/battle/battle-match-client.tsx",
+      "target": "scripts/battle-results-e2e.mjs"
+    },
+    {
+      "weight": 0.222222,
+      "count": 2,
+      "source": "src/features/battle/battle-match-client.tsx",
+      "target": "src/features/battle/battle-results-client.tsx"
+    },
+    {
+      "weight": 0.714286,
+      "count": 5,
+      "source": "src/features/battle/battle-match-client.tsx",
+      "target": "src/features/battle/components/battle-scoreboard.tsx"
+    },
+    {
+      "weight": 0.454545,
+      "count": 5,
+      "source": "src/features/battle/battle-match-client.tsx",
+      "target": "src/features/battle/hooks/use-battle-match.ts"
+    },
+    {
+      "weight": 0.181818,
+      "count": 2,
+      "source": "src/features/battle/battle-match-client.tsx",
+      "target": "package.json"
+    },
+    {
+      "weight": 0.25,
+      "count": 2,
+      "source": "src/features/battle/battle-match-client.tsx",
+      "target": "scripts/battle-5p-e2e.mjs"
+    },
+    {
+      "weight": 0.2,
+      "count": 2,
+      "source": "src/features/battle/battle-match-client.tsx",
+      "target": "scripts/battle-e2e.mjs"
+    },
+    {
+      "weight": 0.285714,
+      "count": 2,
+      "source": "src/features/battle/battle-match-client.tsx",
+      "target": "scripts/battle-participation-e2e.mjs"
+    },
+    {
+      "weight": 0.25,
+      "count": 2,
+      "source": "src/features/battle/battle-match-client.tsx",
+      "target": "scripts/battle-test-helpers.mjs"
+    },
+    {
+      "weight": 0.428571,
+      "count": 3,
+      "source": "src/features/battle/battle-match-client.tsx",
+      "target": "src/features/battle/battle-lobby-client.tsx"
+    },
+    {
+      "weight": 0.428571,
+      "count": 3,
+      "source": "src/features/battle/battle-match-client.tsx",
+      "target": "src/features/battle/hooks/use-battle-lobby.ts"
+    },
+    {
+      "weight": 0.222222,
+      "count": 2,
+      "source": "src/features/battle/battle-match-client.tsx",
+      "target": "src/features/battle/lib/room-sync-store.ts"
+    },
+    {
+      "weight": 0.375,
+      "count": 3,
+      "source": "src/features/battle/battle-match-client.tsx",
+      "target": "src/server/battle/actions.ts"
+    },
+    {
+      "weight": 0.285714,
+      "count": 2,
+      "source": "src/features/battle/battle-match-client.tsx",
+      "target": "workers/battle-room/src/index.ts"
+    },
+    {
+      "weight": 0.285714,
+      "count": 2,
+      "source": "src/features/battle/battle-match-client.tsx",
+      "target": "src/features/battle/battle-lobby-page.tsx"
+    },
+    {
+      "weight": 0.25,
+      "count": 2,
+      "source": "src/features/battle/battle-match-client.tsx",
+      "target": "src/features/battle/battle-match-page.tsx"
+    },
+    {
+      "weight": 0.285714,
+      "count": 2,
+      "source": "src/features/battle/battle-match-client.tsx",
+      "target": "src/features/battle/formatters.ts"
+    },
+    {
+      "weight": 0.285714,
+      "count": 2,
+      "source": "src/features/battle/battle-match-client.tsx",
+      "target": "src/features/battle/hooks/use-battle-room-sync.ts"
+    },
+    {
+      "weight": 0.25,
+      "count": 2,
+      "source": "src/features/battle/battle-match-client.tsx",
+      "target": "src/features/battle/types.ts"
+    },
+    {
+      "weight": 0.285714,
+      "count": 2,
+      "source": "src/features/battle/battle-match-client.tsx",
+      "target": "src/features/trading-shared/trade-core.ts"
+    },
+    {
+      "weight": 0.285714,
+      "count": 2,
+      "source": "src/features/battle/battle-match-client.tsx",
+      "target": "src/server/battle/penalties.ts"
+    },
+    {
+      "weight": 0.285714,
+      "count": 2,
+      "source": "src/features/battle/battle-match-client.tsx",
+      "target": "src/server/battle/room-session.ts"
+    },
+    {
+      "weight": 0.222222,
+      "count": 2,
+      "source": "src/features/battle/battle-match-client.tsx",
+      "target": "src/server/battle/worker-client.ts"
+    },
+    {
+      "weight": 0.75,
+      "count": 3,
+      "source": "src/features/battle/constants.ts",
+      "target": "src/server/battle/queries.ts"
+    },
+    {
+      "weight": 0.4,
+      "count": 2,
+      "source": "src/features/battle/constants.ts",
+      "target": "workers/battle-room/src/protocol.ts"
+    },
+    {
+      "weight": 0.5,
+      "count": 3,
+      "source": "src/features/battle/constants.ts",
+      "target": "workers/battle-room/src/room.test.ts"
+    },
+    {
+      "weight": 0.5,
+      "count": 3,
+      "source": "src/features/battle/constants.ts",
+      "target": "workers/battle-room/src/room.ts"
+    },
+    {
+      "weight": 0.25,
+      "count": 2,
+      "source": "src/features/battle/constants.ts",
+      "target": "package.json"
+    },
+    {
+      "weight": 0.4,
+      "count": 2,
+      "source": "src/features/battle/constants.ts",
+      "target": "scripts/battle-5p-e2e.mjs"
+    },
+    {
+      "weight": 0.285714,
+      "count": 2,
+      "source": "src/features/battle/constants.ts",
+      "target": "scripts/battle-e2e.mjs"
+    },
+    {
+      "weight": 0.5,
+      "count": 2,
+      "source": "src/features/battle/constants.ts",
+      "target": "scripts/battle-participation-e2e.mjs"
+    },
+    {
+      "weight": 0.333333,
+      "count": 2,
+      "source": "src/features/battle/constants.ts",
+      "target": "scripts/battle-results-e2e.mjs"
+    },
+    {
+      "weight": 0.4,
+      "count": 2,
+      "source": "src/features/battle/constants.ts",
+      "target": "scripts/battle-test-helpers.mjs"
+    },
+    {
+      "weight": 0.75,
+      "count": 3,
+      "source": "src/features/battle/constants.ts",
+      "target": "src/features/battle/battle-lobby-client.tsx"
+    },
+    {
+      "weight": 0.5,
+      "count": 3,
+      "source": "src/features/battle/constants.ts",
+      "target": "src/features/battle/components/battle-scoreboard.tsx"
+    },
+    {
+      "weight": 0.75,
+      "count": 3,
+      "source": "src/features/battle/constants.ts",
+      "target": "src/features/battle/hooks/use-battle-lobby.ts"
+    },
+    {
+      "weight": 0.3,
+      "count": 3,
+      "source": "src/features/battle/constants.ts",
+      "target": "src/features/battle/hooks/use-battle-match.ts"
+    },
+    {
+      "weight": 0.333333,
+      "count": 2,
+      "source": "src/features/battle/constants.ts",
+      "target": "src/features/battle/lib/room-sync-store.ts"
+    },
+    {
+      "weight": 0.6,
+      "count": 3,
+      "source": "src/features/battle/constants.ts",
+      "target": "src/server/battle/actions.ts"
+    },
+    {
+      "weight": 0.5,
+      "count": 2,
+      "source": "src/features/battle/constants.ts",
+      "target": "workers/battle-room/src/index.ts"
+    },
+    {
+      "weight": 0.5,
+      "count": 2,
+      "source": "src/features/battle/constants.ts",
+      "target": "src/features/battle/battle-lobby-page.tsx"
+    },
+    {
+      "weight": 0.4,
+      "count": 2,
+      "source": "src/features/battle/constants.ts",
+      "target": "src/features/battle/battle-match-page.tsx"
+    },
+    {
+      "weight": 0.5,
+      "count": 2,
+      "source": "src/features/battle/constants.ts",
+      "target": "src/features/battle/formatters.ts"
+    },
+    {
+      "weight": 0.5,
+      "count": 2,
+      "source": "src/features/battle/constants.ts",
+      "target": "src/features/battle/hooks/use-battle-room-sync.ts"
+    },
+    {
+      "weight": 0.4,
+      "count": 2,
+      "source": "src/features/battle/constants.ts",
+      "target": "src/features/battle/types.ts"
+    },
+    {
+      "weight": 0.5,
+      "count": 2,
+      "source": "src/features/battle/constants.ts",
+      "target": "src/features/trading-shared/trade-core.ts"
+    },
+    {
+      "weight": 0.5,
+      "count": 2,
+      "source": "src/features/battle/constants.ts",
+      "target": "src/server/battle/penalties.ts"
+    },
+    {
+      "weight": 0.5,
+      "count": 2,
+      "source": "src/features/battle/constants.ts",
+      "target": "src/server/battle/room-session.ts"
+    },
+    {
+      "weight": 0.333333,
+      "count": 2,
+      "source": "src/features/battle/constants.ts",
+      "target": "src/server/battle/worker-client.ts"
+    },
+    {
+      "weight": 0.5,
+      "count": 2,
+      "source": "src/server/battle/queries.ts",
+      "target": "workers/battle-room/src/protocol.ts"
+    },
+    {
+      "weight": 0.333333,
+      "count": 2,
+      "source": "src/server/battle/queries.ts",
+      "target": "workers/battle-room/src/room.test.ts"
+    },
+    {
+      "weight": 0.333333,
+      "count": 2,
+      "source": "src/server/battle/queries.ts",
+      "target": "workers/battle-room/src/room.ts"
+    },
+    {
+      "weight": 0.5,
+      "count": 2,
+      "source": "src/server/battle/queries.ts",
+      "target": "src/features/battle/battle-lobby-client.tsx"
+    },
+    {
+      "weight": 0.666667,
+      "count": 2,
+      "source": "src/server/battle/queries.ts",
+      "target": "src/features/battle/battle-lobby-page.tsx"
+    },
+    {
+      "weight": 0.5,
+      "count": 2,
+      "source": "src/server/battle/queries.ts",
+      "target": "src/features/battle/battle-match-page.tsx"
+    },
+    {
+      "weight": 0.333333,
+      "count": 2,
+      "source": "src/server/battle/queries.ts",
+      "target": "src/features/battle/components/battle-scoreboard.tsx"
+    },
+    {
+      "weight": 0.666667,
+      "count": 2,
+      "source": "src/server/battle/queries.ts",
+      "target": "src/features/battle/formatters.ts"
+    },
+    {
+      "weight": 0.5,
+      "count": 2,
+      "source": "src/server/battle/queries.ts",
+      "target": "src/features/battle/hooks/use-battle-lobby.ts"
+    },
+    {
+      "weight": 0.2,
+      "count": 2,
+      "source": "src/server/battle/queries.ts",
+      "target": "src/features/battle/hooks/use-battle-match.ts"
+    },
+    {
+      "weight": 0.666667,
+      "count": 2,
+      "source": "src/server/battle/queries.ts",
+      "target": "src/features/battle/hooks/use-battle-room-sync.ts"
+    },
+    {
+      "weight": 0.5,
+      "count": 2,
+      "source": "src/server/battle/queries.ts",
+      "target": "src/features/battle/types.ts"
+    },
+    {
+      "weight": 0.666667,
+      "count": 2,
+      "source": "src/server/battle/queries.ts",
+      "target": "src/features/trading-shared/trade-core.ts"
+    },
+    {
+      "weight": 0.4,
+      "count": 2,
+      "source": "src/server/battle/queries.ts",
+      "target": "src/server/battle/actions.ts"
+    },
+    {
+      "weight": 0.666667,
+      "count": 2,
+      "source": "src/server/battle/queries.ts",
+      "target": "src/server/battle/penalties.ts"
+    },
+    {
+      "weight": 0.666667,
+      "count": 2,
+      "source": "src/server/battle/queries.ts",
+      "target": "src/server/battle/room-session.ts"
+    },
+    {
+      "weight": 0.4,
+      "count": 2,
+      "source": "src/server/battle/queries.ts",
+      "target": "src/server/battle/worker-client.ts"
+    },
+    {
+      "weight": 0.6,
+      "count": 3,
+      "source": "workers/battle-room/src/protocol.ts",
+      "target": "workers/battle-room/src/room.test.ts"
+    },
+    {
+      "weight": 0.6,
+      "count": 3,
+      "source": "workers/battle-room/src/protocol.ts",
+      "target": "workers/battle-room/src/room.ts"
+    },
+    {
+      "weight": 0.4,
+      "count": 2,
+      "source": "workers/battle-room/src/protocol.ts",
+      "target": "scripts/battle-results-e2e.mjs"
+    },
+    {
+      "weight": 0.5,
+      "count": 2,
+      "source": "workers/battle-room/src/protocol.ts",
+      "target": "src/features/battle/battle-match-page.tsx"
+    },
+    {
+      "weight": 0.2,
+      "count": 2,
+      "source": "workers/battle-room/src/protocol.ts",
+      "target": "src/features/battle/hooks/use-battle-match.ts"
+    },
+    {
+      "weight": 0.4,
+      "count": 2,
+      "source": "workers/battle-room/src/protocol.ts",
+      "target": "src/features/battle/lib/room-sync-store.ts"
+    },
+    {
+      "weight": 0.5,
+      "count": 2,
+      "source": "workers/battle-room/src/protocol.ts",
+      "target": "src/features/battle/types.ts"
+    },
+    {
+      "weight": 0.666667,
+      "count": 2,
+      "source": "workers/battle-room/src/protocol.ts",
+      "target": "workers/battle-room/src/state.test.ts"
+    },
+    {
+      "weight": 0.666667,
+      "count": 2,
+      "source": "workers/battle-room/src/protocol.ts",
+      "target": "workers/battle-room/src/state.ts"
+    },
+    {
+      "weight": 1.0,
+      "count": 5,
+      "source": "workers/battle-room/src/room.test.ts",
+      "target": "workers/battle-room/src/room.ts"
+    },
+    {
+      "weight": 0.285714,
+      "count": 2,
+      "source": "workers/battle-room/src/room.test.ts",
+      "target": "src/features/battle/battle-results-client.tsx"
+    },
+    {
+      "weight": 0.5,
+      "count": 3,
+      "source": "workers/battle-room/src/room.test.ts",
+      "target": "scripts/battle-results-e2e.mjs"
+    },
+    {
+      "weight": 0.333333,
+      "count": 2,
+      "source": "workers/battle-room/src/room.test.ts",
+      "target": "src/features/battle/battle-match-page.tsx"
+    },
+    {
+      "weight": 0.272727,
+      "count": 3,
+      "source": "workers/battle-room/src/room.test.ts",
+      "target": "src/features/battle/hooks/use-battle-match.ts"
+    },
+    {
+      "weight": 0.5,
+      "count": 3,
+      "source": "workers/battle-room/src/room.test.ts",
+      "target": "src/features/battle/lib/room-sync-store.ts"
+    },
+    {
+      "weight": 0.333333,
+      "count": 2,
+      "source": "workers/battle-room/src/room.test.ts",
+      "target": "src/features/battle/types.ts"
+    },
+    {
+      "weight": 0.4,
+      "count": 2,
+      "source": "workers/battle-room/src/room.test.ts",
+      "target": "workers/battle-room/src/state.test.ts"
+    },
+    {
+      "weight": 0.4,
+      "count": 2,
+      "source": "workers/battle-room/src/room.test.ts",
+      "target": "workers/battle-room/src/state.ts"
+    },
+    {
+      "weight": 0.222222,
+      "count": 2,
+      "source": "workers/battle-room/src/room.test.ts",
+      "target": "package.json"
+    },
+    {
+      "weight": 0.333333,
+      "count": 2,
+      "source": "workers/battle-room/src/room.test.ts",
+      "target": "scripts/battle-5p-e2e.mjs"
+    },
+    {
+      "weight": 0.25,
+      "count": 2,
+      "source": "workers/battle-room/src/room.test.ts",
+      "target": "scripts/battle-e2e.mjs"
+    },
+    {
+      "weight": 0.4,
+      "count": 2,
+      "source": "workers/battle-room/src/room.test.ts",
+      "target": "scripts/battle-participation-e2e.mjs"
+    },
+    {
+      "weight": 0.333333,
+      "count": 2,
+      "source": "workers/battle-room/src/room.test.ts",
+      "target": "scripts/battle-test-helpers.mjs"
+    },
+    {
+      "weight": 0.333333,
+      "count": 2,
+      "source": "workers/battle-room/src/room.test.ts",
+      "target": "src/features/battle/battle-lobby-client.tsx"
+    },
+    {
+      "weight": 0.25,
+      "count": 2,
+      "source": "workers/battle-room/src/room.test.ts",
+      "target": "src/features/battle/components/battle-scoreboard.tsx"
+    },
+    {
+      "weight": 0.333333,
+      "count": 2,
+      "source": "workers/battle-room/src/room.test.ts",
+      "target": "src/features/battle/hooks/use-battle-lobby.ts"
+    },
+    {
+      "weight": 0.285714,
+      "count": 2,
+      "source": "workers/battle-room/src/room.test.ts",
+      "target": "src/server/battle/actions.ts"
+    },
+    {
+      "weight": 0.4,
+      "count": 2,
+      "source": "workers/battle-room/src/room.test.ts",
+      "target": "workers/battle-room/src/index.ts"
+    },
+    {
+      "weight": 0.285714,
+      "count": 2,
+      "source": "workers/battle-room/src/room.ts",
+      "target": "src/features/battle/battle-results-client.tsx"
+    },
+    {
+      "weight": 0.5,
+      "count": 3,
+      "source": "workers/battle-room/src/room.ts",
+      "target": "scripts/battle-results-e2e.mjs"
+    },
+    {
+      "weight": 0.333333,
+      "count": 2,
+      "source": "workers/battle-room/src/room.ts",
+      "target": "src/features/battle/battle-match-page.tsx"
+    },
+    {
+      "weight": 0.272727,
+      "count": 3,
+      "source": "workers/battle-room/src/room.ts",
+      "target": "src/features/battle/hooks/use-battle-match.ts"
+    },
+    {
+      "weight": 0.5,
+      "count": 3,
+      "source": "workers/battle-room/src/room.ts",
+      "target": "src/features/battle/lib/room-sync-store.ts"
+    },
+    {
+      "weight": 0.333333,
+      "count": 2,
+      "source": "workers/battle-room/src/room.ts",
+      "target": "src/features/battle/types.ts"
+    },
+    {
+      "weight": 0.4,
+      "count": 2,
+      "source": "workers/battle-room/src/room.ts",
+      "target": "workers/battle-room/src/state.test.ts"
+    },
+    {
+      "weight": 0.4,
+      "count": 2,
+      "source": "workers/battle-room/src/room.ts",
+      "target": "workers/battle-room/src/state.ts"
+    },
+    {
+      "weight": 0.222222,
+      "count": 2,
+      "source": "workers/battle-room/src/room.ts",
+      "target": "package.json"
+    },
+    {
+      "weight": 0.333333,
+      "count": 2,
+      "source": "workers/battle-room/src/room.ts",
+      "target": "scripts/battle-5p-e2e.mjs"
+    },
+    {
+      "weight": 0.25,
+      "count": 2,
+      "source": "workers/battle-room/src/room.ts",
+      "target": "scripts/battle-e2e.mjs"
+    },
+    {
+      "weight": 0.4,
+      "count": 2,
+      "source": "workers/battle-room/src/room.ts",
+      "target": "scripts/battle-participation-e2e.mjs"
+    },
+    {
+      "weight": 0.333333,
+      "count": 2,
+      "source": "workers/battle-room/src/room.ts",
+      "target": "scripts/battle-test-helpers.mjs"
+    },
+    {
+      "weight": 0.333333,
+      "count": 2,
+      "source": "workers/battle-room/src/room.ts",
+      "target": "src/features/battle/battle-lobby-client.tsx"
+    },
+    {
+      "weight": 0.25,
+      "count": 2,
+      "source": "workers/battle-room/src/room.ts",
+      "target": "src/features/battle/components/battle-scoreboard.tsx"
+    },
+    {
+      "weight": 0.333333,
+      "count": 2,
+      "source": "workers/battle-room/src/room.ts",
+      "target": "src/features/battle/hooks/use-battle-lobby.ts"
+    },
+    {
+      "weight": 0.285714,
+      "count": 2,
+      "source": "workers/battle-room/src/room.ts",
+      "target": "src/server/battle/actions.ts"
+    },
+    {
+      "weight": 0.4,
+      "count": 2,
+      "source": "workers/battle-room/src/room.ts",
+      "target": "workers/battle-room/src/index.ts"
+    },
+    {
+      "weight": 1.0,
+      "count": 2,
+      "source": "src/app/(auth)/sign-in/page.tsx",
+      "target": "src/app/api/backtesting/candles/route.ts"
+    },
+    {
+      "weight": 0.666667,
+      "count": 2,
+      "source": "src/app/(auth)/sign-in/page.tsx",
+      "target": "src/features/auth/sign-in-form.tsx"
+    },
+    {
+      "weight": 0.5,
+      "count": 2,
+      "source": "src/app/(auth)/sign-in/page.tsx",
+      "target": "src/features/backtesting/constants.ts"
+    },
+    {
+      "weight": 0.25,
+      "count": 2,
+      "source": "src/app/(auth)/sign-in/page.tsx",
+      "target": "src/features/backtesting/hooks/use-backtesting-workspace.ts"
+    },
+    {
+      "weight": 0.25,
+      "count": 2,
+      "source": "src/app/(auth)/sign-in/page.tsx",
+      "target": "src/server/backtesting/actions.ts"
+    },
+    {
+      "weight": 0.666667,
+      "count": 2,
+      "source": "src/app/(auth)/sign-in/page.tsx",
+      "target": "src/server/backtesting/provider-candles.ts"
+    },
+    {
+      "weight": 0.666667,
+      "count": 2,
+      "source": "src/app/api/backtesting/candles/route.ts",
+      "target": "src/features/auth/sign-in-form.tsx"
+    },
+    {
+      "weight": 0.5,
+      "count": 2,
+      "source": "src/app/api/backtesting/candles/route.ts",
+      "target": "src/features/backtesting/constants.ts"
+    },
+    {
+      "weight": 0.25,
+      "count": 2,
+      "source": "src/app/api/backtesting/candles/route.ts",
+      "target": "src/features/backtesting/hooks/use-backtesting-workspace.ts"
+    },
+    {
+      "weight": 0.25,
+      "count": 2,
+      "source": "src/app/api/backtesting/candles/route.ts",
+      "target": "src/server/backtesting/actions.ts"
+    },
+    {
+      "weight": 0.666667,
+      "count": 2,
+      "source": "src/app/api/backtesting/candles/route.ts",
+      "target": "src/server/backtesting/provider-candles.ts"
+    },
+    {
+      "weight": 0.666667,
+      "count": 2,
+      "source": "src/features/auth/sign-in-form.tsx",
+      "target": "src/app/(auth)/sign-up/page.tsx"
+    },
+    {
+      "weight": 0.666667,
+      "count": 2,
+      "source": "src/features/auth/sign-in-form.tsx",
+      "target": "src/features/auth/auth-form-ui.tsx"
+    },
+    {
+      "weight": 0.666667,
+      "count": 2,
+      "source": "src/features/auth/sign-in-form.tsx",
+      "target": "src/features/auth/sign-up-form.tsx"
+    },
+    {
+      "weight": 0.4,
+      "count": 2,
+      "source": "src/features/auth/sign-in-form.tsx",
+      "target": "src/features/backtesting/constants.ts"
+    },
+    {
+      "weight": 0.222222,
+      "count": 2,
+      "source": "src/features/auth/sign-in-form.tsx",
+      "target": "src/features/backtesting/hooks/use-backtesting-workspace.ts"
+    },
+    {
+      "weight": 0.666667,
+      "count": 2,
+      "source": "src/features/auth/sign-in-form.tsx",
+      "target": "src/server/auth/actions.ts"
+    },
+    {
+      "weight": 0.222222,
+      "count": 2,
+      "source": "src/features/auth/sign-in-form.tsx",
+      "target": "src/server/backtesting/actions.ts"
+    },
+    {
+      "weight": 0.5,
+      "count": 2,
+      "source": "src/features/auth/sign-in-form.tsx",
+      "target": "src/server/backtesting/provider-candles.ts"
+    },
+    {
+      "weight": 0.333333,
+      "count": 3,
+      "source": "src/features/backtesting/constants.ts",
+      "target": "src/features/backtesting/hooks/use-backtesting-workspace.ts"
+    },
+    {
+      "weight": 0.333333,
+      "count": 2,
+      "source": "src/features/backtesting/constants.ts",
+      "target": "src/features/battle/battle-results-client.tsx"
+    },
+    {
+      "weight": 0.5,
+      "count": 2,
+      "source": "src/features/backtesting/constants.ts",
+      "target": "src/features/trading-shared/market.ts"
+    },
+    {
+      "weight": 0.5,
+      "count": 2,
+      "source": "src/features/backtesting/constants.ts",
+      "target": "src/lib/env.ts"
+    },
+    {
+      "weight": 0.333333,
+      "count": 3,
+      "source": "src/features/backtesting/constants.ts",
+      "target": "src/server/backtesting/actions.ts"
+    },
+    {
+      "weight": 0.4,
+      "count": 2,
+      "source": "src/features/backtesting/constants.ts",
+      "target": "src/server/backtesting/provider-candles.ts"
+    },
+    {
+      "weight": 0.5,
+      "count": 2,
+      "source": "src/features/backtesting/constants.ts",
+      "target": "src/server/battle/seed.ts"
+    },
+    {
+      "weight": 0.5,
+      "count": 2,
+      "source": "src/features/backtesting/constants.ts",
+      "target": "src/server/battle/twelve-data.ts"
+    },
+    {
+      "weight": 0.2,
+      "count": 2,
+      "source": "src/features/backtesting/constants.ts",
+      "target": "src/features/backtesting/components/backtest-chart.tsx"
+    },
+    {
+      "weight": 0.2,
+      "count": 2,
+      "source": "src/features/backtesting/constants.ts",
+      "target": "src/features/backtesting/components/backtesting-client.tsx"
+    },
+    {
+      "weight": 0.222222,
+      "count": 2,
+      "source": "src/features/backtesting/constants.ts",
+      "target": "src/server/backtesting/queries.ts"
+    },
+    {
+      "weight": 0.777778,
+      "count": 7,
+      "source": "src/features/backtesting/hooks/use-backtesting-workspace.ts",
+      "target": "src/server/backtesting/actions.ts"
+    },
+    {
+      "weight": 0.375,
+      "count": 3,
+      "source": "src/features/backtesting/hooks/use-backtesting-workspace.ts",
+      "target": "src/server/backtesting/provider-candles.ts"
+    },
+    {
+      "weight": 0.222222,
+      "count": 2,
+      "source": "src/features/backtesting/hooks/use-backtesting-workspace.ts",
+      "target": "src/features/backtesting/hooks/use-backtesting-history-persistence.ts"
+    },
+    {
+      "weight": 0.25,
+      "count": 2,
+      "source": "src/features/backtesting/hooks/use-backtesting-workspace.ts",
+      "target": "src/content/help/backtesting-controls.mdx"
+    },
+    {
+      "weight": 0.333333,
+      "count": 3,
+      "source": "src/features/backtesting/hooks/use-backtesting-workspace.ts",
+      "target": "src/features/backtesting/components/backtesting-ui.tsx"
+    },
+    {
+      "weight": 0.444444,
+      "count": 4,
+      "source": "src/features/backtesting/hooks/use-backtesting-workspace.ts",
+      "target": "src/features/backtesting/types.ts"
+    },
+    {
+      "weight": 0.375,
+      "count": 3,
+      "source": "src/features/backtesting/hooks/use-backtesting-workspace.ts",
+      "target": "src/features/backtesting/utils/session-state.test.ts"
+    },
+    {
+      "weight": 0.375,
+      "count": 3,
+      "source": "src/features/backtesting/hooks/use-backtesting-workspace.ts",
+      "target": "src/features/backtesting/utils/session-state.ts"
+    },
+    {
+      "weight": 0.25,
+      "count": 2,
+      "source": "src/features/backtesting/hooks/use-backtesting-workspace.ts",
+      "target": "src/features/backtesting/utils/share-card.ts"
+    },
+    {
+      "weight": 0.25,
+      "count": 2,
+      "source": "src/features/backtesting/hooks/use-backtesting-workspace.ts",
+      "target": "src/features/backtesting/utils/trade-engine.test.ts"
+    },
+    {
+      "weight": 0.222222,
+      "count": 2,
+      "source": "src/features/backtesting/hooks/use-backtesting-workspace.ts",
+      "target": "src/features/backtesting/utils/trade-engine.ts"
+    },
+    {
+      "weight": 0.25,
+      "count": 2,
+      "source": "src/features/backtesting/hooks/use-backtesting-workspace.ts",
+      "target": "src/features/backtesting/utils/workspace-helpers.test.ts"
+    },
+    {
+      "weight": 0.25,
+      "count": 2,
+      "source": "src/features/backtesting/hooks/use-backtesting-workspace.ts",
+      "target": "src/features/backtesting/utils/workspace-helpers.ts"
+    },
+    {
+      "weight": 0.666667,
+      "count": 6,
+      "source": "src/features/backtesting/hooks/use-backtesting-workspace.ts",
+      "target": "src/server/backtesting/queries.ts"
+    },
+    {
+      "weight": 0.25,
+      "count": 2,
+      "source": "src/features/backtesting/hooks/use-backtesting-workspace.ts",
+      "target": "src/app/(product)/app/backtesting/layout.tsx"
+    },
+    {
+      "weight": 0.25,
+      "count": 2,
+      "source": "src/features/backtesting/hooks/use-backtesting-workspace.ts",
+      "target": "src/features/backtesting/components/backtest-chart-helpers.ts"
+    },
+    {
+      "weight": 0.454545,
+      "count": 5,
+      "source": "src/features/backtesting/hooks/use-backtesting-workspace.ts",
+      "target": "src/features/backtesting/components/backtest-chart.tsx"
+    },
+    {
+      "weight": 0.3,
+      "count": 3,
+      "source": "src/features/backtesting/hooks/use-backtesting-workspace.ts",
+      "target": "src/features/backtesting/components/backtesting-client-shell.tsx"
+    },
+    {
+      "weight": 0.454545,
+      "count": 5,
+      "source": "src/features/backtesting/hooks/use-backtesting-workspace.ts",
+      "target": "src/features/backtesting/components/backtesting-client.tsx"
+    },
+    {
+      "weight": 0.375,
+      "count": 3,
+      "source": "src/server/backtesting/actions.ts",
+      "target": "src/server/backtesting/provider-candles.ts"
+    },
+    {
+      "weight": 0.25,
+      "count": 2,
+      "source": "src/server/backtesting/actions.ts",
+      "target": "src/content/marketing/site-copy.ts"
+    },
+    {
+      "weight": 0.222222,
+      "count": 2,
+      "source": "src/server/backtesting/actions.ts",
+      "target": "src/features/backtesting/hooks/use-backtesting-history-persistence.ts"
+    },
+    {
+      "weight": 0.625,
+      "count": 5,
+      "source": "src/server/backtesting/actions.ts",
+      "target": "src/features/backtesting/types.ts"
+    },
+    {
+      "weight": 0.875,
+      "count": 7,
+      "source": "src/server/backtesting/actions.ts",
+      "target": "src/server/backtesting/queries.ts"
+    },
+    {
+      "weight": 0.25,
+      "count": 2,
+      "source": "src/server/backtesting/actions.ts",
+      "target": "src/content/help/backtesting-controls.mdx"
+    },
+    {
+      "weight": 0.333333,
+      "count": 3,
+      "source": "src/server/backtesting/actions.ts",
+      "target": "src/features/backtesting/components/backtesting-ui.tsx"
+    },
+    {
+      "weight": 0.375,
+      "count": 3,
+      "source": "src/server/backtesting/actions.ts",
+      "target": "src/features/backtesting/utils/session-state.test.ts"
+    },
+    {
+      "weight": 0.375,
+      "count": 3,
+      "source": "src/server/backtesting/actions.ts",
+      "target": "src/features/backtesting/utils/session-state.ts"
+    },
+    {
+      "weight": 0.25,
+      "count": 2,
+      "source": "src/server/backtesting/actions.ts",
+      "target": "src/features/backtesting/utils/share-card.ts"
+    },
+    {
+      "weight": 0.25,
+      "count": 2,
+      "source": "src/server/backtesting/actions.ts",
+      "target": "src/features/backtesting/utils/trade-engine.test.ts"
+    },
+    {
+      "weight": 0.222222,
+      "count": 2,
+      "source": "src/server/backtesting/actions.ts",
+      "target": "src/features/backtesting/utils/trade-engine.ts"
+    },
+    {
+      "weight": 0.25,
+      "count": 2,
+      "source": "src/server/backtesting/actions.ts",
+      "target": "src/features/backtesting/utils/workspace-helpers.test.ts"
+    },
+    {
+      "weight": 0.25,
+      "count": 2,
+      "source": "src/server/backtesting/actions.ts",
+      "target": "src/features/backtesting/utils/workspace-helpers.ts"
+    },
+    {
+      "weight": 0.25,
+      "count": 2,
+      "source": "src/server/backtesting/actions.ts",
+      "target": "src/app/(product)/app/backtesting/layout.tsx"
+    },
+    {
+      "weight": 0.25,
+      "count": 2,
+      "source": "src/server/backtesting/actions.ts",
+      "target": "src/features/backtesting/components/backtest-chart-helpers.ts"
+    },
+    {
+      "weight": 0.454545,
+      "count": 5,
+      "source": "src/server/backtesting/actions.ts",
+      "target": "src/features/backtesting/components/backtest-chart.tsx"
+    },
+    {
+      "weight": 0.3,
+      "count": 3,
+      "source": "src/server/backtesting/actions.ts",
+      "target": "src/features/backtesting/components/backtesting-client-shell.tsx"
+    },
+    {
+      "weight": 0.454545,
+      "count": 5,
+      "source": "src/server/backtesting/actions.ts",
+      "target": "src/features/backtesting/components/backtesting-client.tsx"
+    },
+    {
+      "weight": 0.666667,
+      "count": 2,
+      "source": "src/server/backtesting/provider-candles.ts",
+      "target": "src/app/(product)/app/backtesting/layout.tsx"
+    },
+    {
+      "weight": 0.222222,
+      "count": 2,
+      "source": "src/server/backtesting/provider-candles.ts",
+      "target": "src/features/backtesting/components/backtest-chart.tsx"
+    },
+    {
+      "weight": 0.333333,
+      "count": 2,
+      "source": "src/server/backtesting/provider-candles.ts",
+      "target": "src/features/backtesting/components/backtesting-client-shell.tsx"
+    },
+    {
+      "weight": 0.222222,
+      "count": 2,
+      "source": "src/server/backtesting/provider-candles.ts",
+      "target": "src/features/backtesting/components/backtesting-client.tsx"
+    },
+    {
+      "weight": 0.333333,
+      "count": 2,
+      "source": "src/server/backtesting/provider-candles.ts",
+      "target": "src/features/backtesting/types.ts"
+    },
+    {
+      "weight": 0.25,
+      "count": 2,
+      "source": "src/server/backtesting/provider-candles.ts",
+      "target": "src/server/backtesting/queries.ts"
+    },
+    {
+      "weight": 1.0,
+      "count": 2,
+      "source": "src/app/(auth)/sign-up/page.tsx",
+      "target": "src/features/auth/auth-form-ui.tsx"
+    },
+    {
+      "weight": 1.0,
+      "count": 2,
+      "source": "src/app/(auth)/sign-up/page.tsx",
+      "target": "src/features/auth/sign-up-form.tsx"
+    },
+    {
+      "weight": 1.0,
+      "count": 2,
+      "source": "src/app/(auth)/sign-up/page.tsx",
+      "target": "src/server/auth/actions.ts"
+    },
+    {
+      "weight": 1.0,
+      "count": 2,
+      "source": "src/features/auth/auth-form-ui.tsx",
+      "target": "src/features/auth/sign-up-form.tsx"
+    },
+    {
+      "weight": 1.0,
+      "count": 2,
+      "source": "src/features/auth/auth-form-ui.tsx",
+      "target": "src/server/auth/actions.ts"
+    },
+    {
+      "weight": 1.0,
+      "count": 2,
+      "source": "src/features/auth/sign-up-form.tsx",
+      "target": "src/server/auth/actions.ts"
+    },
+    {
+      "weight": 0.5,
+      "count": 2,
+      "source": "src/features/battle/battle-results-client.tsx",
+      "target": "src/features/trading-shared/market.ts"
+    },
+    {
+      "weight": 0.5,
+      "count": 2,
+      "source": "src/features/battle/battle-results-client.tsx",
+      "target": "src/lib/env.ts"
+    },
+    {
+      "weight": 0.5,
+      "count": 2,
+      "source": "src/features/battle/battle-results-client.tsx",
+      "target": "src/server/battle/seed.ts"
+    },
+    {
+      "weight": 0.5,
+      "count": 2,
+      "source": "src/features/battle/battle-results-client.tsx",
+      "target": "src/server/battle/twelve-data.ts"
+    },
+    {
+      "weight": 0.333333,
+      "count": 2,
+      "source": "src/features/battle/battle-results-client.tsx",
+      "target": "scripts/battle-results-e2e.mjs"
+    },
+    {
+      "weight": 0.285714,
+      "count": 2,
+      "source": "src/features/battle/battle-results-client.tsx",
+      "target": "src/features/battle/components/battle-scoreboard.tsx"
+    },
+    {
+      "weight": 0.4,
+      "count": 2,
+      "source": "src/features/battle/battle-results-client.tsx",
+      "target": "src/features/battle/battle-match-page.tsx"
+    },
+    {
+      "weight": 0.181818,
+      "count": 2,
+      "source": "src/features/battle/battle-results-client.tsx",
+      "target": "src/features/battle/hooks/use-battle-match.ts"
+    },
+    {
+      "weight": 0.4,
+      "count": 2,
+      "source": "src/features/battle/battle-results-client.tsx",
+      "target": "src/features/battle/types.ts"
+    },
+    {
+      "weight": 1.0,
+      "count": 2,
+      "source": "src/features/trading-shared/market.ts",
+      "target": "src/lib/env.ts"
+    },
+    {
+      "weight": 1.0,
+      "count": 2,
+      "source": "src/features/trading-shared/market.ts",
+      "target": "src/server/battle/seed.ts"
+    },
+    {
+      "weight": 1.0,
+      "count": 2,
+      "source": "src/features/trading-shared/market.ts",
+      "target": "src/server/battle/twelve-data.ts"
+    },
+    {
+      "weight": 1.0,
+      "count": 2,
+      "source": "src/lib/env.ts",
+      "target": "src/server/battle/seed.ts"
+    },
+    {
+      "weight": 1.0,
+      "count": 2,
+      "source": "src/lib/env.ts",
+      "target": "src/server/battle/twelve-data.ts"
+    },
+    {
+      "weight": 1.0,
+      "count": 2,
+      "source": "src/server/battle/seed.ts",
+      "target": "src/server/battle/twelve-data.ts"
+    },
+    {
+      "weight": 0.5,
+      "count": 3,
+      "source": "scripts/battle-results-e2e.mjs",
+      "target": "src/features/battle/components/battle-scoreboard.tsx"
+    },
+    {
+      "weight": 0.4,
+      "count": 2,
+      "source": "scripts/battle-results-e2e.mjs",
+      "target": "src/features/battle/battle-match-page.tsx"
+    },
+    {
+      "weight": 0.3,
+      "count": 3,
+      "source": "scripts/battle-results-e2e.mjs",
+      "target": "src/features/battle/hooks/use-battle-match.ts"
+    },
+    {
+      "weight": 0.6,
+      "count": 3,
+      "source": "scripts/battle-results-e2e.mjs",
+      "target": "src/features/battle/lib/room-sync-store.ts"
+    },
+    {
+      "weight": 0.4,
+      "count": 2,
+      "source": "scripts/battle-results-e2e.mjs",
+      "target": "src/features/battle/types.ts"
+    },
+    {
+      "weight": 0.5,
+      "count": 2,
+      "source": "scripts/battle-results-e2e.mjs",
+      "target": "workers/battle-room/src/state.test.ts"
+    },
+    {
+      "weight": 0.5,
+      "count": 2,
+      "source": "scripts/battle-results-e2e.mjs",
+      "target": "workers/battle-room/src/state.ts"
+    },
+    {
+      "weight": 0.25,
+      "count": 2,
+      "source": "scripts/battle-results-e2e.mjs",
+      "target": "package.json"
+    },
+    {
+      "weight": 0.4,
+      "count": 2,
+      "source": "scripts/battle-results-e2e.mjs",
+      "target": "scripts/battle-5p-e2e.mjs"
+    },
+    {
+      "weight": 0.285714,
+      "count": 2,
+      "source": "scripts/battle-results-e2e.mjs",
+      "target": "scripts/battle-e2e.mjs"
+    },
+    {
+      "weight": 0.5,
+      "count": 2,
+      "source": "scripts/battle-results-e2e.mjs",
+      "target": "scripts/battle-participation-e2e.mjs"
+    },
+    {
+      "weight": 0.4,
+      "count": 2,
+      "source": "scripts/battle-results-e2e.mjs",
+      "target": "scripts/battle-test-helpers.mjs"
+    },
+    {
+      "weight": 0.4,
+      "count": 2,
+      "source": "scripts/battle-results-e2e.mjs",
+      "target": "src/features/battle/battle-lobby-client.tsx"
+    },
+    {
+      "weight": 0.4,
+      "count": 2,
+      "source": "scripts/battle-results-e2e.mjs",
+      "target": "src/features/battle/hooks/use-battle-lobby.ts"
+    },
+    {
+      "weight": 0.333333,
+      "count": 2,
+      "source": "scripts/battle-results-e2e.mjs",
+      "target": "src/server/battle/actions.ts"
+    },
+    {
+      "weight": 0.5,
+      "count": 2,
+      "source": "scripts/battle-results-e2e.mjs",
+      "target": "workers/battle-room/src/index.ts"
+    },
+    {
+      "weight": 0.4,
+      "count": 4,
+      "source": "src/features/battle/components/battle-scoreboard.tsx",
+      "target": "src/features/battle/hooks/use-battle-match.ts"
+    },
+    {
+      "weight": 0.222222,
+      "count": 2,
+      "source": "src/features/battle/components/battle-scoreboard.tsx",
+      "target": "package.json"
+    },
+    {
+      "weight": 0.333333,
+      "count": 2,
+      "source": "src/features/battle/components/battle-scoreboard.tsx",
+      "target": "scripts/battle-5p-e2e.mjs"
+    },
+    {
+      "weight": 0.25,
+      "count": 2,
+      "source": "src/features/battle/components/battle-scoreboard.tsx",
+      "target": "scripts/battle-e2e.mjs"
+    },
+    {
+      "weight": 0.4,
+      "count": 2,
+      "source": "src/features/battle/components/battle-scoreboard.tsx",
+      "target": "scripts/battle-participation-e2e.mjs"
+    },
+    {
+      "weight": 0.333333,
+      "count": 2,
+      "source": "src/features/battle/components/battle-scoreboard.tsx",
+      "target": "scripts/battle-test-helpers.mjs"
+    },
+    {
+      "weight": 0.6,
+      "count": 3,
+      "source": "src/features/battle/components/battle-scoreboard.tsx",
+      "target": "src/features/battle/battle-lobby-client.tsx"
+    },
+    {
+      "weight": 0.6,
+      "count": 3,
+      "source": "src/features/battle/components/battle-scoreboard.tsx",
+      "target": "src/features/battle/hooks/use-battle-lobby.ts"
+    },
+    {
+      "weight": 0.285714,
+      "count": 2,
+      "source": "src/features/battle/components/battle-scoreboard.tsx",
+      "target": "src/features/battle/lib/room-sync-store.ts"
+    },
+    {
+      "weight": 0.5,
+      "count": 3,
+      "source": "src/features/battle/components/battle-scoreboard.tsx",
+      "target": "src/server/battle/actions.ts"
+    },
+    {
+      "weight": 0.4,
+      "count": 2,
+      "source": "src/features/battle/components/battle-scoreboard.tsx",
+      "target": "workers/battle-room/src/index.ts"
+    },
+    {
+      "weight": 0.4,
+      "count": 2,
+      "source": "src/features/battle/components/battle-scoreboard.tsx",
+      "target": "src/features/battle/battle-lobby-page.tsx"
+    },
+    {
+      "weight": 0.333333,
+      "count": 2,
+      "source": "src/features/battle/components/battle-scoreboard.tsx",
+      "target": "src/features/battle/battle-match-page.tsx"
+    },
+    {
+      "weight": 0.4,
+      "count": 2,
+      "source": "src/features/battle/components/battle-scoreboard.tsx",
+      "target": "src/features/battle/formatters.ts"
+    },
+    {
+      "weight": 0.4,
+      "count": 2,
+      "source": "src/features/battle/components/battle-scoreboard.tsx",
+      "target": "src/features/battle/hooks/use-battle-room-sync.ts"
+    },
+    {
+      "weight": 0.333333,
+      "count": 2,
+      "source": "src/features/battle/components/battle-scoreboard.tsx",
+      "target": "src/features/battle/types.ts"
+    },
+    {
+      "weight": 0.4,
+      "count": 2,
+      "source": "src/features/battle/components/battle-scoreboard.tsx",
+      "target": "src/features/trading-shared/trade-core.ts"
+    },
+    {
+      "weight": 0.4,
+      "count": 2,
+      "source": "src/features/battle/components/battle-scoreboard.tsx",
+      "target": "src/server/battle/penalties.ts"
+    },
+    {
+      "weight": 0.4,
+      "count": 2,
+      "source": "src/features/battle/components/battle-scoreboard.tsx",
+      "target": "src/server/battle/room-session.ts"
+    },
+    {
+      "weight": 0.285714,
+      "count": 2,
+      "source": "src/features/battle/components/battle-scoreboard.tsx",
+      "target": "src/server/battle/worker-client.ts"
+    },
+    {
+      "weight": 0.333333,
+      "count": 3,
+      "source": "src/features/battle/battle-match-page.tsx",
+      "target": "src/features/battle/hooks/use-battle-match.ts"
+    },
+    {
+      "weight": 0.4,
+      "count": 2,
+      "source": "src/features/battle/battle-match-page.tsx",
+      "target": "src/features/battle/lib/room-sync-store.ts"
+    },
+    {
+      "weight": 1.0,
+      "count": 3,
+      "source": "src/features/battle/battle-match-page.tsx",
+      "target": "src/features/battle/types.ts"
+    },
+    {
+      "weight": 0.666667,
+      "count": 2,
+      "source": "src/features/battle/battle-match-page.tsx",
+      "target": "workers/battle-room/src/state.test.ts"
+    },
+    {
+      "weight": 0.666667,
+      "count": 2,
+      "source": "src/features/battle/battle-match-page.tsx",
+      "target": "workers/battle-room/src/state.ts"
+    },
+    {
+      "weight": 0.5,
+      "count": 2,
+      "source": "src/features/battle/battle-match-page.tsx",
+      "target": "src/features/battle/battle-lobby-client.tsx"
+    },
+    {
+      "weight": 0.666667,
+      "count": 2,
+      "source": "src/features/battle/battle-match-page.tsx",
+      "target": "src/features/battle/battle-lobby-page.tsx"
+    },
+    {
+      "weight": 0.666667,
+      "count": 2,
+      "source": "src/features/battle/battle-match-page.tsx",
+      "target": "src/features/battle/formatters.ts"
+    },
+    {
+      "weight": 0.5,
+      "count": 2,
+      "source": "src/features/battle/battle-match-page.tsx",
+      "target": "src/features/battle/hooks/use-battle-lobby.ts"
+    },
+    {
+      "weight": 0.666667,
+      "count": 2,
+      "source": "src/features/battle/battle-match-page.tsx",
+      "target": "src/features/battle/hooks/use-battle-room-sync.ts"
+    },
+    {
+      "weight": 0.666667,
+      "count": 2,
+      "source": "src/features/battle/battle-match-page.tsx",
+      "target": "src/features/trading-shared/trade-core.ts"
+    },
+    {
+      "weight": 0.4,
+      "count": 2,
+      "source": "src/features/battle/battle-match-page.tsx",
+      "target": "src/server/battle/actions.ts"
+    },
+    {
+      "weight": 0.666667,
+      "count": 2,
+      "source": "src/features/battle/battle-match-page.tsx",
+      "target": "src/server/battle/penalties.ts"
+    },
+    {
+      "weight": 0.666667,
+      "count": 2,
+      "source": "src/features/battle/battle-match-page.tsx",
+      "target": "src/server/battle/room-session.ts"
+    },
+    {
+      "weight": 0.4,
+      "count": 2,
+      "source": "src/features/battle/battle-match-page.tsx",
+      "target": "src/server/battle/worker-client.ts"
+    },
+    {
+      "weight": 0.222222,
+      "count": 2,
+      "source": "src/features/battle/hooks/use-battle-match.ts",
+      "target": "src/features/battle/lib/normalize-room-view.test.ts"
+    },
+    {
+      "weight": 0.222222,
+      "count": 2,
+      "source": "src/features/battle/hooks/use-battle-match.ts",
+      "target": "src/features/battle/lib/normalize-room-view.ts"
+    },
+    {
+      "weight": 0.444444,
+      "count": 4,
+      "source": "src/features/battle/hooks/use-battle-match.ts",
+      "target": "src/features/battle/lib/room-sync-store.ts"
+    },
+    {
+      "weight": 0.333333,
+      "count": 3,
+      "source": "src/features/battle/hooks/use-battle-match.ts",
+      "target": "src/features/battle/types.ts"
+    },
+    {
+      "weight": 0.222222,
+      "count": 2,
+      "source": "src/features/battle/hooks/use-battle-match.ts",
+      "target": "workers/battle-room/src/state.test.ts"
+    },
+    {
+      "weight": 0.222222,
+      "count": 2,
+      "source": "src/features/battle/hooks/use-battle-match.ts",
+      "target": "workers/battle-room/src/state.ts"
+    },
+    {
+      "weight": 0.333333,
+      "count": 3,
+      "source": "src/features/battle/hooks/use-battle-match.ts",
+      "target": "scripts/battle-5p-e2e.mjs"
+    },
+    {
+      "weight": 0.4,
+      "count": 4,
+      "source": "src/features/battle/hooks/use-battle-match.ts",
+      "target": "scripts/battle-e2e.mjs"
+    },
+    {
+      "weight": 0.333333,
+      "count": 3,
+      "source": "src/features/battle/hooks/use-battle-match.ts",
+      "target": "scripts/battle-test-helpers.mjs"
+    },
+    {
+      "weight": 0.222222,
+      "count": 2,
+      "source": "src/features/battle/hooks/use-battle-match.ts",
+      "target": "src/server/battle/persist-room.ts"
+    },
+    {
+      "weight": 0.153846,
+      "count": 2,
+      "source": "src/features/battle/hooks/use-battle-match.ts",
+      "target": "package.json"
+    },
+    {
+      "weight": 0.222222,
+      "count": 2,
+      "source": "src/features/battle/hooks/use-battle-match.ts",
+      "target": "scripts/battle-participation-e2e.mjs"
+    },
+    {
+      "weight": 0.333333,
+      "count": 3,
+      "source": "src/features/battle/hooks/use-battle-match.ts",
+      "target": "src/features/battle/battle-lobby-client.tsx"
+    },
+    {
+      "weight": 0.333333,
+      "count": 3,
+      "source": "src/features/battle/hooks/use-battle-match.ts",
+      "target": "src/features/battle/hooks/use-battle-lobby.ts"
+    },
+    {
+      "weight": 0.3,
+      "count": 3,
+      "source": "src/features/battle/hooks/use-battle-match.ts",
+      "target": "src/server/battle/actions.ts"
+    },
+    {
+      "weight": 0.222222,
+      "count": 2,
+      "source": "src/features/battle/hooks/use-battle-match.ts",
+      "target": "workers/battle-room/src/index.ts"
+    },
+    {
+      "weight": 0.3,
+      "count": 3,
+      "source": "src/features/battle/hooks/use-battle-match.ts",
+      "target": "src/server/battle/worker-client.ts"
+    },
+    {
+      "weight": 0.222222,
+      "count": 2,
+      "source": "src/features/battle/hooks/use-battle-match.ts",
+      "target": "src/features/battle/battle-lobby-page.tsx"
+    },
+    {
+      "weight": 0.222222,
+      "count": 2,
+      "source": "src/features/battle/hooks/use-battle-match.ts",
+      "target": "src/features/battle/formatters.ts"
+    },
+    {
+      "weight": 0.222222,
+      "count": 2,
+      "source": "src/features/battle/hooks/use-battle-match.ts",
+      "target": "src/features/battle/hooks/use-battle-room-sync.ts"
+    },
+    {
+      "weight": 0.222222,
+      "count": 2,
+      "source": "src/features/battle/hooks/use-battle-match.ts",
+      "target": "src/features/trading-shared/trade-core.ts"
+    },
+    {
+      "weight": 0.222222,
+      "count": 2,
+      "source": "src/features/battle/hooks/use-battle-match.ts",
+      "target": "src/server/battle/penalties.ts"
+    },
+    {
+      "weight": 0.222222,
+      "count": 2,
+      "source": "src/features/battle/hooks/use-battle-match.ts",
+      "target": "src/server/battle/room-session.ts"
+    },
+    {
+      "weight": 0.5,
+      "count": 2,
+      "source": "src/features/battle/lib/room-sync-store.ts",
+      "target": "src/features/battle/lib/normalize-room-view.test.ts"
+    },
+    {
+      "weight": 0.5,
+      "count": 2,
+      "source": "src/features/battle/lib/room-sync-store.ts",
+      "target": "src/features/battle/lib/normalize-room-view.ts"
+    },
+    {
+      "weight": 0.4,
+      "count": 2,
+      "source": "src/features/battle/lib/room-sync-store.ts",
+      "target": "src/features/battle/types.ts"
+    },
+    {
+      "weight": 0.5,
+      "count": 2,
+      "source": "src/features/battle/lib/room-sync-store.ts",
+      "target": "workers/battle-room/src/state.test.ts"
+    },
+    {
+      "weight": 0.5,
+      "count": 2,
+      "source": "src/features/battle/lib/room-sync-store.ts",
+      "target": "workers/battle-room/src/state.ts"
+    },
+    {
+      "weight": 0.25,
+      "count": 2,
+      "source": "src/features/battle/lib/room-sync-store.ts",
+      "target": "package.json"
+    },
+    {
+      "weight": 0.4,
+      "count": 2,
+      "source": "src/features/battle/lib/room-sync-store.ts",
+      "target": "scripts/battle-5p-e2e.mjs"
+    },
+    {
+      "weight": 0.285714,
+      "count": 2,
+      "source": "src/features/battle/lib/room-sync-store.ts",
+      "target": "scripts/battle-e2e.mjs"
+    },
+    {
+      "weight": 0.5,
+      "count": 2,
+      "source": "src/features/battle/lib/room-sync-store.ts",
+      "target": "scripts/battle-participation-e2e.mjs"
+    },
+    {
+      "weight": 0.4,
+      "count": 2,
+      "source": "src/features/battle/lib/room-sync-store.ts",
+      "target": "scripts/battle-test-helpers.mjs"
+    },
+    {
+      "weight": 0.4,
+      "count": 2,
+      "source": "src/features/battle/lib/room-sync-store.ts",
+      "target": "src/features/battle/battle-lobby-client.tsx"
+    },
+    {
+      "weight": 0.4,
+      "count": 2,
+      "source": "src/features/battle/lib/room-sync-store.ts",
+      "target": "src/features/battle/hooks/use-battle-lobby.ts"
+    },
+    {
+      "weight": 0.333333,
+      "count": 2,
+      "source": "src/features/battle/lib/room-sync-store.ts",
+      "target": "src/server/battle/actions.ts"
+    },
+    {
+      "weight": 0.5,
+      "count": 2,
+      "source": "src/features/battle/lib/room-sync-store.ts",
+      "target": "workers/battle-room/src/index.ts"
+    },
+    {
+      "weight": 0.333333,
+      "count": 2,
+      "source": "src/features/battle/lib/room-sync-store.ts",
+      "target": "src/server/battle/worker-client.ts"
+    },
+    {
+      "weight": 0.666667,
+      "count": 2,
+      "source": "src/features/battle/types.ts",
+      "target": "workers/battle-room/src/state.test.ts"
+    },
+    {
+      "weight": 0.666667,
+      "count": 2,
+      "source": "src/features/battle/types.ts",
+      "target": "workers/battle-room/src/state.ts"
+    },
+    {
+      "weight": 0.5,
+      "count": 2,
+      "source": "src/features/battle/types.ts",
+      "target": "src/features/battle/battle-lobby-client.tsx"
+    },
+    {
+      "weight": 0.666667,
+      "count": 2,
+      "source": "src/features/battle/types.ts",
+      "target": "src/features/battle/battle-lobby-page.tsx"
+    },
+    {
+      "weight": 0.666667,
+      "count": 2,
+      "source": "src/features/battle/types.ts",
+      "target": "src/features/battle/formatters.ts"
+    },
+    {
+      "weight": 0.5,
+      "count": 2,
+      "source": "src/features/battle/types.ts",
+      "target": "src/features/battle/hooks/use-battle-lobby.ts"
+    },
+    {
+      "weight": 0.666667,
+      "count": 2,
+      "source": "src/features/battle/types.ts",
+      "target": "src/features/battle/hooks/use-battle-room-sync.ts"
+    },
+    {
+      "weight": 0.666667,
+      "count": 2,
+      "source": "src/features/battle/types.ts",
+      "target": "src/features/trading-shared/trade-core.ts"
+    },
+    {
+      "weight": 0.4,
+      "count": 2,
+      "source": "src/features/battle/types.ts",
+      "target": "src/server/battle/actions.ts"
+    },
+    {
+      "weight": 0.666667,
+      "count": 2,
+      "source": "src/features/battle/types.ts",
+      "target": "src/server/battle/penalties.ts"
+    },
+    {
+      "weight": 0.666667,
+      "count": 2,
+      "source": "src/features/battle/types.ts",
+      "target": "src/server/battle/room-session.ts"
+    },
+    {
+      "weight": 0.4,
+      "count": 2,
+      "source": "src/features/battle/types.ts",
+      "target": "src/server/battle/worker-client.ts"
+    },
+    {
+      "weight": 1.0,
+      "count": 2,
+      "source": "workers/battle-room/src/state.test.ts",
+      "target": "workers/battle-room/src/state.ts"
+    },
+    {
+      "weight": 1.0,
+      "count": 2,
+      "source": "src/features/battle/lib/normalize-room-view.test.ts",
+      "target": "src/features/battle/lib/normalize-room-view.ts"
+    },
+    {
+      "weight": 0.6,
+      "count": 3,
+      "source": "scripts/battle-5p-e2e.mjs",
+      "target": "scripts/battle-e2e.mjs"
+    },
+    {
+      "weight": 1.0,
+      "count": 3,
+      "source": "scripts/battle-5p-e2e.mjs",
+      "target": "scripts/battle-test-helpers.mjs"
+    },
+    {
+      "weight": 0.666667,
+      "count": 2,
+      "source": "scripts/battle-5p-e2e.mjs",
+      "target": "src/server/battle/persist-room.ts"
+    },
+    {
+      "weight": 0.285714,
+      "count": 2,
+      "source": "scripts/battle-5p-e2e.mjs",
+      "target": "package.json"
+    },
+    {
+      "weight": 0.666667,
+      "count": 2,
+      "source": "scripts/battle-5p-e2e.mjs",
+      "target": "scripts/battle-participation-e2e.mjs"
+    },
+    {
+      "weight": 0.5,
+      "count": 2,
+      "source": "scripts/battle-5p-e2e.mjs",
+      "target": "src/features/battle/battle-lobby-client.tsx"
+    },
+    {
+      "weight": 0.5,
+      "count": 2,
+      "source": "scripts/battle-5p-e2e.mjs",
+      "target": "src/features/battle/hooks/use-battle-lobby.ts"
+    },
+    {
+      "weight": 0.4,
+      "count": 2,
+      "source": "scripts/battle-5p-e2e.mjs",
+      "target": "src/server/battle/actions.ts"
+    },
+    {
+      "weight": 0.666667,
+      "count": 2,
+      "source": "scripts/battle-5p-e2e.mjs",
+      "target": "workers/battle-room/src/index.ts"
+    },
+    {
+      "weight": 0.6,
+      "count": 3,
+      "source": "scripts/battle-e2e.mjs",
+      "target": "scripts/battle-test-helpers.mjs"
+    },
+    {
+      "weight": 0.4,
+      "count": 2,
+      "source": "scripts/battle-e2e.mjs",
+      "target": "src/server/battle/persist-room.ts"
+    },
+    {
+      "weight": 0.375,
+      "count": 3,
+      "source": "scripts/battle-e2e.mjs",
+      "target": "package.json"
+    },
+    {
+      "weight": 0.4,
+      "count": 2,
+      "source": "scripts/battle-e2e.mjs",
+      "target": "scripts/battle-participation-e2e.mjs"
+    },
+    {
+      "weight": 0.333333,
+      "count": 2,
+      "source": "scripts/battle-e2e.mjs",
+      "target": "src/features/battle/battle-lobby-client.tsx"
+    },
+    {
+      "weight": 0.333333,
+      "count": 2,
+      "source": "scripts/battle-e2e.mjs",
+      "target": "src/features/battle/hooks/use-battle-lobby.ts"
+    },
+    {
+      "weight": 0.285714,
+      "count": 2,
+      "source": "scripts/battle-e2e.mjs",
+      "target": "src/server/battle/actions.ts"
+    },
+    {
+      "weight": 0.4,
+      "count": 2,
+      "source": "scripts/battle-e2e.mjs",
+      "target": "workers/battle-room/src/index.ts"
+    },
+    {
+      "weight": 0.666667,
+      "count": 2,
+      "source": "scripts/battle-test-helpers.mjs",
+      "target": "src/server/battle/persist-room.ts"
+    },
+    {
+      "weight": 0.285714,
+      "count": 2,
+      "source": "scripts/battle-test-helpers.mjs",
+      "target": "package.json"
+    },
+    {
+      "weight": 0.666667,
+      "count": 2,
+      "source": "scripts/battle-test-helpers.mjs",
+      "target": "scripts/battle-participation-e2e.mjs"
+    },
+    {
+      "weight": 0.5,
+      "count": 2,
+      "source": "scripts/battle-test-helpers.mjs",
+      "target": "src/features/battle/battle-lobby-client.tsx"
+    },
+    {
+      "weight": 0.5,
+      "count": 2,
+      "source": "scripts/battle-test-helpers.mjs",
+      "target": "src/features/battle/hooks/use-battle-lobby.ts"
+    },
+    {
+      "weight": 0.4,
+      "count": 2,
+      "source": "scripts/battle-test-helpers.mjs",
+      "target": "src/server/battle/actions.ts"
+    },
+    {
+      "weight": 0.666667,
+      "count": 2,
+      "source": "scripts/battle-test-helpers.mjs",
+      "target": "workers/battle-room/src/index.ts"
+    },
+    {
+      "weight": 0.333333,
+      "count": 2,
+      "source": "package.json",
+      "target": "scripts/battle-participation-e2e.mjs"
+    },
+    {
+      "weight": 0.285714,
+      "count": 2,
+      "source": "package.json",
+      "target": "src/features/battle/battle-lobby-client.tsx"
+    },
+    {
+      "weight": 0.285714,
+      "count": 2,
+      "source": "package.json",
+      "target": "src/features/battle/hooks/use-battle-lobby.ts"
+    },
+    {
+      "weight": 0.25,
+      "count": 2,
+      "source": "package.json",
+      "target": "src/server/battle/actions.ts"
+    },
+    {
+      "weight": 0.333333,
+      "count": 2,
+      "source": "package.json",
+      "target": "workers/battle-room/src/index.ts"
+    },
+    {
+      "weight": 0.285714,
+      "count": 2,
+      "source": "package.json",
+      "target": "src/app/layout.tsx"
+    },
+    {
+      "weight": 0.666667,
+      "count": 2,
+      "source": "scripts/battle-participation-e2e.mjs",
+      "target": "src/features/battle/battle-lobby-client.tsx"
+    },
+    {
+      "weight": 0.666667,
+      "count": 2,
+      "source": "scripts/battle-participation-e2e.mjs",
+      "target": "src/features/battle/hooks/use-battle-lobby.ts"
+    },
+    {
+      "weight": 0.5,
+      "count": 2,
+      "source": "scripts/battle-participation-e2e.mjs",
+      "target": "src/server/battle/actions.ts"
+    },
+    {
+      "weight": 1.0,
+      "count": 2,
+      "source": "scripts/battle-participation-e2e.mjs",
+      "target": "workers/battle-room/src/index.ts"
+    },
+    {
+      "weight": 1.0,
+      "count": 3,
+      "source": "src/features/battle/battle-lobby-client.tsx",
+      "target": "src/features/battle/hooks/use-battle-lobby.ts"
+    },
+    {
+      "weight": 0.75,
+      "count": 3,
+      "source": "src/features/battle/battle-lobby-client.tsx",
+      "target": "src/server/battle/actions.ts"
+    },
+    {
+      "weight": 0.666667,
+      "count": 2,
+      "source": "src/features/battle/battle-lobby-client.tsx",
+      "target": "workers/battle-room/src/index.ts"
+    },
+    {
+      "weight": 0.666667,
+      "count": 2,
+      "source": "src/features/battle/battle-lobby-client.tsx",
+      "target": "src/features/battle/battle-lobby-page.tsx"
+    },
+    {
+      "weight": 0.666667,
+      "count": 2,
+      "source": "src/features/battle/battle-lobby-client.tsx",
+      "target": "src/features/battle/formatters.ts"
+    },
+    {
+      "weight": 0.666667,
+      "count": 2,
+      "source": "src/features/battle/battle-lobby-client.tsx",
+      "target": "src/features/battle/hooks/use-battle-room-sync.ts"
+    },
+    {
+      "weight": 0.666667,
+      "count": 2,
+      "source": "src/features/battle/battle-lobby-client.tsx",
+      "target": "src/features/trading-shared/trade-core.ts"
+    },
+    {
+      "weight": 0.666667,
+      "count": 2,
+      "source": "src/features/battle/battle-lobby-client.tsx",
+      "target": "src/server/battle/penalties.ts"
+    },
+    {
+      "weight": 0.666667,
+      "count": 2,
+      "source": "src/features/battle/battle-lobby-client.tsx",
+      "target": "src/server/battle/room-session.ts"
+    },
+    {
+      "weight": 0.4,
+      "count": 2,
+      "source": "src/features/battle/battle-lobby-client.tsx",
+      "target": "src/server/battle/worker-client.ts"
+    },
+    {
+      "weight": 0.75,
+      "count": 3,
+      "source": "src/features/battle/hooks/use-battle-lobby.ts",
+      "target": "src/server/battle/actions.ts"
+    },
+    {
+      "weight": 0.666667,
+      "count": 2,
+      "source": "src/features/battle/hooks/use-battle-lobby.ts",
+      "target": "workers/battle-room/src/index.ts"
+    },
+    {
+      "weight": 0.666667,
+      "count": 2,
+      "source": "src/features/battle/hooks/use-battle-lobby.ts",
+      "target": "src/features/battle/battle-lobby-page.tsx"
+    },
+    {
+      "weight": 0.666667,
+      "count": 2,
+      "source": "src/features/battle/hooks/use-battle-lobby.ts",
+      "target": "src/features/battle/formatters.ts"
+    },
+    {
+      "weight": 0.666667,
+      "count": 2,
+      "source": "src/features/battle/hooks/use-battle-lobby.ts",
+      "target": "src/features/battle/hooks/use-battle-room-sync.ts"
+    },
+    {
+      "weight": 0.666667,
+      "count": 2,
+      "source": "src/features/battle/hooks/use-battle-lobby.ts",
+      "target": "src/features/trading-shared/trade-core.ts"
+    },
+    {
+      "weight": 0.666667,
+      "count": 2,
+      "source": "src/features/battle/hooks/use-battle-lobby.ts",
+      "target": "src/server/battle/penalties.ts"
+    },
+    {
+      "weight": 0.666667,
+      "count": 2,
+      "source": "src/features/battle/hooks/use-battle-lobby.ts",
+      "target": "src/server/battle/room-session.ts"
+    },
+    {
+      "weight": 0.4,
+      "count": 2,
+      "source": "src/features/battle/hooks/use-battle-lobby.ts",
+      "target": "src/server/battle/worker-client.ts"
+    },
+    {
+      "weight": 0.5,
+      "count": 2,
+      "source": "src/server/battle/actions.ts",
+      "target": "workers/battle-room/src/index.ts"
+    },
+    {
+      "weight": 0.5,
+      "count": 2,
+      "source": "src/server/battle/actions.ts",
+      "target": "src/features/battle/battle-lobby-page.tsx"
+    },
+    {
+      "weight": 0.5,
+      "count": 2,
+      "source": "src/server/battle/actions.ts",
+      "target": "src/features/battle/formatters.ts"
+    },
+    {
+      "weight": 0.5,
+      "count": 2,
+      "source": "src/server/battle/actions.ts",
+      "target": "src/features/battle/hooks/use-battle-room-sync.ts"
+    },
+    {
+      "weight": 0.5,
+      "count": 2,
+      "source": "src/server/battle/actions.ts",
+      "target": "src/features/trading-shared/trade-core.ts"
+    },
+    {
+      "weight": 0.5,
+      "count": 2,
+      "source": "src/server/battle/actions.ts",
+      "target": "src/server/battle/penalties.ts"
+    },
+    {
+      "weight": 0.5,
+      "count": 2,
+      "source": "src/server/battle/actions.ts",
+      "target": "src/server/battle/room-session.ts"
+    },
+    {
+      "weight": 0.6,
+      "count": 3,
+      "source": "src/server/battle/actions.ts",
+      "target": "src/server/battle/worker-client.ts"
+    },
+    {
+      "weight": 0.5,
+      "count": 2,
+      "source": "src/server/battle/worker-client.ts",
+      "target": "src/features/battle/battle-lobby-page.tsx"
+    },
+    {
+      "weight": 0.5,
+      "count": 2,
+      "source": "src/server/battle/worker-client.ts",
+      "target": "src/features/battle/formatters.ts"
+    },
+    {
+      "weight": 0.5,
+      "count": 2,
+      "source": "src/server/battle/worker-client.ts",
+      "target": "src/features/battle/hooks/use-battle-room-sync.ts"
+    },
+    {
+      "weight": 0.5,
+      "count": 2,
+      "source": "src/server/battle/worker-client.ts",
+      "target": "src/features/trading-shared/trade-core.ts"
+    },
+    {
+      "weight": 0.5,
+      "count": 2,
+      "source": "src/server/battle/worker-client.ts",
+      "target": "src/server/battle/penalties.ts"
+    },
+    {
+      "weight": 0.5,
+      "count": 2,
+      "source": "src/server/battle/worker-client.ts",
+      "target": "src/server/battle/room-session.ts"
+    },
+    {
+      "weight": 0.333333,
+      "count": 3,
+      "source": "src/features/backtesting/components/backtest-chart.tsx",
+      "target": "src/features/backtesting/components/backtesting-ui.tsx"
+    },
+    {
+      "weight": 0.222222,
+      "count": 2,
+      "source": "src/features/backtesting/components/backtest-chart.tsx",
+      "target": "src/features/backtesting/utils/trade-engine.ts"
+    },
+    {
+      "weight": 0.25,
+      "count": 2,
+      "source": "src/features/backtesting/components/backtest-chart.tsx",
+      "target": "src/app/(product)/app/backtesting/layout.tsx"
+    },
+    {
+      "weight": 0.25,
+      "count": 2,
+      "source": "src/features/backtesting/components/backtest-chart.tsx",
+      "target": "src/features/backtesting/components/backtest-chart-helpers.ts"
+    },
+    {
+      "weight": 0.444444,
+      "count": 4,
+      "source": "src/features/backtesting/components/backtest-chart.tsx",
+      "target": "src/features/backtesting/components/backtesting-client-shell.tsx"
+    },
+    {
+      "weight": 0.777778,
+      "count": 7,
+      "source": "src/features/backtesting/components/backtest-chart.tsx",
+      "target": "src/features/backtesting/components/backtesting-client.tsx"
+    },
+    {
+      "weight": 0.3,
+      "count": 3,
+      "source": "src/features/backtesting/components/backtest-chart.tsx",
+      "target": "src/features/backtesting/types.ts"
+    },
+    {
+      "weight": 0.222222,
+      "count": 2,
+      "source": "src/features/backtesting/components/backtest-chart.tsx",
+      "target": "src/features/backtesting/utils/session-state.test.ts"
+    },
+    {
+      "weight": 0.222222,
+      "count": 2,
+      "source": "src/features/backtesting/components/backtest-chart.tsx",
+      "target": "src/features/backtesting/utils/session-state.ts"
+    },
+    {
+      "weight": 0.5,
+      "count": 5,
+      "source": "src/features/backtesting/components/backtest-chart.tsx",
+      "target": "src/server/backtesting/queries.ts"
+    },
+    {
+      "weight": 0.75,
+      "count": 3,
+      "source": "src/features/backtesting/components/backtesting-ui.tsx",
+      "target": "src/features/backtesting/utils/trade-engine.ts"
+    },
+    {
+      "weight": 0.5,
+      "count": 3,
+      "source": "src/features/backtesting/components/backtesting-ui.tsx",
+      "target": "src/features/backtesting/types.ts"
+    },
+    {
+      "weight": 0.75,
+      "count": 3,
+      "source": "src/features/backtesting/components/backtesting-ui.tsx",
+      "target": "src/features/backtesting/utils/session-state.test.ts"
+    },
+    {
+      "weight": 0.75,
+      "count": 3,
+      "source": "src/features/backtesting/components/backtesting-ui.tsx",
+      "target": "src/features/backtesting/utils/session-state.ts"
+    },
+    {
+      "weight": 0.5,
+      "count": 2,
+      "source": "src/features/backtesting/components/backtesting-ui.tsx",
+      "target": "src/features/backtesting/utils/trade-engine.test.ts"
+    },
+    {
+      "weight": 0.5,
+      "count": 2,
+      "source": "src/features/backtesting/components/backtesting-ui.tsx",
+      "target": "src/features/backtesting/utils/workspace-helpers.test.ts"
+    },
+    {
+      "weight": 0.5,
+      "count": 2,
+      "source": "src/features/backtesting/components/backtesting-ui.tsx",
+      "target": "src/features/backtesting/utils/workspace-helpers.ts"
+    },
+    {
+      "weight": 0.375,
+      "count": 3,
+      "source": "src/features/backtesting/components/backtesting-ui.tsx",
+      "target": "src/server/backtesting/queries.ts"
+    },
+    {
+      "weight": 0.5,
+      "count": 2,
+      "source": "src/features/backtesting/components/backtesting-ui.tsx",
+      "target": "src/features/backtesting/components/backtest-chart-helpers.ts"
+    },
+    {
+      "weight": 0.285714,
+      "count": 2,
+      "source": "src/features/backtesting/components/backtesting-ui.tsx",
+      "target": "src/features/backtesting/components/backtesting-client-shell.tsx"
+    },
+    {
+      "weight": 0.2,
+      "count": 2,
+      "source": "src/features/backtesting/components/backtesting-ui.tsx",
+      "target": "src/features/backtesting/components/backtesting-client.tsx"
+    },
+    {
+      "weight": 0.333333,
+      "count": 2,
+      "source": "src/features/backtesting/utils/trade-engine.ts",
+      "target": "src/features/backtesting/types.ts"
+    },
+    {
+      "weight": 0.5,
+      "count": 2,
+      "source": "src/features/backtesting/utils/trade-engine.ts",
+      "target": "src/features/backtesting/utils/session-state.test.ts"
+    },
+    {
+      "weight": 0.5,
+      "count": 2,
+      "source": "src/features/backtesting/utils/trade-engine.ts",
+      "target": "src/features/backtesting/utils/session-state.ts"
+    },
+    {
+      "weight": 0.666667,
+      "count": 2,
+      "source": "src/features/backtesting/utils/trade-engine.ts",
+      "target": "src/features/backtesting/utils/trade-engine.test.ts"
+    },
+    {
+      "weight": 0.666667,
+      "count": 2,
+      "source": "src/features/backtesting/utils/trade-engine.ts",
+      "target": "src/features/backtesting/utils/workspace-helpers.test.ts"
+    },
+    {
+      "weight": 0.666667,
+      "count": 2,
+      "source": "src/features/backtesting/utils/trade-engine.ts",
+      "target": "src/features/backtesting/utils/workspace-helpers.ts"
+    },
+    {
+      "weight": 0.25,
+      "count": 2,
+      "source": "src/features/backtesting/utils/trade-engine.ts",
+      "target": "src/server/backtesting/queries.ts"
+    },
+    {
+      "weight": 1.0,
+      "count": 2,
+      "source": "src/features/battle/battle-lobby-page.tsx",
+      "target": "src/features/battle/formatters.ts"
+    },
+    {
+      "weight": 1.0,
+      "count": 2,
+      "source": "src/features/battle/battle-lobby-page.tsx",
+      "target": "src/features/battle/hooks/use-battle-room-sync.ts"
+    },
+    {
+      "weight": 1.0,
+      "count": 2,
+      "source": "src/features/battle/battle-lobby-page.tsx",
+      "target": "src/features/trading-shared/trade-core.ts"
+    },
+    {
+      "weight": 1.0,
+      "count": 2,
+      "source": "src/features/battle/battle-lobby-page.tsx",
+      "target": "src/server/battle/penalties.ts"
+    },
+    {
+      "weight": 1.0,
+      "count": 2,
+      "source": "src/features/battle/battle-lobby-page.tsx",
+      "target": "src/server/battle/room-session.ts"
+    },
+    {
+      "weight": 1.0,
+      "count": 2,
+      "source": "src/features/battle/formatters.ts",
+      "target": "src/features/battle/hooks/use-battle-room-sync.ts"
+    },
+    {
+      "weight": 1.0,
+      "count": 2,
+      "source": "src/features/battle/formatters.ts",
+      "target": "src/features/trading-shared/trade-core.ts"
+    },
+    {
+      "weight": 1.0,
+      "count": 2,
+      "source": "src/features/battle/formatters.ts",
+      "target": "src/server/battle/penalties.ts"
+    },
+    {
+      "weight": 1.0,
+      "count": 2,
+      "source": "src/features/battle/formatters.ts",
+      "target": "src/server/battle/room-session.ts"
+    },
+    {
+      "weight": 1.0,
+      "count": 2,
+      "source": "src/features/battle/hooks/use-battle-room-sync.ts",
+      "target": "src/features/trading-shared/trade-core.ts"
+    },
+    {
+      "weight": 1.0,
+      "count": 2,
+      "source": "src/features/battle/hooks/use-battle-room-sync.ts",
+      "target": "src/server/battle/penalties.ts"
+    },
+    {
+      "weight": 1.0,
+      "count": 2,
+      "source": "src/features/battle/hooks/use-battle-room-sync.ts",
+      "target": "src/server/battle/room-session.ts"
+    },
+    {
+      "weight": 1.0,
+      "count": 2,
+      "source": "src/features/trading-shared/trade-core.ts",
+      "target": "src/server/battle/penalties.ts"
+    },
+    {
+      "weight": 1.0,
+      "count": 2,
+      "source": "src/features/trading-shared/trade-core.ts",
+      "target": "src/server/battle/room-session.ts"
+    },
+    {
+      "weight": 1.0,
+      "count": 2,
+      "source": "src/server/battle/penalties.ts",
+      "target": "src/server/battle/room-session.ts"
+    },
+    {
+      "weight": 1.0,
+      "count": 2,
+      "source": "src/components/layout/nav-link.tsx",
+      "target": "src/components/layout/product-sidebar.tsx"
+    },
+    {
+      "weight": 0.333333,
+      "count": 2,
+      "source": "src/features/backtesting/hooks/use-backtesting-history-persistence.ts",
+      "target": "src/features/backtesting/types.ts"
+    },
+    {
+      "weight": 0.25,
+      "count": 2,
+      "source": "src/features/backtesting/hooks/use-backtesting-history-persistence.ts",
+      "target": "src/server/backtesting/queries.ts"
+    },
+    {
+      "weight": 0.4,
+      "count": 2,
+      "source": "src/content/marketing/site-copy.ts",
+      "target": "src/features/backtesting/types.ts"
+    },
+    {
+      "weight": 0.285714,
+      "count": 2,
+      "source": "src/content/marketing/site-copy.ts",
+      "target": "src/server/backtesting/queries.ts"
+    },
+    {
+      "weight": 0.714286,
+      "count": 5,
+      "source": "src/features/backtesting/types.ts",
+      "target": "src/server/backtesting/queries.ts"
+    },
+    {
+      "weight": 0.4,
+      "count": 2,
+      "source": "src/features/backtesting/types.ts",
+      "target": "src/content/help/backtesting-controls.mdx"
+    },
+    {
+      "weight": 0.6,
+      "count": 3,
+      "source": "src/features/backtesting/types.ts",
+      "target": "src/features/backtesting/utils/session-state.test.ts"
+    },
+    {
+      "weight": 0.6,
+      "count": 3,
+      "source": "src/features/backtesting/types.ts",
+      "target": "src/features/backtesting/utils/session-state.ts"
+    },
+    {
+      "weight": 0.4,
+      "count": 2,
+      "source": "src/features/backtesting/types.ts",
+      "target": "src/features/backtesting/utils/share-card.ts"
+    },
+    {
+      "weight": 0.4,
+      "count": 2,
+      "source": "src/features/backtesting/types.ts",
+      "target": "src/features/backtesting/utils/trade-engine.test.ts"
+    },
+    {
+      "weight": 0.4,
+      "count": 2,
+      "source": "src/features/backtesting/types.ts",
+      "target": "src/features/backtesting/utils/workspace-helpers.test.ts"
+    },
+    {
+      "weight": 0.4,
+      "count": 2,
+      "source": "src/features/backtesting/types.ts",
+      "target": "src/features/backtesting/utils/workspace-helpers.ts"
+    },
+    {
+      "weight": 0.4,
+      "count": 2,
+      "source": "src/features/backtesting/types.ts",
+      "target": "src/app/(product)/app/backtesting/layout.tsx"
+    },
+    {
+      "weight": 0.4,
+      "count": 2,
+      "source": "src/features/backtesting/types.ts",
+      "target": "src/features/backtesting/components/backtest-chart-helpers.ts"
+    },
+    {
+      "weight": 0.428571,
+      "count": 3,
+      "source": "src/features/backtesting/types.ts",
+      "target": "src/features/backtesting/components/backtesting-client-shell.tsx"
+    },
+    {
+      "weight": 0.3,
+      "count": 3,
+      "source": "src/features/backtesting/types.ts",
+      "target": "src/features/backtesting/components/backtesting-client.tsx"
+    },
+    {
+      "weight": 0.285714,
+      "count": 2,
+      "source": "src/server/backtesting/queries.ts",
+      "target": "src/content/help/backtesting-controls.mdx"
+    },
+    {
+      "weight": 0.428571,
+      "count": 3,
+      "source": "src/server/backtesting/queries.ts",
+      "target": "src/features/backtesting/utils/session-state.test.ts"
+    },
+    {
+      "weight": 0.428571,
+      "count": 3,
+      "source": "src/server/backtesting/queries.ts",
+      "target": "src/features/backtesting/utils/session-state.ts"
+    },
+    {
+      "weight": 0.285714,
+      "count": 2,
+      "source": "src/server/backtesting/queries.ts",
+      "target": "src/features/backtesting/utils/share-card.ts"
+    },
+    {
+      "weight": 0.285714,
+      "count": 2,
+      "source": "src/server/backtesting/queries.ts",
+      "target": "src/features/backtesting/utils/trade-engine.test.ts"
+    },
+    {
+      "weight": 0.285714,
+      "count": 2,
+      "source": "src/server/backtesting/queries.ts",
+      "target": "src/features/backtesting/utils/workspace-helpers.test.ts"
+    },
+    {
+      "weight": 0.285714,
+      "count": 2,
+      "source": "src/server/backtesting/queries.ts",
+      "target": "src/features/backtesting/utils/workspace-helpers.ts"
+    },
+    {
+      "weight": 0.285714,
+      "count": 2,
+      "source": "src/server/backtesting/queries.ts",
+      "target": "src/app/(product)/app/backtesting/layout.tsx"
+    },
+    {
+      "weight": 0.285714,
+      "count": 2,
+      "source": "src/server/backtesting/queries.ts",
+      "target": "src/features/backtesting/components/backtest-chart-helpers.ts"
+    },
+    {
+      "weight": 0.333333,
+      "count": 3,
+      "source": "src/server/backtesting/queries.ts",
+      "target": "src/features/backtesting/components/backtesting-client-shell.tsx"
+    },
+    {
+      "weight": 0.5,
+      "count": 5,
+      "source": "src/server/backtesting/queries.ts",
+      "target": "src/features/backtesting/components/backtesting-client.tsx"
+    },
+    {
+      "weight": 1.0,
+      "count": 2,
+      "source": "src/content/help/backtesting-controls.mdx",
+      "target": "src/features/backtesting/utils/share-card.ts"
+    },
+    {
+      "weight": 1.0,
+      "count": 3,
+      "source": "src/features/backtesting/utils/session-state.test.ts",
+      "target": "src/features/backtesting/utils/session-state.ts"
+    },
+    {
+      "weight": 0.666667,
+      "count": 2,
+      "source": "src/features/backtesting/utils/session-state.test.ts",
+      "target": "src/features/backtesting/utils/trade-engine.test.ts"
+    },
+    {
+      "weight": 0.666667,
+      "count": 2,
+      "source": "src/features/backtesting/utils/session-state.test.ts",
+      "target": "src/features/backtesting/utils/workspace-helpers.test.ts"
+    },
+    {
+      "weight": 0.666667,
+      "count": 2,
+      "source": "src/features/backtesting/utils/session-state.test.ts",
+      "target": "src/features/backtesting/utils/workspace-helpers.ts"
+    },
+    {
+      "weight": 0.666667,
+      "count": 2,
+      "source": "src/features/backtesting/utils/session-state.test.ts",
+      "target": "src/features/backtesting/components/backtest-chart-helpers.ts"
+    },
+    {
+      "weight": 0.333333,
+      "count": 2,
+      "source": "src/features/backtesting/utils/session-state.test.ts",
+      "target": "src/features/backtesting/components/backtesting-client-shell.tsx"
+    },
+    {
+      "weight": 0.222222,
+      "count": 2,
+      "source": "src/features/backtesting/utils/session-state.test.ts",
+      "target": "src/features/backtesting/components/backtesting-client.tsx"
+    },
+    {
+      "weight": 0.666667,
+      "count": 2,
+      "source": "src/features/backtesting/utils/session-state.ts",
+      "target": "src/features/backtesting/utils/trade-engine.test.ts"
+    },
+    {
+      "weight": 0.666667,
+      "count": 2,
+      "source": "src/features/backtesting/utils/session-state.ts",
+      "target": "src/features/backtesting/utils/workspace-helpers.test.ts"
+    },
+    {
+      "weight": 0.666667,
+      "count": 2,
+      "source": "src/features/backtesting/utils/session-state.ts",
+      "target": "src/features/backtesting/utils/workspace-helpers.ts"
+    },
+    {
+      "weight": 0.666667,
+      "count": 2,
+      "source": "src/features/backtesting/utils/session-state.ts",
+      "target": "src/features/backtesting/components/backtest-chart-helpers.ts"
+    },
+    {
+      "weight": 0.333333,
+      "count": 2,
+      "source": "src/features/backtesting/utils/session-state.ts",
+      "target": "src/features/backtesting/components/backtesting-client-shell.tsx"
+    },
+    {
+      "weight": 0.222222,
+      "count": 2,
+      "source": "src/features/backtesting/utils/session-state.ts",
+      "target": "src/features/backtesting/components/backtesting-client.tsx"
+    },
+    {
+      "weight": 1.0,
+      "count": 2,
+      "source": "src/features/backtesting/utils/trade-engine.test.ts",
+      "target": "src/features/backtesting/utils/workspace-helpers.test.ts"
+    },
+    {
+      "weight": 1.0,
+      "count": 2,
+      "source": "src/features/backtesting/utils/trade-engine.test.ts",
+      "target": "src/features/backtesting/utils/workspace-helpers.ts"
+    },
+    {
+      "weight": 1.0,
+      "count": 2,
+      "source": "src/features/backtesting/utils/workspace-helpers.test.ts",
+      "target": "src/features/backtesting/utils/workspace-helpers.ts"
+    },
+    {
+      "weight": 0.4,
+      "count": 2,
+      "source": "src/app/(product)/app/backtesting/layout.tsx",
+      "target": "src/features/backtesting/components/backtesting-client-shell.tsx"
+    },
+    {
+      "weight": 0.25,
+      "count": 2,
+      "source": "src/app/(product)/app/backtesting/layout.tsx",
+      "target": "src/features/backtesting/components/backtesting-client.tsx"
+    },
+    {
+      "weight": 0.4,
+      "count": 2,
+      "source": "src/features/backtesting/components/backtesting-client-shell.tsx",
+      "target": "src/app/(product)/app/layout.tsx"
+    },
+    {
+      "weight": 0.4,
+      "count": 2,
+      "source": "src/features/backtesting/components/backtesting-client-shell.tsx",
+      "target": "src/features/backtesting/components/backtest-chart-helpers.ts"
+    },
+    {
+      "weight": 0.625,
+      "count": 5,
+      "source": "src/features/backtesting/components/backtesting-client-shell.tsx",
+      "target": "src/features/backtesting/components/backtesting-client.tsx"
+    },
+    {
+      "weight": 0.25,
+      "count": 2,
+      "source": "src/features/backtesting/components/backtesting-client.tsx",
+      "target": "src/app/(product)/app/layout.tsx"
+    },
+    {
+      "weight": 0.25,
+      "count": 2,
+      "source": "src/features/backtesting/components/backtesting-client.tsx",
+      "target": "src/features/backtesting/components/backtest-chart-helpers.ts"
+    },
+    {
+      "weight": 0.25,
+      "count": 2,
+      "source": "src/features/backtesting/components/backtesting-client.tsx",
+      "target": "src/components/layout/product-topbar.tsx"
+    },
+    {
+      "weight": 1.0,
+      "count": 2,
+      "source": "README.md",
+      "target": "src/app/(product)/app/learn/layout.tsx"
+    },
+    {
+      "weight": 1.0,
+      "count": 2,
+      "source": "README.md",
+      "target": "src/features/learn/learn-hub-client.tsx"
+    },
+    {
+      "weight": 1.0,
+      "count": 2,
+      "source": "README.md",
+      "target": "src/features/learn/learn-progress-provider.tsx"
+    },
+    {
+      "weight": 1.0,
+      "count": 2,
+      "source": "README.md",
+      "target": "src/features/learn/lesson-page-client.tsx"
+    },
+    {
+      "weight": 1.0,
+      "count": 2,
+      "source": "README.md",
+      "target": "src/features/learn/module-page-client.tsx"
+    },
+    {
+      "weight": 1.0,
+      "count": 2,
+      "source": "README.md",
+      "target": "src/server/learn/actions.ts"
+    },
+    {
+      "weight": 1.0,
+      "count": 2,
+      "source": "README.md",
+      "target": "src/server/learn/queries.ts"
+    },
+    {
+      "weight": 1.0,
+      "count": 2,
+      "source": "src/app/(product)/app/learn/layout.tsx",
+      "target": "src/features/learn/learn-hub-client.tsx"
+    },
+    {
+      "weight": 1.0,
+      "count": 2,
+      "source": "src/app/(product)/app/learn/layout.tsx",
+      "target": "src/features/learn/learn-progress-provider.tsx"
+    },
+    {
+      "weight": 1.0,
+      "count": 2,
+      "source": "src/app/(product)/app/learn/layout.tsx",
+      "target": "src/features/learn/lesson-page-client.tsx"
+    },
+    {
+      "weight": 1.0,
+      "count": 2,
+      "source": "src/app/(product)/app/learn/layout.tsx",
+      "target": "src/features/learn/module-page-client.tsx"
+    },
+    {
+      "weight": 1.0,
+      "count": 2,
+      "source": "src/app/(product)/app/learn/layout.tsx",
+      "target": "src/server/learn/actions.ts"
+    },
+    {
+      "weight": 1.0,
+      "count": 2,
+      "source": "src/app/(product)/app/learn/layout.tsx",
+      "target": "src/server/learn/queries.ts"
+    },
+    {
+      "weight": 1.0,
+      "count": 2,
+      "source": "src/features/learn/learn-hub-client.tsx",
+      "target": "src/features/learn/learn-progress-provider.tsx"
+    },
+    {
+      "weight": 1.0,
+      "count": 2,
+      "source": "src/features/learn/learn-hub-client.tsx",
+      "target": "src/features/learn/lesson-page-client.tsx"
+    },
+    {
+      "weight": 1.0,
+      "count": 2,
+      "source": "src/features/learn/learn-hub-client.tsx",
+      "target": "src/features/learn/module-page-client.tsx"
+    },
+    {
+      "weight": 1.0,
+      "count": 2,
+      "source": "src/features/learn/learn-hub-client.tsx",
+      "target": "src/server/learn/actions.ts"
+    },
+    {
+      "weight": 1.0,
+      "count": 2,
+      "source": "src/features/learn/learn-hub-client.tsx",
+      "target": "src/server/learn/queries.ts"
+    },
+    {
+      "weight": 1.0,
+      "count": 2,
+      "source": "src/features/learn/learn-progress-provider.tsx",
+      "target": "src/features/learn/lesson-page-client.tsx"
+    },
+    {
+      "weight": 1.0,
+      "count": 2,
+      "source": "src/features/learn/learn-progress-provider.tsx",
+      "target": "src/features/learn/module-page-client.tsx"
+    },
+    {
+      "weight": 1.0,
+      "count": 2,
+      "source": "src/features/learn/learn-progress-provider.tsx",
+      "target": "src/server/learn/actions.ts"
+    },
+    {
+      "weight": 1.0,
+      "count": 2,
+      "source": "src/features/learn/learn-progress-provider.tsx",
+      "target": "src/server/learn/queries.ts"
+    },
+    {
+      "weight": 1.0,
+      "count": 2,
+      "source": "src/features/learn/lesson-page-client.tsx",
+      "target": "src/features/learn/module-page-client.tsx"
+    },
+    {
+      "weight": 1.0,
+      "count": 2,
+      "source": "src/features/learn/lesson-page-client.tsx",
+      "target": "src/server/learn/actions.ts"
+    },
+    {
+      "weight": 1.0,
+      "count": 2,
+      "source": "src/features/learn/lesson-page-client.tsx",
+      "target": "src/server/learn/queries.ts"
+    },
+    {
+      "weight": 1.0,
+      "count": 2,
+      "source": "src/features/learn/module-page-client.tsx",
+      "target": "src/server/learn/actions.ts"
+    },
+    {
+      "weight": 1.0,
+      "count": 2,
+      "source": "src/features/learn/module-page-client.tsx",
+      "target": "src/server/learn/queries.ts"
+    },
+    {
+      "weight": 1.0,
+      "count": 2,
+      "source": "src/server/learn/actions.ts",
+      "target": "src/server/learn/queries.ts"
+    }
+  ]
+}

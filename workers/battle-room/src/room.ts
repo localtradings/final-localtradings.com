@@ -11,6 +11,12 @@ import {
   manuallyCloseTrade,
   validateTradeDraft,
 } from "../../../src/features/trading-shared/execution-engine";
+import {
+  BATTLE_OPEN_ROOM_MAX_DRAWDOWN_PERCENT,
+  BATTLE_OPEN_ROOM_RISK_LIMIT_PERCENT,
+  BATTLE_PUBLIC_MAX_DRAWDOWN_PERCENT,
+  BATTLE_PUBLIC_RISK_LIMIT_PERCENT,
+} from "../../../src/features/battle/constants";
 import { BACKTEST_REFILL_TRIGGER_COUNT } from "../../../src/features/backtesting/constants";
 import {
   buildViewerState,
@@ -50,6 +56,18 @@ const PARTICIPATION_GRACE_MS = 60 * 1_000;
 const MAX_REPLAY_CHECKPOINT_DELTA = 48;
 const RESULT_PERSIST_RETRY_MS = 10_000;
 const TOKEN_VERSION = "v1";
+
+function getDrawdownBalanceThreshold(room: Pick<WorkerBattleRoomState, "maxDrawdownPercent">) {
+  if (
+    typeof room.maxDrawdownPercent !== "number" ||
+    !Number.isFinite(room.maxDrawdownPercent) ||
+    room.maxDrawdownPercent <= 0
+  ) {
+    return null;
+  }
+
+  return STARTING_BALANCE * (1 - room.maxDrawdownPercent / 100);
+}
 
 type RoomTokenPayload = {
   roomId: string;
@@ -339,6 +357,10 @@ export class BattleRoomDO {
       return "You left this match early and can no longer trade in it.";
     }
 
+    if (player?.status === "drawdown_limit") {
+      return "You reached the maximum realized drawdown for this match.";
+    }
+
     return fallback;
   }
 
@@ -606,6 +628,26 @@ export class BattleRoomDO {
       }
     }
 
+    return true;
+  }
+
+  private applyDrawdownLimit(
+    room: WorkerBattleRoomState,
+    player: WorkerBattlePlayer,
+    state: WorkerBattlePlayerMatchState,
+  ) {
+    if (player.status !== "active") {
+      return false;
+    }
+
+    const threshold = getDrawdownBalanceThreshold(room);
+    if (threshold === null || player.officialBalance >= threshold) {
+      return false;
+    }
+
+    player.status = "drawdown_limit";
+    state.participationStatus = "eliminated";
+    state.execution = null;
     return true;
   }
 
@@ -899,6 +941,8 @@ export class BattleRoomDO {
           roomId: room.roomId,
           roomType: room.roomType,
           durationMinutes: room.durationMinutes,
+          riskLimitPercent: room.riskLimitPercent,
+          maxDrawdownPercent: room.maxDrawdownPercent,
           symbol: room.symbol,
           timeframe: room.timeframe,
           phase: room.phase,
@@ -972,6 +1016,7 @@ export class BattleRoomDO {
         ) as WorkerBattleExecution;
         settleResolvedExecution(player, resolved);
         state.execution = null;
+        this.applyDrawdownLimit(room, player, state);
       } else if (state.execution?.status === "armed") {
         state.execution = null;
       }
@@ -1027,15 +1072,47 @@ export class BattleRoomDO {
     }
 
     const creatorId = String(body.userId);
+    const roomType =
+      body.roomType === "private" ? "private" : body.roomType === "open" ? "open" : "public";
+    const durationMinutes = Number(body.durationMinutes) as WorkerBattleRoomState["durationMinutes"];
+    const maxPlayers =
+      roomType === "public" ? 5 : Number(body.maxPlayers ?? (roomType === "open" ? 2 : 5));
+    const riskLimitPercent =
+      roomType === "public"
+        ? BATTLE_PUBLIC_RISK_LIMIT_PERCENT
+        : roomType === "open"
+          ? Number(body.riskLimitPercent ?? BATTLE_OPEN_ROOM_RISK_LIMIT_PERCENT)
+          : null;
+    const maxDrawdownPercent =
+      roomType === "public"
+        ? BATTLE_PUBLIC_MAX_DRAWDOWN_PERCENT
+        : roomType === "open"
+          ? Number(body.maxDrawdownPercent ?? BATTLE_OPEN_ROOM_MAX_DRAWDOWN_PERCENT)
+          : null;
+
+    if (![10, 15, 30, 45, 60].includes(durationMinutes)) {
+      return this.jsonFailure("invalid_duration", "Choose a valid battle duration.", 400);
+    }
+
+    if (roomType === "open" && ![2, 4, 6, 8, 10].includes(maxPlayers)) {
+      return this.jsonFailure("invalid_max_players", "Choose a valid player cap.", 400);
+    }
+
+    if (roomType === "private" && (maxPlayers < 2 || maxPlayers > 10)) {
+      return this.jsonFailure("invalid_max_players", "Choose a valid player cap.", 400);
+    }
+
     const room: WorkerBattleRoomState = {
       roomId: String(body.roomId),
       lobbyCode: typeof body.lobbyCode === "string" ? body.lobbyCode : null,
-      roomType: body.roomType === "private" ? "private" : "public",
+      roomType,
       phase: "lobby",
-      durationMinutes: Number(body.durationMinutes) as WorkerBattleRoomState["durationMinutes"],
+      durationMinutes,
+      riskLimitPercent,
+      maxDrawdownPercent,
       symbol: null,
       timeframe: null,
-      maxPlayers: 5,
+      maxPlayers,
       createdAt: new Date(nowMs).toISOString(),
       countdownEndsAt: new Date(nowMs + LOBBY_COUNTDOWN_MS).toISOString(),
       officialStartAt: null,
@@ -1326,6 +1403,7 @@ export class BattleRoomDO {
       ) {
         settleResolvedExecution(player, state.execution);
         state.execution = null;
+        this.applyDrawdownLimit(room, player, state);
       }
     }
 
@@ -1479,6 +1557,17 @@ export class BattleRoomDO {
       return this.jsonFailure("invalid_trade_payload", validation.message ?? "Enter a valid battle trade.");
     }
 
+    if (
+      typeof room.riskLimitPercent === "number" &&
+      Number.isFinite(room.riskLimitPercent) &&
+      riskPercent > room.riskLimitPercent
+    ) {
+      return this.jsonFailure(
+        "invalid_trade_payload",
+        `Risk per trade cannot exceed ${room.riskLimitPercent.toFixed(2)}% in this match.`,
+      );
+    }
+
     const risk = deriveRiskSettings(
       {
         startingBalance: player.officialBalance,
@@ -1590,6 +1679,7 @@ export class BattleRoomDO {
 
     settleResolvedExecution(player, resolved);
     state.execution = null;
+    this.applyDrawdownLimit(room, player, state);
     updateHeartbeat(room, userId, new Date(nowMs).toISOString());
     this.logRoomEvent("close-trade", {
       roomId: room.roomId,

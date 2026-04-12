@@ -16,6 +16,8 @@ function createRoom(): WorkerBattleRoomState {
     roomType: "private",
     phase: "active",
     durationMinutes: 10,
+    riskLimitPercent: null,
+    maxDrawdownPercent: null,
     symbol: "XAUUSD",
     timeframe: "15min",
     maxPlayers: 5,

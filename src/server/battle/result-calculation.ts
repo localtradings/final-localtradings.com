@@ -8,9 +8,10 @@ import type {
 
 const RESULT_PRIORITY: Record<string, number> = {
   finished: 0,
-  no_trade: 1,
-  left_early: 2,
-  forfeit: 3,
+  drawdown_limit: 1,
+  no_trade: 2,
+  left_early: 3,
+  forfeit: 4,
 };
 
 export function rankBattleEntries<T extends { finalBalance: number; status: string }>(
@@ -49,6 +50,7 @@ export function buildBattleResultEntries(
       losingTrades: player.losingTrades,
       status:
         player.status === "finished" ||
+        player.status === "drawdown_limit" ||
         player.status === "left_early" ||
         player.status === "forfeit" ||
         player.status === "no_trade"

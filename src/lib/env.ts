@@ -6,6 +6,7 @@ export const env = {
   twelveDataApiKey: process.env.TWELVE_DATA_API_KEY ?? "",
   battleWorkerUrl: process.env.CLOUDFLARE_BATTLE_WORKER_URL ?? "",
   battleSharedSecret: process.env.CLOUDFLARE_BATTLE_SHARED_SECRET ?? "",
+  cronSecret: process.env.CRON_SECRET ?? "",
 };
 
 export function hasSupabaseEnv() {

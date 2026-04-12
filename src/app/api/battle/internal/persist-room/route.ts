@@ -28,9 +28,11 @@ const persistRoomSchema = z.object({
   room: z.object({
     roomId: z.string().uuid(),
     lobbyCode: z.string().nullable(),
-    roomType: z.union([z.literal("public"), z.literal("private")]),
+    roomType: z.union([z.literal("public"), z.literal("private"), z.literal("open")]),
     phase: z.union([z.literal("lobby"), z.literal("active"), z.literal("finished"), z.literal("cancelled")]),
-    durationMinutes: z.union([z.literal(10), z.literal(15), z.literal(30), z.literal(45)]),
+    durationMinutes: z.union([z.literal(10), z.literal(15), z.literal(30), z.literal(45), z.literal(60)]),
+    riskLimitPercent: z.number().nullable(),
+    maxDrawdownPercent: z.number().nullable(),
     symbol: z.string().nullable(),
     timeframe: z.string().nullable(),
     maxPlayers: z.number().int().positive(),
@@ -67,6 +69,17 @@ export async function POST(request: Request) {
     );
   }
 
-  await persistBattleRoomSnapshot(parsed.data.room as BattleRoomSnapshot);
-  return NextResponse.json({ ok: true });
+  try {
+    await persistBattleRoomSnapshot(parsed.data.room as BattleRoomSnapshot);
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        ok: false,
+        reason: "persist_failed",
+        message: error instanceof Error ? error.message : "Battle room snapshot persist failed.",
+      },
+      { status: 500 },
+    );
+  }
 }

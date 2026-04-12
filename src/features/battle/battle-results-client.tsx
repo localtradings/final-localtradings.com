@@ -21,6 +21,7 @@ import {
   Hash,
   LockKeyhole,
   Medal,
+  ShieldPlus,
   Trophy,
   Users,
 } from "lucide-react";
@@ -38,7 +39,15 @@ function formatSignedMoney(value: number) {
 }
 
 function formatRoomType(roomType: BattleRoomType) {
-  return roomType === "private" ? "Private Room" : "Public Room";
+  if (roomType === "private") {
+    return "Private Room";
+  }
+
+  if (roomType === "open") {
+    return "Open Room";
+  }
+
+  return "Public Room";
 }
 
 function formatShortId(value: string | null) {
@@ -365,7 +374,7 @@ export function BattleResultsClient({ result }: { result: BattleResultRecord | n
               </div>
             </div>
 
-            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
               <SummaryMetric
                 icon={<ChartCandlestick className="h-4.5 w-4.5" />}
                 label="Symbol"
@@ -395,6 +404,24 @@ export function BattleResultsClient({ result }: { result: BattleResultRecord | n
                   </span>
                 }
                 value={formatRoomType(result.roomType)}
+              />
+              <SummaryMetric
+                icon={<ShieldPlus className="h-4.5 w-4.5" />}
+                label="Risk Cap"
+                value={
+                  typeof result.riskLimitPercent === "number"
+                    ? `${result.riskLimitPercent}% Max`
+                    : "Flexible"
+                }
+              />
+              <SummaryMetric
+                icon={<Flag className="h-4.5 w-4.5" />}
+                label="Drawdown"
+                value={
+                  typeof result.maxDrawdownPercent === "number"
+                    ? `${result.maxDrawdownPercent}% Max`
+                    : "Flexible"
+                }
               />
             </div>
           </div>

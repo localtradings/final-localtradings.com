@@ -53,7 +53,7 @@ async function main() {
       ),
     );
 
-    await host.getByRole("button", { name: "Create Private Room" }).click();
+    await host.getByRole("button", { name: "Host Room" }).click();
     await waitForPath(host, /\/app\/battle\/lobby\//, 60_000);
     await host.waitForTimeout(1_500);
 

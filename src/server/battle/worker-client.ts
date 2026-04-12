@@ -2,6 +2,7 @@ import "server-only";
 
 import type {
   BattleDurationMinutes,
+  BattleRoomType,
   BattleRoomView,
 } from "@/features/battle/types";
 import { normalizeBattleRoomView } from "@/features/battle/lib/normalize-room-view";
@@ -19,11 +20,13 @@ type WorkerFailure = {
     | "battle_worker_not_configured"
     | "invalid_worker_response"
     | "service_unavailable"
+    | "invalid_duration"
     | "room_not_found"
     | "room_full"
     | "room_already_started"
     | "cooldown_active"
     | "invalid_lobby_code"
+    | "invalid_max_players"
     | "pro_required"
     | "room_not_active"
     | "trade_already_open"
@@ -125,7 +128,10 @@ export function createPublicBattleRoom(input: {
       ...input,
       roomType: "public",
       lobbyCode: null,
-      durationMinutes: 10,
+      durationMinutes: 15,
+      maxPlayers: 5,
+      riskLimitPercent: 2,
+      maxDrawdownPercent: 10,
     },
   });
 }
@@ -142,13 +148,26 @@ export function joinPublicBattleMatch(input: {
 
 export function createBattleRoom(input: {
   roomId: string;
-  roomType: "public" | "private";
+  roomType: BattleRoomType;
   lobbyCode: string | null;
   durationMinutes: BattleDurationMinutes;
+  maxPlayers?: number;
+  riskLimitPercent?: number | null;
+  maxDrawdownPercent?: number | null;
   userId: string;
   displayName: string;
 }) {
   return requestWorker<{ room: BattleRoomView }>("/internal/rooms/create", {
+    body: input,
+  });
+}
+
+export function joinOpenBattleRoom(input: {
+  roomId: string;
+  userId: string;
+  displayName: string;
+}) {
+  return requestWorker<{ room: BattleRoomView }>("/internal/rooms/join", {
     body: input,
   });
 }

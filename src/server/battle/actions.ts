@@ -2,7 +2,14 @@
 
 import { z } from "zod";
 
-import { BATTLE_ALLOWED_DURATION_MINUTES } from "@/features/battle/constants";
+import {
+  BATTLE_ALLOWED_DURATION_MINUTES,
+  BATTLE_OPEN_ROOM_DURATION_MINUTES,
+  BATTLE_OPEN_ROOM_MAX_DRAWDOWN_PERCENT,
+  BATTLE_OPEN_ROOM_PLAYER_OPTIONS,
+  BATTLE_OPEN_ROOM_RISK_LIMIT_PERCENT,
+  BATTLE_PRIVATE_ROOM_PLAYER_OPTIONS,
+} from "@/features/battle/constants";
 import type {
   BattleDurationMinutes,
   BattleHomeActionResult,
@@ -23,6 +30,7 @@ import { attachBattleRoomToken } from "./room-session";
 import {
   createBattleRoom,
   joinBattleRoom,
+  joinOpenBattleRoom,
   joinPublicBattleMatch,
   leaveBattleRoom,
   openBattleTrade,
@@ -41,13 +49,23 @@ const lobbyCodeSchema = z.object({
     .regex(/^[A-Z0-9]+$/),
 });
 
-const durationSchema = z.object({
+const privateRoomCreateSchema = z.object({
   durationMinutes: z.union([
     z.literal(10),
     z.literal(15),
     z.literal(30),
     z.literal(45),
   ]),
+  maxPlayers: z.number().int().min(2).max(10),
+});
+
+const openRoomCreateSchema = z.object({
+  durationMinutes: z.union([z.literal(15), z.literal(30), z.literal(45), z.literal(60)]),
+  maxPlayers: z.union([z.literal(2), z.literal(4), z.literal(6), z.literal(8), z.literal(10)]),
+});
+
+const openRoomJoinSchema = z.object({
+  roomId: z.string().uuid(),
 });
 
 const readySchema = z.object({
@@ -93,15 +111,40 @@ async function persistBattleRoomView(roomView: BattleRoomView) {
   await persistBattleRoomSnapshot(roomView.room);
 }
 
+function mapPersistFailure(error: unknown): BattleHomeActionResult {
+  const message =
+    error instanceof Error ? error.message : "Battle room storage could not be updated.";
+
+  if (
+    message.includes("risk_limit_percent") ||
+    message.includes("max_drawdown_percent") ||
+    message.includes("room_type")
+  ) {
+    return {
+      ok: false,
+      reason: "service_unavailable",
+      message: "Battle room storage is out of date. Apply Supabase migration 0012_battle_open_rooms_and_rules.sql.",
+    };
+  }
+
+  return {
+    ok: false,
+    reason: "service_unavailable",
+    message,
+  };
+}
+
 function mapWorkerFailure(result: { reason: string; message: string }): BattleHomeActionResult {
   return {
     ok: false,
     reason:
+      result.reason === "invalid_duration" ||
       result.reason === "cooldown_active" ||
       result.reason === "invalid_lobby_code" ||
       result.reason === "room_not_found" ||
       result.reason === "room_full" ||
       result.reason === "room_already_started" ||
+      result.reason === "invalid_max_players" ||
       result.reason === "pro_required" ||
       result.reason === "battle_worker_not_configured"
         ? result.reason
@@ -131,7 +174,7 @@ async function findPrivateBattleRoomId(lobbyCode: string) {
 }
 
 export async function createPrivateBattleRoomAction(
-  rawInput: { durationMinutes: BattleDurationMinutes },
+  rawInput: { durationMinutes: BattleDurationMinutes; maxPlayers: number },
 ): Promise<BattleHomeActionResult> {
   if (!hasBattleWorkerEnv()) {
     return {
@@ -143,12 +186,20 @@ export async function createPrivateBattleRoomAction(
 
   const user = await requireUser();
   const profile = await getCurrentProfile(user.id);
-  const parsed = durationSchema.safeParse(rawInput);
+  const parsed = privateRoomCreateSchema.safeParse(rawInput);
   if (!parsed.success || !BATTLE_ALLOWED_DURATION_MINUTES.includes(parsed.data.durationMinutes)) {
     return {
       ok: false,
       reason: "invalid_duration",
       message: "Choose a valid private room duration.",
+    };
+  }
+
+  if (!BATTLE_PRIVATE_ROOM_PLAYER_OPTIONS.some((count) => count === parsed.data.maxPlayers)) {
+    return {
+      ok: false,
+      reason: "invalid_max_players",
+      message: "Choose a valid private room player cap.",
     };
   }
 
@@ -177,13 +228,96 @@ export async function createPrivateBattleRoomAction(
     userId: user.id,
     displayName: getDisplayName(profile, user.email ?? ""),
     durationMinutes: parsed.data.durationMinutes,
+    maxPlayers: parsed.data.maxPlayers,
   });
 
   if (!workerResult.ok) {
     return mapWorkerFailure(workerResult);
   }
 
-  await persistBattleRoomView(workerResult.data.room);
+  try {
+    await persistBattleRoomView(workerResult.data.room);
+  } catch (error) {
+    return mapPersistFailure(error);
+  }
+
+  return {
+    ok: true,
+    redirectTo: `/app/battle/lobby/${workerResult.data.room.room.roomId}`,
+    roomId: workerResult.data.room.room.roomId,
+    lobbyCode: workerResult.data.room.room.lobbyCode,
+  };
+}
+
+export async function createOpenBattleRoomAction(
+  rawInput: { durationMinutes: BattleDurationMinutes; maxPlayers: number },
+): Promise<BattleHomeActionResult> {
+  if (!hasBattleWorkerEnv()) {
+    return {
+      ok: false,
+      reason: "battle_worker_not_configured",
+      message: "Battle worker env is not configured yet.",
+    };
+  }
+
+  const user = await requireUser();
+  const profile = await getCurrentProfile(user.id);
+  const parsed = openRoomCreateSchema.safeParse(rawInput);
+  if (!parsed.success || !BATTLE_OPEN_ROOM_DURATION_MINUTES.includes(parsed.data.durationMinutes)) {
+    return {
+      ok: false,
+      reason: "invalid_duration",
+      message: "Choose a valid open room duration.",
+    };
+  }
+
+  if (!BATTLE_OPEN_ROOM_PLAYER_OPTIONS.includes(parsed.data.maxPlayers)) {
+    return {
+      ok: false,
+      reason: "invalid_max_players",
+      message: "Choose a valid open room player cap.",
+    };
+  }
+
+  const penalty = await getActiveBattlePenalty(user.id);
+  if (penalty) {
+    return {
+      ok: false,
+      reason: "cooldown_active",
+      message: "You are currently on cooldown.",
+      penaltyEndsAt: penalty.endsAt,
+    };
+  }
+
+  if (!profile?.isPro) {
+    return {
+      ok: false,
+      reason: "pro_required",
+      message: "Only Pro users can create open rooms.",
+    };
+  }
+
+  const workerResult = await createBattleRoom({
+    roomId: createBattleRoomId(),
+    roomType: "open",
+    lobbyCode: null,
+    durationMinutes: parsed.data.durationMinutes,
+    maxPlayers: parsed.data.maxPlayers,
+    riskLimitPercent: BATTLE_OPEN_ROOM_RISK_LIMIT_PERCENT,
+    maxDrawdownPercent: BATTLE_OPEN_ROOM_MAX_DRAWDOWN_PERCENT,
+    userId: user.id,
+    displayName: getDisplayName(profile, user.email ?? ""),
+  });
+
+  if (!workerResult.ok) {
+    return mapWorkerFailure(workerResult);
+  }
+
+  try {
+    await persistBattleRoomView(workerResult.data.room);
+  } catch (error) {
+    return mapPersistFailure(error);
+  }
 
   return {
     ok: true,
@@ -225,7 +359,11 @@ export async function joinRandomBattleMatchAction(): Promise<BattleHomeActionRes
     return mapWorkerFailure(workerResult);
   }
 
-  await persistBattleRoomView(workerResult.data.room);
+  try {
+    await persistBattleRoomView(workerResult.data.room);
+  } catch (error) {
+    return mapPersistFailure(error);
+  }
 
   return {
     ok: true,
@@ -289,7 +427,68 @@ export async function joinPrivateBattleRoomAction(
     return mapWorkerFailure(workerResult);
   }
 
-  await persistBattleRoomView(workerResult.data.room);
+  try {
+    await persistBattleRoomView(workerResult.data.room);
+  } catch (error) {
+    return mapPersistFailure(error);
+  }
+
+  return {
+    ok: true,
+    redirectTo: `/app/battle/lobby/${workerResult.data.room.room.roomId}`,
+    roomId: workerResult.data.room.room.roomId,
+    lobbyCode: workerResult.data.room.room.lobbyCode,
+  };
+}
+
+export async function joinOpenBattleRoomAction(
+  rawInput: { roomId: string },
+): Promise<BattleHomeActionResult> {
+  if (!hasBattleWorkerEnv()) {
+    return {
+      ok: false,
+      reason: "battle_worker_not_configured",
+      message: "Battle worker env is not configured yet.",
+    };
+  }
+
+  const user = await requireUser();
+  const profile = await getCurrentProfile(user.id);
+  const parsed = openRoomJoinSchema.safeParse(rawInput);
+
+  if (!parsed.success) {
+    return {
+      ok: false,
+      reason: "room_not_found",
+      message: "Open battle room not found.",
+    };
+  }
+
+  const penalty = await getActiveBattlePenalty(user.id);
+  if (penalty) {
+    return {
+      ok: false,
+      reason: "cooldown_active",
+      message: "You are currently on cooldown.",
+      penaltyEndsAt: penalty.endsAt,
+    };
+  }
+
+  const workerResult = await joinOpenBattleRoom({
+    roomId: parsed.data.roomId,
+    userId: user.id,
+    displayName: getDisplayName(profile, user.email ?? ""),
+  });
+
+  if (!workerResult.ok) {
+    return mapWorkerFailure(workerResult);
+  }
+
+  try {
+    await persistBattleRoomView(workerResult.data.room);
+  } catch (error) {
+    return mapPersistFailure(error);
+  }
 
   return {
     ok: true,
