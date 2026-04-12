@@ -1,10 +1,17 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import {
+  consumeRateLimit,
+  formatRetryAfterSeconds,
+  getClientIpFromHeaders,
+  normalizeRateLimitIdentifier,
+} from "@/server/security/rate-limit";
 import type { ActionState } from "@/types/auth";
 
 import {
@@ -64,12 +71,46 @@ const requestPasswordResetSchema = z.object({
   email: z.email(),
 });
 
+const SIGN_IN_RATE_LIMIT = {
+  limit: 10,
+  windowSeconds: 15 * 60,
+};
+
+const SIGN_UP_RATE_LIMIT = {
+  limit: 5,
+  windowSeconds: 60 * 60,
+};
+
+const PASSWORD_RESET_RATE_LIMIT = {
+  limit: 5,
+  windowSeconds: 60 * 60,
+};
+
 export async function signIn(
   _prevState: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  const headerStore = await headers();
+  const emailInput = formData.get("email");
+  const rateLimit = await consumeRateLimit({
+    scope: "auth:sign-in",
+    identifier: normalizeRateLimitIdentifier(
+      getClientIpFromHeaders(headerStore),
+      typeof emailInput === "string" ? emailInput : undefined,
+    ),
+    limit: SIGN_IN_RATE_LIMIT.limit,
+    windowSeconds: SIGN_IN_RATE_LIMIT.windowSeconds,
+  });
+
+  if (!rateLimit.allowed) {
+    return {
+      status: "error",
+      message: `Too many sign-in attempts. Try again in ${formatRetryAfterSeconds(rateLimit.retryAfterSeconds)}.`,
+    };
+  }
+
   const parsed = signInSchema.safeParse({
-    email: formData.get("email"),
+    email: emailInput,
     password: formData.get("password"),
   });
 
@@ -100,11 +141,30 @@ export async function signUp(
   _prevState: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  const headerStore = await headers();
   const displayNameInput = formData.get("displayName") ?? formData.get("fullName");
+  const emailInput = formData.get("email");
+  const rateLimit = await consumeRateLimit({
+    scope: "auth:sign-up",
+    identifier: normalizeRateLimitIdentifier(
+      getClientIpFromHeaders(headerStore),
+      typeof emailInput === "string" ? emailInput : undefined,
+    ),
+    limit: SIGN_UP_RATE_LIMIT.limit,
+    windowSeconds: SIGN_UP_RATE_LIMIT.windowSeconds,
+  });
+
+  if (!rateLimit.allowed) {
+    return {
+      status: "error",
+      message: `Too many sign-up attempts. Try again in ${formatRetryAfterSeconds(rateLimit.retryAfterSeconds)}.`,
+    };
+  }
+
   const parsed = signUpSchema.safeParse({
     displayName: typeof displayNameInput === "string" ? displayNameInput : "",
     confirmPassword: formData.get("confirmPassword"),
-    email: formData.get("email"),
+    email: emailInput,
     password: formData.get("password"),
     redirectTo: formData.get("redirectTo"),
     termsAccepted: formData.get("terms") === "on",
@@ -177,8 +237,27 @@ export async function requestPasswordReset(
   _prevState: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  const headerStore = await headers();
+  const emailInput = formData.get("email");
+  const rateLimit = await consumeRateLimit({
+    scope: "auth:password-reset",
+    identifier: normalizeRateLimitIdentifier(
+      getClientIpFromHeaders(headerStore),
+      typeof emailInput === "string" ? emailInput : undefined,
+    ),
+    limit: PASSWORD_RESET_RATE_LIMIT.limit,
+    windowSeconds: PASSWORD_RESET_RATE_LIMIT.windowSeconds,
+  });
+
+  if (!rateLimit.allowed) {
+    return {
+      status: "error",
+      message: `Too many reset requests. Try again in ${formatRetryAfterSeconds(rateLimit.retryAfterSeconds)}.`,
+    };
+  }
+
   const parsed = requestPasswordResetSchema.safeParse({
-    email: formData.get("email"),
+    email: emailInput,
   });
 
   if (!parsed.success) {

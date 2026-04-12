@@ -14,6 +14,7 @@ import {
   BATTLE_CANCELLED_ROOM_RETENTION_DAYS,
   BATTLE_PENALTY_RETENTION_DAYS,
   BATTLE_STALE_LOBBY_RETENTION_HOURS,
+  SECURITY_RATE_LIMIT_RETENTION_DAYS,
   runBattleRetentionCleanup,
 } from "@/server/battle/retention";
 
@@ -37,12 +38,13 @@ describe("runBattleRetentionCleanup", () => {
     vi.clearAllMocks();
   });
 
-  it("deletes expired cache, stale lobbies, cancelled rooms, and old penalties using the expected cutoffs", async () => {
+  it("deletes expired cache, stale lobbies, cancelled rooms, old penalties, and stale rate-limit rows using the expected cutoffs", async () => {
     const cacheBuilder = createDeleteBuilder(3);
     const staleLobbyBuilder = createDeleteBuilder(2);
     const endedCancelledBuilder = createDeleteBuilder(4);
     const updatedCancelledBuilder = createDeleteBuilder(1);
     const penaltiesBuilder = createDeleteBuilder(5);
+    const rateLimitsBuilder = createDeleteBuilder(6);
 
     let battleRoomsCallCount = 0;
 
@@ -53,6 +55,10 @@ describe("runBattleRetentionCleanup", () => {
 
       if (table === "battle_penalties") {
         return { delete: vi.fn().mockReturnValue(penaltiesBuilder) };
+      }
+
+      if (table === "security_rate_limits") {
+        return { delete: vi.fn().mockReturnValue(rateLimitsBuilder) };
       }
 
       if (table === "battle_rooms") {
@@ -79,6 +85,7 @@ describe("runBattleRetentionCleanup", () => {
       staleLobbyRoomsDeleted: 2,
       cancelledRoomsDeleted: 5,
       penaltiesDeleted: 5,
+      rateLimitRowsDeleted: 6,
       executedAt: now.toISOString(),
     });
 
@@ -101,6 +108,10 @@ describe("runBattleRetentionCleanup", () => {
     expect(penaltiesBuilder.lt).toHaveBeenCalledWith(
       "ends_at",
       new Date(now.getTime() - BATTLE_PENALTY_RETENTION_DAYS * 24 * 60 * 60 * 1000).toISOString(),
+    );
+    expect(rateLimitsBuilder.lt).toHaveBeenCalledWith(
+      "window_starts_at",
+      new Date(now.getTime() - SECURITY_RATE_LIMIT_RETENTION_DAYS * 24 * 60 * 60 * 1000).toISOString(),
     );
   });
 });
