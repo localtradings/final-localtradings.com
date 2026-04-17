@@ -53,6 +53,7 @@ export type BacktestSelection = {
 };
 
 export type BacktestResolvedSelection = BacktestSelection & {
+  historicalWindowId: string | null;
   windowStartAt: string;
   barsRequested: number;
   initialRevealCount: number;
@@ -219,6 +220,7 @@ export type BacktestSessionRecord = {
   id: string;
   symbol: string;
   timeframe: BacktestTimeframe;
+  historicalWindowId?: string | null;
   direction: BacktestDirection;
   orderType: BacktestOrderType | null;
   volume: number | null;
@@ -236,6 +238,7 @@ export type BacktestSessionRecord = {
 
 export type BacktestSessionSaveInput = Omit<BacktestSessionRecord, "id"> & {
   id?: string;
+  historicalWindowId?: string | null;
   windowStartAt: string;
   barsRequested: number;
 };

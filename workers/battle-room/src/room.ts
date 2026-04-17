@@ -754,7 +754,12 @@ export class BattleRoomDO {
     const payload = (await response.json()) as {
       ok: boolean;
       data?: {
-        selection: { symbol: string; timeframe: string; initialRevealCount: number };
+        selection: {
+          symbol: string;
+          timeframe: string;
+          initialRevealCount: number;
+          historicalWindowId?: string | null;
+        };
         candles: Array<{
           time: number;
           open: number;
@@ -771,6 +776,7 @@ export class BattleRoomDO {
     }
 
     return {
+      historicalWindowId: payload.data.selection.historicalWindowId ?? null,
       selection: {
         symbol: payload.data.selection.symbol,
         timeframe: payload.data.selection.timeframe as WorkerBattleSeedData["selection"]["timeframe"],
@@ -781,6 +787,7 @@ export class BattleRoomDO {
   }
 
   private async fetchRefillCandles(input: {
+    historicalWindowId: string | null;
     symbol: string;
     timeframe: NonNullable<WorkerBattleRoomState["timeframe"]>;
     afterTime: number;
@@ -792,6 +799,7 @@ export class BattleRoomDO {
         "x-battle-internal-secret": this.env.BATTLE_SHARED_SECRET,
       },
       body: JSON.stringify({
+        historicalWindowId: input.historicalWindowId,
         selection: {
           symbol: input.symbol,
           timeframe: input.timeframe,
@@ -848,6 +856,7 @@ export class BattleRoomDO {
 
     try {
       const refillCandles = await this.fetchRefillCandles({
+        historicalWindowId: room.historicalWindowId,
         symbol: room.symbol,
         timeframe: room.timeframe,
         afterTime: lastCandleTime,
@@ -904,6 +913,7 @@ export class BattleRoomDO {
     room.phase = "active";
     room.symbol = seed.selection.symbol;
     room.timeframe = seed.selection.timeframe as WorkerBattleRoomState["timeframe"];
+    room.historicalWindowId = seed.historicalWindowId;
     room.candles = seed.candles;
     room.initialRevealCount = initialRevealCount;
     room.currentCandleIndex = initialRevealCount - 1;
@@ -1120,6 +1130,7 @@ export class BattleRoomDO {
       lastEventAt: new Date(nowMs).toISOString(),
       cancelReason: null,
       winnerUserId: null,
+      historicalWindowId: null,
       currentCandleIndex: null,
       initialRevealCount: 0,
       candles: [],

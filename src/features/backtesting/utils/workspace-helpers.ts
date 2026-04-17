@@ -151,6 +151,10 @@ export function isBacktestCandlesResponse(
     Array.isArray(payload.candles) &&
     !!payload.instrument &&
     !!payload.selection &&
+    ("historicalWindowId" in payload.selection
+      ? payload.selection.historicalWindowId === null ||
+        typeof payload.selection.historicalWindowId === "string"
+      : true) &&
     typeof payload.selection.initialRevealCount === "number" &&
     typeof payload.selection.windowStartAt === "string"
   );

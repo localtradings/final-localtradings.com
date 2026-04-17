@@ -11,7 +11,12 @@ import type {
   BacktestSelection,
 } from "@/features/backtesting/types";
 import { getTimeframeMs } from "@/features/trading-shared/market";
+import { isReplayWindowLibraryEnabled } from "@/lib/env";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/service-role";
+import {
+  getOrCreateReplayWindowForSelection,
+  getReplayWindowById,
+} from "@/server/replay-windows";
 
 import {
   BattleSeedProviderError,
@@ -171,12 +176,36 @@ function toBattleResponse(selection: BacktestSelection, candles: BacktestCandle[
     instrument: getBacktestInstrument(selection.symbol),
     selection: {
       ...selection,
+      historicalWindowId: null,
       windowStartAt: new Date((candles[0]?.time ?? Math.floor(Date.now() / 1000)) * 1000).toISOString(),
       barsRequested: getBattleInitialCandleBatchSize(),
       initialRevealCount: Math.min(BACKTEST_INITIAL_REVEAL_COUNT, candles.length),
     },
     candles,
   };
+}
+
+function toBattleReplayWindowResponse(selection: BacktestSelection, input: {
+  historicalWindowId: string;
+  windowStartAt: string;
+  initialRevealCount: number;
+  candles: BacktestCandle[];
+}) {
+  return {
+    instrument: getBacktestInstrument(selection.symbol),
+    selection: {
+      ...selection,
+      historicalWindowId: input.historicalWindowId,
+      windowStartAt: input.windowStartAt,
+      barsRequested: input.candles.length,
+      initialRevealCount: Math.min(
+        BACKTEST_INITIAL_REVEAL_COUNT,
+        input.initialRevealCount,
+        input.candles.length,
+      ),
+    },
+    candles: input.candles,
+  } satisfies BacktestCandlesResponse;
 }
 
 export async function createBattleRoomSeed(selection?: BacktestSelection) {
@@ -193,6 +222,19 @@ export async function createBattleRoomSeed(selection?: BacktestSelection) {
 
   for (const candidate of selectionPool) {
     try {
+      if (isReplayWindowLibraryEnabled()) {
+        const replayWindow = await getOrCreateReplayWindowForSelection(candidate);
+        if (replayWindow) {
+          const candles = replayWindow.window.candles.slice(0, getBattleInitialCandleBatchSize());
+          return toBattleReplayWindowResponse(candidate, {
+            historicalWindowId: replayWindow.window.id,
+            windowStartAt: replayWindow.window.windowStartAt,
+            initialRevealCount: replayWindow.window.initialRevealCount,
+            candles,
+          });
+        }
+      }
+
       const candles = await getCanonicalBattleCandles(candidate);
       return toBattleResponse(candidate, candles);
     } catch (error) {
@@ -206,7 +248,21 @@ export async function createBattleRoomSeed(selection?: BacktestSelection) {
 export async function extendBattleRoomCandles(input: {
   selection: BacktestSelection;
   afterTime: number;
+  historicalWindowId?: string | null;
 }) {
+  if (isReplayWindowLibraryEnabled() && input.historicalWindowId) {
+    const replayWindow = await getReplayWindowById(input.historicalWindowId);
+    if (
+      replayWindow &&
+      replayWindow.symbol === input.selection.symbol &&
+      replayWindow.timeframe === input.selection.timeframe
+    ) {
+      return replayWindow.candles
+        .filter((candle) => candle.time > input.afterTime)
+        .slice(0, getBattleRefillBatchSize());
+    }
+  }
+
   return fetchTwelveDataBattleCandlesAfter({
     selection: input.selection,
     afterTime: input.afterTime,

@@ -8,6 +8,7 @@ import { BattleSeedProviderError } from "@/server/battle/twelve-data";
 import { extendBattleRoomCandles } from "@/server/battle/seed";
 
 const refillRoomSchema = z.object({
+  historicalWindowId: z.string().uuid().nullable().optional(),
   selection: z.object({
     symbol: z.enum(BACKTEST_INSTRUMENTS.map((item) => item.symbol) as [string, ...string[]]),
     timeframe: z.enum(BACKTEST_TIMEFRAMES as [string, ...string[]]),
@@ -38,6 +39,7 @@ export async function POST(request: Request) {
 
   try {
     const candles = await extendBattleRoomCandles({
+      historicalWindowId: payload.data.historicalWindowId ?? null,
       selection,
       afterTime: payload.data.afterTime,
     });

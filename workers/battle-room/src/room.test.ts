@@ -58,6 +58,7 @@ function createActiveRoom(): WorkerBattleRoomState {
     lastEventAt: nowIso,
     cancelReason: null,
     winnerUserId: null,
+    historicalWindowId: null,
     currentCandleIndex: 0,
     initialRevealCount: 1,
     candles,
@@ -113,6 +114,7 @@ function createLobbyRoom(): WorkerBattleRoomState {
     lastEventAt: nowIso,
     cancelReason: null,
     winnerUserId: null,
+    historicalWindowId: null,
     currentCandleIndex: null,
     initialRevealCount: 0,
     candles: [],
@@ -155,6 +157,7 @@ function mockSeedFetch() {
               symbol: "EURUSD",
               timeframe: "5min",
               initialRevealCount: 3,
+              historicalWindowId: "11111111-1111-4111-8111-111111111111",
             },
             candles: [
               { time: 1, open: 100, high: 101, low: 99, close: 100, volume: 10 },
@@ -503,10 +506,12 @@ describe("BattleRoomDO", () => {
     await battleRoom.alarm();
 
     expect(storage.getRoom().candles).toHaveLength(162);
+    expect(storage.getRoom().historicalWindowId).toBeNull();
     expect(fetchSpy).toHaveBeenCalledWith(
       "http://127.0.0.1:3000/api/battle/internal/refill-room",
       expect.objectContaining({
         method: "POST",
+        body: expect.stringContaining("\"historicalWindowId\":null"),
       }),
     );
 

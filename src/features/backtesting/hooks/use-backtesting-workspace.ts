@@ -452,9 +452,14 @@ export function useBacktestingWorkspace(
         const params = new URLSearchParams({
           symbol: activeDataset.selection.symbol,
           timeframe: activeDataset.selection.timeframe,
-          windowStartAt: activeDataset.selection.windowStartAt,
           barsRequested: String(nextBarsRequested),
         });
+
+        if (activeDataset.selection.historicalWindowId) {
+          params.set("historicalWindowId", activeDataset.selection.historicalWindowId);
+        } else {
+          params.set("windowStartAt", activeDataset.selection.windowStartAt);
+        }
 
         const response = await fetch(`/api/backtesting/candles?${params.toString()}`, {
           cache: "no-store",
@@ -1104,6 +1109,7 @@ export function useBacktestingWorkspace(
     closeTrade,
     deleteSession: removeSavedSession,
     windowKey:
+      dataset?.selection.historicalWindowId ??
       dataset?.selection.windowStartAt ??
       `${activeSelection.symbol}:${activeSelection.timeframe}`,
   };

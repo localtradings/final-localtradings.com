@@ -22,14 +22,15 @@ const INCOMPLETE_SESSION_STATUSES = [
   "unfinished",
 ] as const;
 const BACKTEST_SESSION_SUMMARY_SELECT =
-  "id, symbol, timeframe, direction, order_type, volume, entry, stop, target, exit_price, status, result_r, result_amount, balance_after_trade, started_at, finished_at";
+  "id, symbol, timeframe, historical_window_id, direction, order_type, volume, entry, stop, target, exit_price, status, result_r, result_amount, balance_after_trade, started_at, finished_at";
 const BACKTEST_SESSION_LEGACY_SELECT =
-  "id, symbol, timeframe, direction, entry, stop, target, status, result_r, started_at, finished_at, session_state_json";
+  "id, symbol, timeframe, historical_window_id, direction, entry, stop, target, status, result_r, started_at, finished_at, session_state_json";
 
 type BacktestSessionRow = {
   id: string;
   symbol: string;
   timeframe: string;
+  historical_window_id?: string | null;
   direction: string;
   order_type?: string | null;
   volume?: number | null;
@@ -57,6 +58,7 @@ type BacktestSessionRow = {
 function isSummarySchemaError(error: { message?: string } | null) {
   const message = error?.message?.toLowerCase() ?? "";
   return (
+    message.includes("historical_window_id") ||
     message.includes("order_type") ||
     message.includes("exit_price") ||
     message.includes("result_amount") ||
@@ -82,6 +84,7 @@ export function normalizeBacktestSession(
     id: row.id,
     symbol: row.symbol,
     timeframe: row.timeframe as BacktestTimeframe,
+    historicalWindowId: row.historical_window_id ?? null,
     direction,
     orderType,
     volume:

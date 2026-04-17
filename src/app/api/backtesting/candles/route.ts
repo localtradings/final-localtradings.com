@@ -21,6 +21,7 @@ import {
 const querySchema = z.object({
   symbol: z.enum(BACKTEST_INSTRUMENTS.map((item) => item.symbol) as [string, ...string[]]),
   timeframe: z.enum(BACKTEST_TIMEFRAMES as [string, ...string[]]),
+  historicalWindowId: z.string().uuid().optional(),
   windowStartAt: z.iso.datetime().optional(),
   barsRequested: z.coerce.number().int().positive().max(BACKTEST_MAX_BARS_REQUESTED).optional(),
 });
@@ -74,6 +75,7 @@ export async function GET(request: NextRequest) {
   const parsed = querySchema.safeParse({
     symbol: request.nextUrl.searchParams.get("symbol"),
     timeframe: request.nextUrl.searchParams.get("timeframe"),
+    historicalWindowId: request.nextUrl.searchParams.get("historicalWindowId") ?? undefined,
     windowStartAt: request.nextUrl.searchParams.get("windowStartAt") ?? undefined,
     barsRequested: request.nextUrl.searchParams.get("barsRequested") ?? undefined,
   });
@@ -90,6 +92,7 @@ export async function GET(request: NextRequest) {
       symbol: parsed.data.symbol,
       timeframe: parsed.data.timeframe as BacktestTimeframe,
     }, {
+      historicalWindowId: parsed.data.historicalWindowId,
       windowStartAt: parsed.data.windowStartAt,
       barsRequested: parsed.data.barsRequested,
     });

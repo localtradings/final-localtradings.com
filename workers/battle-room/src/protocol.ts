@@ -34,6 +34,7 @@ export type WorkerBattleCandle = {
 };
 
 export type WorkerBattleSeedData = {
+  historicalWindowId: string | null;
   selection: {
     symbol: string;
     timeframe: WorkerBattleTimeframe;
@@ -121,6 +122,7 @@ export type WorkerBattleRoomState = {
   lastEventAt: string | null;
   cancelReason: string | null;
   winnerUserId: string | null;
+  historicalWindowId: string | null;
   currentCandleIndex: number | null;
   initialRevealCount: number;
   candles: WorkerBattleCandle[];

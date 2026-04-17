@@ -32,9 +32,9 @@ type BacktestDeleteActionSuccess = {
 
 const MAX_BACKTEST_SESSIONS_PER_USER = 5;
 const BACKTEST_SESSION_SUMMARY_SELECT =
-  "id, symbol, timeframe, direction, order_type, volume, entry, stop, target, exit_price, status, result_r, result_amount, balance_after_trade, started_at, finished_at";
+  "id, symbol, timeframe, historical_window_id, direction, order_type, volume, entry, stop, target, exit_price, status, result_r, result_amount, balance_after_trade, started_at, finished_at";
 const BACKTEST_SESSION_LEGACY_SELECT =
-  "id, symbol, timeframe, direction, entry, stop, target, status, result_r, started_at, finished_at, session_state_json";
+  "id, symbol, timeframe, historical_window_id, direction, entry, stop, target, status, result_r, started_at, finished_at, session_state_json";
 
 function resolveWindowStartAt(windowStartAt: string | null | undefined, startedAt: string) {
   if (
@@ -62,6 +62,7 @@ const backtestSessionSchema = z.object({
     BACKTEST_INSTRUMENTS.map((item) => item.symbol) as [string, ...string[]],
   ),
   timeframe: z.enum(BACKTEST_TIMEFRAMES as [string, ...string[]]),
+  historicalWindowId: z.string().uuid().nullable().optional(),
   windowStartAt: z.iso.datetime(),
   barsRequested: z.number().int().positive().max(BACKTEST_MAX_BARS_REQUESTED),
   direction: z.enum(["Long", "Short"]),
@@ -91,6 +92,7 @@ const backtestSessionSchema = z.object({
 function isLegacySchemaError(error: { message?: string } | null) {
   const message = error?.message?.toLowerCase() ?? "";
   return (
+    message.includes("historical_window_id") ||
     message.includes("order_type") ||
     message.includes("exit_price") ||
     message.includes("result_amount") ||
@@ -103,7 +105,11 @@ function isLegacySchemaError(error: { message?: string } | null) {
 
 function isHistoricalWindowSchemaError(error: { message?: string } | null) {
   const message = error?.message?.toLowerCase() ?? "";
-  return message.includes("window_start_at") || message.includes("bars_requested");
+  return (
+    message.includes("historical_window_id") ||
+    message.includes("window_start_at") ||
+    message.includes("bars_requested")
+  );
 }
 
 async function pruneBacktestSessionsForUser(userId: string) {
@@ -169,6 +175,7 @@ export async function saveBacktestSession(
     user_id: user.id,
     symbol: parsed.data.symbol,
     timeframe: parsed.data.timeframe,
+    historical_window_id: parsed.data.historicalWindowId ?? null,
     scenario_id: buildScenarioId({
       symbol: parsed.data.symbol,
       timeframe: parsed.data.timeframe,
@@ -194,6 +201,7 @@ export async function saveBacktestSession(
     user_id: user.id,
     symbol: parsed.data.symbol,
     timeframe: parsed.data.timeframe,
+    historical_window_id: parsed.data.historicalWindowId ?? null,
     scenario_id: buildScenarioId({
       symbol: parsed.data.symbol,
       timeframe: parsed.data.timeframe,
@@ -225,6 +233,7 @@ export async function saveBacktestSession(
     user_id: user.id,
     symbol: parsed.data.symbol,
     timeframe: parsed.data.timeframe,
+    historical_window_id: parsed.data.historicalWindowId ?? null,
     scenario_id: buildScenarioId({
       symbol: parsed.data.symbol,
       timeframe: parsed.data.timeframe,

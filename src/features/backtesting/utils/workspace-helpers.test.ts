@@ -52,6 +52,7 @@ describe("workspace-helpers", () => {
       id,
       symbol: "XAUUSD",
       timeframe: "15min",
+      historicalWindowId: null,
       direction: "Long",
       orderType: "limit",
       volume: 1,
@@ -119,7 +120,11 @@ describe("workspace-helpers", () => {
     expect(
       isBacktestCandlesResponse({
         instrument: { symbol: "XAUUSD" },
-        selection: { initialRevealCount: 250, windowStartAt: "2025-01-01T00:00:00.000Z" },
+        selection: {
+          historicalWindowId: "11111111-1111-4111-8111-111111111111",
+          initialRevealCount: 250,
+          windowStartAt: "2025-01-01T00:00:00.000Z",
+        },
         candles: [],
       }),
     ).toBe(true);

@@ -41,6 +41,7 @@ function getSocketOrigin(value?: string) {
 }
 
 const appOrigin = getAppOrigin();
+const isProduction = process.env.VERCEL_ENV === "production";
 const supabaseOrigin = getOrigin(process.env.NEXT_PUBLIC_SUPABASE_URL);
 const supabaseSocketOrigin = getSocketOrigin(process.env.NEXT_PUBLIC_SUPABASE_URL);
 const battleWorkerOrigin = getOrigin(process.env.CLOUDFLARE_BATTLE_WORKER_URL);
@@ -64,7 +65,7 @@ const contentSecurityPolicy = [
   "frame-ancestors 'none'",
   "frame-src 'none'",
   "object-src 'none'",
-  "script-src 'self' 'unsafe-inline'",
+  `script-src 'self' 'unsafe-inline'${isProduction ? "" : " 'unsafe-eval'"}`,
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' data: https://fonts.gstatic.com",
   "img-src 'self' data: blob: https://lh3.googleusercontent.com https://images.unsplash.com",

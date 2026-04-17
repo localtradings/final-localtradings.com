@@ -3,6 +3,10 @@
     {
       "path": "/api/battle/internal/run-retention",
       "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/internal/replay-windows/maintain",
+      "schedule": "*/15 * * * *"
     }
   ]
 }

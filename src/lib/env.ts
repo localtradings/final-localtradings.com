@@ -7,6 +7,7 @@ export const env = {
   battleWorkerUrl: process.env.CLOUDFLARE_BATTLE_WORKER_URL ?? "",
   battleSharedSecret: process.env.CLOUDFLARE_BATTLE_SHARED_SECRET ?? "",
   cronSecret: process.env.CRON_SECRET ?? "",
+  replayWindowLibraryEnabled: process.env.ENABLE_SHARED_REPLAY_WINDOWS ?? "true",
 };
 
 export function hasSupabaseEnv() {
@@ -24,4 +25,8 @@ export function hasBattleWorkerEnv() {
     env.battleWorkerUrl.trim().length > 0 &&
       env.battleSharedSecret.trim().length > 0,
   );
+}
+
+export function isReplayWindowLibraryEnabled() {
+  return env.replayWindowLibraryEnabled.trim().toLowerCase() !== "false";
 }

@@ -118,6 +118,7 @@ export function useBacktestingHistoryPersistence({
       const result = await saveBacktestSession({
         symbol: activeDataset.selection.symbol,
         timeframe: activeDataset.selection.timeframe,
+        historicalWindowId: activeDataset.selection.historicalWindowId,
         windowStartAt: resolveWindowStartAt(
           activeDataset.selection.windowStartAt,
           resolvedStartedAt,

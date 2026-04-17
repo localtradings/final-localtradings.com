@@ -28,6 +28,7 @@ function createRoom(): WorkerBattleRoomState {
     lastEventAt: "2026-01-01T00:00:00.000Z",
     cancelReason: null,
     winnerUserId: null,
+    historicalWindowId: null,
     currentCandleIndex: 2,
     initialRevealCount: 1,
     candles: [
