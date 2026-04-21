@@ -1,29 +1,84 @@
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
 import { Reveal } from "@/components/ui/reveal";
 import type { homeCopy } from "@/content/marketing/site-copy";
-import type { ModuleSummary, QuizDefinition } from "@/types/content";
-
-import { foundationCards } from "./home-page-data";
 
 type HomeCopy = typeof homeCopy;
 
+const featureGridSpans = [
+  "md:col-span-7",
+  "md:col-span-5",
+  "md:col-span-4",
+  "md:col-span-4",
+  "md:col-span-4",
+] as const;
+
+const featureGridTones = [
+  {
+    shell: "bg-[radial-gradient(circle_at_top_left,rgba(34,197,94,0.22),transparent_46%),linear-gradient(180deg,rgba(11,15,12,0.98),rgba(8,8,8,1))]",
+    accent: "text-primary",
+    rail: "border-primary/18 bg-primary/10 text-primary",
+  },
+  {
+    shell: "bg-[radial-gradient(circle_at_top_left,rgba(110,231,183,0.18),transparent_44%),linear-gradient(180deg,rgba(10,14,12,0.98),rgba(7,7,7,1))]",
+    accent: "text-[#b8f7d7]",
+    rail: "border-[#b8f7d7]/18 bg-[#b8f7d7]/10 text-[#b8f7d7]",
+  },
+  {
+    shell: "bg-[radial-gradient(circle_at_top_left,rgba(163,230,53,0.16),transparent_48%),linear-gradient(180deg,rgba(12,15,10,0.98),rgba(8,8,8,1))]",
+    accent: "text-[#c8f27d]",
+    rail: "border-[#c8f27d]/18 bg-[#c8f27d]/10 text-[#c8f27d]",
+  },
+  {
+    shell: "bg-[radial-gradient(circle_at_top_left,rgba(74,222,128,0.16),transparent_48%),linear-gradient(180deg,rgba(10,14,11,0.98),rgba(8,8,8,1))]",
+    accent: "text-[#8ff0b3]",
+    rail: "border-[#8ff0b3]/18 bg-[#8ff0b3]/10 text-[#8ff0b3]",
+  },
+  {
+    shell: "bg-[radial-gradient(circle_at_top_left,rgba(45,212,191,0.18),transparent_48%),linear-gradient(180deg,rgba(9,13,13,0.98),rgba(8,8,8,1))]",
+    accent: "text-[#95f3e6]",
+    rail: "border-[#95f3e6]/18 bg-[#95f3e6]/10 text-[#95f3e6]",
+  },
+] as const;
+
+function getFeatureMeta(
+  title: string,
+  moduleCount: number,
+  lessonCount: number,
+  quizCount: number,
+) {
+  switch (title) {
+    case "Battle":
+      return "Private rooms • open rooms • results";
+    case "Backtesting":
+      return "Replay • planner • saved sessions";
+    case "Learn":
+      return `${moduleCount} modules • ${lessonCount} lessons`;
+    case "Quiz":
+      return `${quizCount} quiz packs • setup to results`;
+    case "Progress":
+      return "Dashboard • bookmarks • next actions";
+    default:
+      return null;
+  }
+}
+
 export function MarketingHeroSection({ copy }: { copy: HomeCopy }) {
   return (
-    <section className="relative overflow-hidden px-6 pb-20 pt-16 sm:pb-24 sm:pt-20">
-      <div className="shell-width relative grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(30rem,38rem)] lg:items-start lg:gap-10">
-        <Reveal className="order-1 max-w-[52rem] space-y-7 lg:pt-8" y={30}>
-          <div className="space-y-5">
-            <h1 className="text-balance font-heading text-[3rem] font-black tracking-tight text-foreground sm:text-[4.8rem] sm:leading-[0.94] lg:text-[5.2rem]">
-              Learn trading
-              <br />
-              <span className="text-primary">before risking real money</span>
-            </h1>
-            <p className="max-w-xl text-lg font-light leading-8 text-muted sm:text-xl">
-              {copy.hero.description}
-            </p>
+    <section className="relative overflow-hidden px-6 pb-20 pt-10 sm:pb-24 sm:pt-14">
+      <div className="shell-width relative grid gap-12 xl:grid-cols-[minmax(0,1.04fr)_minmax(24rem,0.96fr)] xl:items-center">
+        <Reveal className="space-y-8" y={28}>
+          <div className="space-y-6">
+            <Badge>{copy.hero.eyebrow}</Badge>
+            <div className="space-y-5">
+              <h1 className="max-w-[12ch] text-balance font-heading text-[3.15rem] font-black tracking-[-0.05em] text-foreground sm:text-[4.9rem] sm:leading-[0.92] lg:text-[5.75rem]">
+                {copy.hero.title}
+              </h1>
+              <p className="max-w-[42rem] text-lg leading-8 text-muted sm:text-[1.18rem]">
+                {copy.hero.description}
+              </p>
+            </div>
           </div>
 
           <div className="flex flex-col gap-4 sm:flex-row">
@@ -35,599 +90,461 @@ export function MarketingHeroSection({ copy }: { copy: HomeCopy }) {
             </Link>
           </div>
 
-          <p className="text-xs italic text-muted/75">
-            For educational purposes only. Trading involves risk.
-          </p>
-        </Reveal>
-
-        <div className="order-2 w-full lg:col-start-2 lg:row-start-1 lg:justify-self-end">
-          <div className="relative z-10 mx-auto w-full max-w-[38rem] pt-2 sm:max-w-[34rem] lg:ml-auto lg:mr-0 lg:pt-6">
-            <div className="rounded-[var(--radius-xl)] border border-outline-variant/20 bg-surface-high p-4 shadow-2xl shadow-black/35">
-              <div className="rounded-[var(--radius-lg)] border border-outline/10 bg-[#efe7df] p-4">
-                <div className="flex h-[22rem] flex-col rounded-[var(--radius-lg)] border border-[#d8cec6] bg-white p-4 sm:h-[24rem] lg:h-[25rem]">
-                  <div className="h-2 w-16 rounded-full bg-[#d8cec6]" />
-                  <div className="mt-5 grid flex-1 gap-4 md:grid-cols-[1.15fr,0.85fr]">
-                    <div className="rounded-[var(--radius-md)] bg-[linear-gradient(180deg,#f3f6fb,#d7e3f4)] p-4">
-                      <div className="h-full rounded-[var(--radius-md)] bg-[linear-gradient(180deg,#c0d7ec,#668cb8)]" />
-                    </div>
-                    <div className="grid gap-4">
-                      <div className="rounded-[var(--radius-md)] bg-[#eef3fb] p-4" />
-                      <div className="rounded-[var(--radius-md)] bg-[#eef3fb] p-4" />
-                      <div className="rounded-[var(--radius-md)] bg-[#eef3fb] p-4" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="absolute -bottom-8 left-2 w-28 rotate-3 rounded-[1rem] border border-outline-variant/20 bg-[#ffd7be] p-2 shadow-2xl shadow-black/35 sm:-left-4 sm:w-32">
-              <div className="aspect-[0.62/1.18] rounded-[0.8rem] border border-[#efb789] bg-[linear-gradient(180deg,#fff4ea,#f5b37f)] p-2">
-                <div className="grid h-full gap-2 rounded-[0.7rem] bg-white/60 p-2">
-                  <div className="rounded-[0.45rem] bg-white/80" />
-                  <div className="rounded-[0.45rem] bg-white/70" />
-                  <div className="rounded-[0.45rem] bg-white/60" />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-export function MarketingCrossPlatformSection({
-  featuredModule,
-}: {
-  featuredModule: ModuleSummary;
-}) {
-  return (
-    <section className="border-y border-outline-variant/10 bg-surface-low/35 px-6 py-24 backdrop-blur-[2px]">
-      <div className="shell-width grid grid-cols-1 gap-16 lg:grid-cols-2 lg:items-center">
-        <div className="relative order-2 lg:order-1">
-          <div className="rounded-[var(--radius-xl)] border border-outline-variant/20 bg-surface-low/80 p-4 shadow-2xl shadow-black/35">
-            <div className="relative aspect-[4/3] overflow-hidden rounded-[var(--radius-lg)] border border-outline-variant/20 bg-surface-high soft-grid">
-              <svg
-                aria-hidden="true"
-                className="absolute inset-0 h-full w-full opacity-60"
-                viewBox="0 0 400 300"
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+            {copy.hero.quickModes.map((item, index) => (
+              <div
+                className="rounded-[1.1rem] border border-outline-variant/20 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.015))] px-4 py-4"
+                key={item.label}
               >
-                <path
-                  d="M0 250 L50 220 L100 240 L150 180 L200 200 L250 120 L300 150 L350 80 L400 100"
-                  fill="none"
-                  stroke="#E46609"
-                  strokeWidth="2"
-                />
-                <path
-                  d="M0 200 L80 180 L160 210 L240 140 L320 160 L400 110"
-                  fill="none"
-                  stroke="#A89B91"
-                  strokeDasharray="4 4"
-                  strokeWidth="1"
-                />
-              </svg>
-
-              <div className="absolute left-4 top-4 space-y-2">
-                <div className="rounded bg-black/60 px-2 py-1 text-[10px] font-mono text-primary">
-                  Learn: {featuredModule.title}
-                </div>
-                <div className="rounded bg-black/60 px-2 py-1 text-[10px] font-mono text-muted">
-                  Quiz flow connected
-                </div>
-              </div>
-
-              <div className="absolute bottom-4 right-4 rounded border border-primary/20 bg-surface/90 p-3">
-                <span className="text-[8px] uppercase tracking-[0.18em] text-muted">
-                  Preview only
-                </span>
-                <p className="mt-1 text-sm font-black text-primary">
-                  Study, test, then practice
+                <p
+                  className={`text-[10px] font-black uppercase tracking-[0.24em] ${
+                    index === 0 ? "text-primary" : "text-muted"
+                  }`}
+                >
+                  {item.label}
                 </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <Reveal className="order-1 space-y-6 lg:order-2" delay={0.05}>
-          <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1">
-            <span className="material-symbols-outlined text-xs text-primary">devices</span>
-            <span className="text-[10px] font-bold uppercase tracking-[0.22em] text-primary">
-              Cross-platform performance
-            </span>
-          </div>
-          <div className="space-y-5">
-            <h2 className="font-heading text-[2.6rem] font-black tracking-tight sm:text-[3.6rem] sm:leading-[0.96]">
-              Learn anywhere,
-              <br />
-              <span className="text-primary">on any screen size.</span>
-            </h2>
-            <p className="max-w-xl text-lg leading-8 text-muted">
-              Start mobile-first with a clean stacked layout. On tablet and desktop the
-              interface opens up into stronger grids, clearer card hierarchy, and wider
-              chart areas that make review easier.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-6">
-            {[
-              { icon: "desktop_windows", label: "Desktop-ready workspace" },
-              { icon: "smartphone", label: "Mobile-first reading flow" },
-              { icon: "sync", label: "Same account across devices" },
-            ].map((item) => (
-              <div className="flex items-center gap-3" key={item.label}>
-                <span className="material-symbols-outlined text-primary">{item.icon}</span>
-                <span className="text-sm font-bold text-foreground">{item.label}</span>
+                <p className="mt-2 text-sm leading-6 text-foreground">{item.detail}</p>
               </div>
             ))}
           </div>
         </Reveal>
-      </div>
-    </section>
-  );
-}
 
-export function MarketingCapabilitiesSection({ copy, quizCount }: { copy: HomeCopy; quizCount: number }) {
-  return (
-    <section className="px-6 py-24">
-      <div className="shell-width">
-        <Reveal className="mb-14 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-          <div className="max-w-xl">
-            <h2 className="font-heading text-[2.25rem] font-black tracking-tight sm:text-[3rem]">
-              What you can do here:
-            </h2>
-            <p className="mt-4 text-base leading-8 text-muted">
-              Explore lessons, test your knowledge, and practice with simple trading
-              tools designed for learning.
-            </p>
-          </div>
-        </Reveal>
-
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-12">
-          <Card className="group relative overflow-hidden bg-surface-low p-8 md:col-span-8">
-            <div className="relative z-10 max-w-md">
-              <span className="material-symbols-outlined mb-6 text-4xl text-primary">school</span>
-              <h3 className="font-heading text-2xl font-black tracking-tight">
-                Education Academy
-              </h3>
-              <p className="mt-4 text-sm leading-7 text-muted">
-                Learn trading basics through simple lessons, guides, and structured
-                modules that stay easy to scan.
-              </p>
-              <div className="mt-8 flex gap-4">
-                <span className="rounded-[var(--radius-md)] border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-bold text-primary">
-                  Beginners
-                </span>
-                <span className="rounded-[var(--radius-md)] border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-bold text-primary">
-                  Intermediate
-                </span>
+        <Reveal className="relative" delay={0.08} y={36}>
+          <div className="relative overflow-hidden rounded-[1.9rem] border border-outline-variant/20 bg-[radial-gradient(circle_at_top_left,rgba(34,197,94,0.22),transparent_34%),linear-gradient(180deg,rgba(9,12,10,0.98),rgba(5,5,5,1))] p-4 shadow-[0_32px_90px_rgba(0,0,0,0.45)] sm:p-5">
+            <div className="absolute inset-x-0 top-0 h-28 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),transparent)]" />
+            <div className="relative rounded-[1.45rem] border border-white/10 bg-black/45 p-4 backdrop-blur-[18px] sm:p-5">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-4">
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-primary">
+                    Battle room
+                  </p>
+                  <h2 className="mt-2 font-heading text-[1.45rem] font-black tracking-tight text-foreground">
+                    Replay match live
+                  </h2>
+                </div>
+                <div className="rounded-full border border-primary/20 bg-primary/10 px-3 py-2 text-[10px] font-black uppercase tracking-[0.22em] text-primary">
+                  Countdown 00:42
+                </div>
               </div>
-            </div>
-          </Card>
 
-          <Card className="flex flex-col justify-between bg-surface-low p-8 md:col-span-4">
-            <div>
-              <span className="material-symbols-outlined mb-6 text-4xl text-primary">
-                verified_user
-              </span>
-              <h3 className="font-heading text-2xl font-black tracking-tight">Quizzes</h3>
-              <p className="mt-4 text-sm leading-7 text-muted">
-                Test your trading knowledge with simple quizzes across launch topics.
-              </p>
-            </div>
-            <div className="mt-8 flex items-center justify-between border-t border-outline-variant/10 pt-8">
-              <span className="text-sm font-semibold text-primary">{quizCount} launch quizzes</span>
-              <span className="material-symbols-outlined text-primary">arrow_forward</span>
-            </div>
-          </Card>
-
-          <Card className="flex flex-col justify-between bg-surface-low p-8 md:col-span-4">
-            <div>
-              <span className="material-symbols-outlined mb-6 text-4xl text-primary">history</span>
-              <h3 className="font-heading text-2xl font-black tracking-tight">Backtesting</h3>
-              <p className="mt-4 text-sm leading-7 text-muted">
-                Practice trade decisions with replay, entries, stop loss, and exit planning
-                inside a focused workstation.
-              </p>
-            </div>
-            <div className="mt-8 flex h-20 items-end gap-1">
-              {[50, 75, 35, 52, 100].map((height, index) => (
-                <div
-                  className="w-full rounded-t-sm bg-primary/60"
-                  key={`${height}-${index}`}
-                  style={{ height: `${height}%` }}
-                />
-              ))}
-            </div>
-          </Card>
-
-          <Card className="overflow-hidden bg-surface-low p-8 md:col-span-8">
-            <div className="flex h-full flex-col gap-8 md:flex-row md:items-center">
-              <div className="flex-1">
-                <h3 className="font-heading text-2xl font-black tracking-tight">
-                  Structured study flow
-                </h3>
-                <p className="mt-4 text-sm leading-7 text-muted">
-                  Move from lessons to quizzes, then into backtesting. The public site
-                  previews the flow honestly without inventing extra routes or fake social
-                  features.
-                </p>
-                <Link className="mt-6 inline-flex items-center gap-2 font-bold text-primary" href="/learn">
-                  Browse the learning path
-                  <span className="material-symbols-outlined text-base">trending_flat</span>
-                </Link>
-              </div>
-              <div className="grid min-w-0 flex-1 gap-3">
-                {copy.platformHighlights.map((item) => (
-                  <div
-                    className="rounded-[var(--radius-lg)] border border-outline-variant/10 bg-surface-high px-4 py-4 text-sm text-muted"
-                    key={item}
-                  >
-                    {item}
+              <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1.08fr)_13.5rem]">
+                <div className="overflow-hidden rounded-[1.25rem] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.015))]">
+                  <div className="flex items-center justify-between border-b border-white/8 px-4 py-3">
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted">
+                      Shared replay
+                    </span>
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">
+                      15m room
+                    </span>
                   </div>
-                ))}
-              </div>
-            </div>
-          </Card>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-export function MarketingQuizSection({ featuredQuiz, quizCount }: { featuredQuiz: QuizDefinition; quizCount: number }) {
-  return (
-    <section className="relative overflow-hidden px-6 py-32">
-      <div className="shell-width grid grid-cols-1 gap-16 lg:grid-cols-2 lg:items-center">
-        <div className="overflow-hidden rounded-[var(--radius-xl)] border border-outline-variant/20 bg-surface/70 shadow-[0_32px_64px_-16px_rgba(10,8,6,0.9)] backdrop-blur-2xl">
-          <div className="flex flex-col md:flex-row">
-            <div className="w-full border-b border-outline-variant/30 bg-surface-low/60 p-6 md:w-48 md:border-b-0 md:border-r">
-              <div className="mb-6">
-                <div className="mb-1 text-[10px] font-black uppercase tracking-[0.2em] text-primary">
-                  {featuredQuiz.category}
-                </div>
-                <h3 className="font-heading text-lg font-black">{featuredQuiz.title}</h3>
-              </div>
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-lg text-primary">timer</span>
-                  <span className="text-[10px] font-black text-foreground">
-                    {featuredQuiz.estimatedMinutes} min
-                  </span>
-                </div>
-                <div className="h-1 w-full overflow-hidden rounded-full bg-surface-high">
-                  <div className="h-full w-[65%] bg-primary" />
-                </div>
-              </div>
-              <div className="mt-6 rounded-[var(--radius-md)] border border-outline-variant/20 bg-surface-high p-4">
-                <div className="mb-2 flex items-center gap-2">
-                  <span className="material-symbols-outlined text-xs text-primary">lightbulb</span>
-                  <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary">
-                    Study tip
-                  </span>
-                </div>
-                <p className="text-[10px] font-semibold text-foreground">
-                  Take the quiz after the lesson while the concepts are still fresh.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex-1 bg-[linear-gradient(135deg,rgba(10,8,6,0.9),rgba(20,17,14,0.9))] p-6 md:p-8">
-              <h4 className="mb-6 font-heading text-lg font-black">
-                {featuredQuiz.questions[0]?.prompt}
-              </h4>
-              <div className="space-y-3">
-                {featuredQuiz.questions[0]?.options.map((option, index) => {
-                  const selected = index === 1;
-                  const label = String.fromCharCode(65 + index);
-
-                  return (
-                    <div
-                      className={`flex items-center rounded-[var(--radius-md)] border p-3 text-left text-xs transition ${
-                        selected
-                          ? "border-primary bg-primary/10"
-                          : "border-outline-variant/30 hover:bg-surface-highest/50"
-                      }`}
-                      key={option.id}
+                  <div className="relative h-[15.5rem] overflow-hidden bg-[linear-gradient(180deg,#090909,#040404)]">
+                    <div className="absolute inset-0 bg-[linear-gradient(color-mix(in_srgb,var(--outline-variant)_22%,transparent)_1px,transparent_1px),linear-gradient(90deg,color-mix(in_srgb,var(--outline-variant)_22%,transparent)_1px,transparent_1px)] bg-[size:2.7rem_2.7rem] opacity-70" />
+                    <svg
+                      aria-hidden="true"
+                      className="absolute inset-0 h-full w-full"
+                      viewBox="0 0 520 270"
                     >
-                      <span
-                        className={`mr-3 inline-flex h-5 w-5 items-center justify-center rounded-full text-[9px] font-black ${
-                          selected
-                            ? "bg-primary text-black"
-                            : "border border-outline-variant text-muted"
-                        }`}
-                      >
-                        {label}
-                      </span>
-                      <span className={selected ? "font-black text-foreground" : "text-muted"}>
-                        {option.label}
-                      </span>
-                      {selected ? (
-                        <span className="material-symbols-outlined ml-auto text-lg text-primary">
-                          check_circle
-                        </span>
-                      ) : null}
+                      <path
+                        d="M0 188 L46 174 L88 182 L132 148 L176 160 L219 132 L262 144 L310 103 L350 124 L392 96 L438 122 L474 90 L520 112"
+                        fill="none"
+                        stroke="#22c55e"
+                        strokeWidth="3"
+                      />
+                      <path
+                        d="M0 210 L50 210 L86 196 L124 196 L160 182 L198 182 L236 154 L274 154 L312 172 L350 172 L388 142 L424 142 L462 120 L520 120"
+                        fill="none"
+                        stroke="#d5ffe5"
+                        strokeDasharray="6 6"
+                        strokeWidth="1.6"
+                        opacity="0.6"
+                      />
+                    </svg>
+                    <div className="absolute left-4 top-4 rounded-full border border-white/10 bg-black/55 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-primary">
+                      Entry locked
                     </div>
-                  );
-                })}
-              </div>
-              <div className="mt-6 flex justify-end border-t border-outline-variant/10 pt-6">
-                <button
-                  className="rounded-[var(--radius-md)] bg-primary px-6 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-black"
-                  type="button"
-                >
-                  Confirm
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-6">
-          <div className="inline-flex w-fit items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1">
-            <span className="h-2 w-2 rounded-full bg-primary" />
-            <span className="text-[10px] font-bold uppercase tracking-[0.22em] text-primary">
-              Interactive quizzes
-            </span>
-          </div>
-          <h2 className="font-heading text-[2.5rem] font-black tracking-tight sm:text-[3.5rem] sm:leading-[0.98]">
-            Test your knowledge
-          </h2>
-          <p className="max-w-lg text-lg leading-8 text-muted">
-            Challenge yourself with topic-based quizzes designed to make trading
-            concepts easier to retain. The flow stays clean: setup, take, then review
-            the result.
-          </p>
-          <div className="mt-2 flex items-center gap-4">
-            <div className="flex flex-col">
-              <span className="text-2xl font-black text-foreground">{quizCount}</span>
-              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted">
-                Launch quizzes
-              </span>
-            </div>
-            <div className="h-10 w-px bg-outline-variant/30" />
-            <div className="flex flex-col">
-              <span className="text-2xl font-black text-foreground">
-                {featuredQuiz.recommendedQuestionCount}
-              </span>
-              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted">
-                Questions per check
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-export function MarketingBacktestingSection() {
-  return (
-    <section className="relative overflow-hidden px-6 py-32">
-      <div className="shell-width grid grid-cols-1 gap-16 lg:grid-cols-2 lg:items-center">
-        <div className="order-2 flex flex-col gap-6 lg:order-1">
-          <div className="inline-flex w-fit items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1">
-            <span className="h-2 w-2 rounded-full bg-primary" />
-            <span className="text-[10px] font-bold uppercase tracking-[0.22em] text-primary">
-              Simple backtesting
-            </span>
-          </div>
-          <h2 className="font-heading text-[2.5rem] font-black tracking-tight sm:text-[3.5rem] sm:leading-[0.98]">
-            Simple backtesting
-          </h2>
-          <p className="max-w-lg text-lg leading-8 text-muted">
-            Use a focused backtesting workspace to replay price, plan entries, set
-            risk, and review how your process holds up under repetition.
-          </p>
-          <Link className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.2em] text-primary" href="/backtesting">
-            Enter the lab
-            <span className="material-symbols-outlined text-base">arrow_forward</span>
-          </Link>
-        </div>
-
-        <div className="order-1 overflow-hidden rounded-[var(--radius-xl)] border border-outline-variant/20 bg-black/60 shadow-[0_32px_64px_-16px_rgba(10,8,6,0.9)] backdrop-blur-2xl lg:order-2">
-          <div className="flex items-center justify-between border-b border-outline-variant/20 bg-surface-high/80 px-5 py-3">
-            <div className="flex items-center gap-3">
-              <div className="flex gap-1">
-                <div className="h-2.5 w-2.5 rounded-full bg-danger/50" />
-                <div className="h-2.5 w-2.5 rounded-full bg-secondary/50" />
-                <div className="h-2.5 w-2.5 rounded-full bg-success/50" />
-              </div>
-              <span className="text-[9px] font-mono font-black uppercase tracking-[0.2em] text-foreground">
-                LOCALTRADINGS_TERM
-              </span>
-            </div>
-            <span className="text-[9px] font-mono font-black uppercase text-primary">
-              Replay mode
-            </span>
-          </div>
-
-          <div className="flex h-[300px]">
-            <div className="relative flex-1 soft-grid p-6">
-              <div className="pointer-events-none absolute inset-0 flex items-end justify-around px-8 pb-12 opacity-85">
-                <div className="h-[40%] w-2 bg-danger/60" />
-                <div className="h-[45%] w-2 bg-danger/80" />
-                <div className="h-[38%] w-2 bg-success/60" />
-                <div className="relative h-[55%] w-2 bg-primary">
-                  <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 border border-primary px-1 text-[7px] font-black text-primary">
-                    BUY
+                    <div className="absolute bottom-4 left-4 flex gap-2">
+                      {["PLAN LONG", "PLAN SHORT", "EXIT"].map((label, index) => (
+                        <span
+                          className={`rounded-full px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] ${
+                            index === 0
+                              ? "border border-primary/30 bg-primary/10 text-primary"
+                              : "border border-white/10 bg-white/5 text-foreground"
+                          }`}
+                          key={label}
+                        >
+                          {label}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 </div>
-                <div className="h-[70%] w-2 bg-success" />
-              </div>
-              <div className="w-fit rounded border border-primary/30 bg-surface/90 px-3 py-1.5">
-                <span className="font-mono text-[9px] font-black text-primary">
-                  Entry / Stop / Target
-                </span>
-              </div>
-            </div>
 
-            <div className="w-32 border-l border-outline-variant/30 bg-surface-low/80 p-4">
-              <h5 className="mb-3 text-[8px] font-black uppercase tracking-[0.2em] text-primary">
-                Review
-              </h5>
-              <div className="space-y-3">
-                <div>
-                  <div className="text-[8px] font-bold uppercase text-muted">Direction</div>
-                  <div className="text-xs font-black text-foreground">Long</div>
-                </div>
-                <div>
-                  <div className="text-[8px] font-bold uppercase text-muted">Risk plan</div>
-                  <div className="text-xs font-black text-primary">1.50R</div>
-                </div>
-              </div>
-            </div>
-          </div>
+                <div className="grid gap-4">
+                  <div className="rounded-[1.2rem] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.045),rgba(255,255,255,0.02))] p-4">
+                    <p className="text-[10px] font-black uppercase tracking-[0.22em] text-muted">
+                      Players ready
+                    </p>
+                    <div className="mt-3 space-y-2.5">
+                      {[
+                        { name: "You", balance: "$100,800", leader: true },
+                        { name: "Rico", balance: "$100,340", leader: false },
+                        { name: "Aira", balance: "$99,920", leader: false },
+                        { name: "Jules", balance: "$99,410", leader: false },
+                      ].map(({ name, balance, leader }) => (
+                        <div
+                          className="flex items-center justify-between rounded-[0.95rem] border border-white/8 bg-black/35 px-3 py-2.5"
+                          key={name}
+                        >
+                          <div>
+                            <p className="text-sm font-semibold text-foreground">{name}</p>
+                            <p className="text-[10px] uppercase tracking-[0.16em] text-muted">
+                              {leader ? "Current lead" : "In match"}
+                            </p>
+                          </div>
+                          <span className="text-sm font-black text-primary">{balance}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
 
-          <div className="flex items-center justify-between border-t border-outline-variant/10 bg-surface-highest/90 p-4">
-            <div className="flex gap-4">
-              <button className="material-symbols-outlined text-lg text-muted hover:text-primary" type="button">
-                fast_rewind
-              </button>
-              <button
-                className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-black"
-                type="button"
-              >
-                <span className="material-symbols-outlined text-sm font-black">play_arrow</span>
-              </button>
-              <button className="material-symbols-outlined text-lg text-muted hover:text-primary" type="button">
-                fast_forward
-              </button>
-            </div>
-            <div className="flex gap-2">
-              <div className="rounded border border-primary px-4 py-1.5 text-[9px] font-black text-primary">
-                PLAN LONG
-              </div>
-              <div className="rounded border border-danger px-4 py-1.5 text-[9px] font-black text-danger">
-                PLAN SHORT
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-export function MarketingCurriculumSection({ modules }: { modules: ModuleSummary[] }) {
-  return (
-    <section className="px-6 py-24">
-      <div className="shell-width">
-        <h2 className="mb-12 flex items-center gap-4 font-heading text-3xl font-black tracking-tight sm:text-4xl">
-          Core curriculum
-          <span className="h-px flex-1 bg-outline-variant/20" />
-        </h2>
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-          {modules.map((module, index) => (
-            <Link
-              className="group flex flex-col overflow-hidden rounded-[var(--radius-lg)] border border-outline-variant/10 bg-surface-high transition duration-300 hover:-translate-y-1 md:flex-row"
-              href="/learn"
-              key={module.slug}
-            >
-              <div className="h-48 w-full overflow-hidden md:h-auto md:w-48">
-                <div
-                  className={`h-full w-full transition duration-500 ${
-                    index % 4 === 0
-                      ? "bg-[linear-gradient(180deg,#1a1a1a,#101010)]"
-                      : index % 4 === 1
-                        ? "bg-[linear-gradient(180deg,#1b1b1b,#111111)]"
-                        : index % 4 === 2
-                          ? "bg-[linear-gradient(180deg,#181818,#0f0f0f)]"
-                          : "bg-[linear-gradient(180deg,#202020,#111111)]"
-                  }`}
-                >
-                  <div className="flex h-full items-end p-4">
-                    <div className="flex w-full gap-1">
-                      {[38, 55, 72, 44, 90].map((height) => (
+                  <div className="rounded-[1.2rem] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.045),rgba(255,255,255,0.02))] p-4">
+                    <p className="text-[10px] font-black uppercase tracking-[0.22em] text-muted">
+                      Room rules
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {["2% risk cap", "10% drawdown", "Results board"].map((item) => (
                         <span
-                          className="h-full flex-1 rounded-t bg-white/65"
-                          key={`${module.slug}-${height}`}
-                          style={{ height }}
-                        />
+                          className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-foreground"
+                          key={item}
+                        >
+                          {item}
+                        </span>
                       ))}
                     </div>
                   </div>
                 </div>
               </div>
-              <div className="flex flex-1 flex-col justify-between p-8">
-                <div>
-                  <h4 className="font-heading text-xl font-extrabold tracking-tight transition-colors group-hover:text-primary">
-                    {module.title}
-                  </h4>
-                  <p className="mt-2 text-sm leading-7 text-muted">{module.description}</p>
-                </div>
-                <div className="mt-6 flex items-center justify-between">
-                  <span className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-primary">
-                    View module
-                    <span className="material-symbols-outlined text-[14px] transition-transform group-hover:translate-x-1">
-                      arrow_forward
-                    </span>
-                  </span>
-                  <span className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
-                    {module.duration}
-                  </span>
-                </div>
-              </div>
-            </Link>
-          ))}
-        </div>
+            </div>
+          </div>
+        </Reveal>
       </div>
     </section>
   );
 }
 
-export function MarketingWhyLearnSection() {
+export function MarketingFeatureGridSection({
+  copy,
+  lessonCount,
+  moduleCount,
+  quizCount,
+}: {
+  copy: HomeCopy;
+  lessonCount: number;
+  moduleCount: number;
+  quizCount: number;
+}) {
   return (
-    <section className="bg-surface-low/55 px-6 py-24 backdrop-blur-[2px]">
+    <section className="px-6 py-20 sm:py-24">
       <div className="shell-width">
-        <h2 className="text-center font-heading text-[2.4rem] font-black tracking-tight italic sm:text-[3.2rem]">
-          Why learn here
-        </h2>
-        <div className="mt-16 grid grid-cols-1 gap-8 md:grid-cols-3">
-          {foundationCards.map((item) => (
-            <Card className="relative overflow-hidden bg-surface p-8" key={item.title}>
-              <div className="absolute right-4 top-4 opacity-10">
-                <span className="material-symbols-outlined text-4xl text-primary">
-                  {item.icon}
-                </span>
-              </div>
-              <p className="relative z-10 leading-8 text-foreground">{item.description}</p>
-              <div className="relative z-10 mt-8 flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary-container text-primary">
-                  <span className="material-symbols-outlined">{item.icon}</span>
+        <Reveal className="mb-10 max-w-[48rem] space-y-4" y={24}>
+          <Badge>What you can do here</Badge>
+          <h2 className="font-heading text-[2.35rem] font-black tracking-tight text-foreground sm:text-[3.4rem] sm:leading-[0.95]">
+            Battle is the headline.
+            <br />
+            The whole platform stays visible.
+          </h2>
+          <p className="max-w-[40rem] text-base leading-8 text-muted sm:text-lg">
+            The landing page should feel like a product surface. These are the real
+            things people can do once they step into localtradings.com.
+          </p>
+        </Reveal>
+
+        <div className="grid gap-5 md:grid-cols-12">
+          {copy.featureGrid.map((item, index) => {
+            const tone = featureGridTones[index];
+            const meta = getFeatureMeta(item.title, moduleCount, lessonCount, quizCount);
+
+            return (
+              <Reveal
+                className={`${featureGridSpans[index]} overflow-hidden rounded-[1.65rem] border border-outline-variant/18 p-6 shadow-[0_20px_60px_rgba(0,0,0,0.24)] sm:p-7 ${tone.shell}`}
+                delay={index * 0.04}
+                key={item.title}
+              >
+                <div className="flex h-full flex-col justify-between gap-8">
+                  <div className="space-y-5">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <span className={`text-[10px] font-black uppercase tracking-[0.24em] ${tone.accent}`}>
+                        {item.eyebrow}
+                      </span>
+                      {meta ? (
+                        <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">
+                          {meta}
+                        </span>
+                      ) : null}
+                    </div>
+                    <div className="space-y-3">
+                      <h3 className="font-heading text-[1.85rem] font-black tracking-tight text-foreground sm:text-[2.1rem]">
+                        {item.title}
+                      </h3>
+                      <p className="max-w-[34rem] text-sm leading-7 text-muted sm:text-[0.97rem]">
+                        {item.description}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {item.points.map((point) => (
+                        <span
+                          className={`rounded-full border px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] ${tone.rail}`}
+                          key={point}
+                        >
+                          {point}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <Link
+                    className={`inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.22em] ${tone.accent}`}
+                    href={item.href}
+                  >
+                    {item.ctaLabel}
+                    <span className="material-symbols-outlined text-base">arrow_forward</span>
+                  </Link>
                 </div>
-                <div className="font-heading text-sm font-extrabold tracking-tight">
-                  {item.title}
-                </div>
-              </div>
-            </Card>
-          ))}
+              </Reveal>
+            );
+          })}
         </div>
       </div>
     </section>
   );
 }
 
-export function MarketingHomeCtaSection() {
+export function MarketingBattleSpotlightSection({
+  copy,
+  battleDurationCount,
+  openRoomMaxPlayers,
+}: {
+  copy: HomeCopy;
+  battleDurationCount: number;
+  openRoomMaxPlayers: number;
+}) {
+  return (
+    <section className="border-y border-outline-variant/12 bg-surface-low/45 px-6 py-24 backdrop-blur-[2px]">
+      <div className="shell-width grid gap-12 xl:grid-cols-[minmax(0,0.94fr)_minmax(0,1.06fr)] xl:items-center">
+        <Reveal className="space-y-6" y={24}>
+          <Badge>{copy.battleSpotlight.eyebrow}</Badge>
+          <div className="space-y-4">
+            <h2 className="max-w-[13ch] font-heading text-[2.45rem] font-black tracking-tight text-foreground sm:text-[3.55rem] sm:leading-[0.94]">
+              {copy.battleSpotlight.title}
+            </h2>
+            <p className="max-w-[38rem] text-base leading-8 text-muted sm:text-lg">
+              {copy.battleSpotlight.description}
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            {copy.battleSpotlight.roomModes.map((item) => (
+              <div
+                className="rounded-[1.1rem] border border-outline-variant/16 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.015))] px-4 py-4"
+                key={item.title}
+              >
+                <p className="text-sm font-black text-foreground">{item.title}</p>
+                <p className="mt-1.5 text-sm leading-7 text-muted">{item.description}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-3">
+            {copy.battleSpotlight.rules.map((rule) => (
+              <div
+                className="rounded-[1.05rem] border border-primary/14 bg-primary/10 px-4 py-3 text-sm leading-6 text-foreground"
+                key={rule}
+              >
+                {rule}
+              </div>
+            ))}
+          </div>
+        </Reveal>
+
+        <Reveal className="overflow-hidden rounded-[1.7rem] border border-outline-variant/18 bg-[radial-gradient(circle_at_top_left,rgba(34,197,94,0.18),transparent_34%),linear-gradient(180deg,rgba(9,12,10,0.98),rgba(6,6,6,1))] p-4 shadow-[0_28px_88px_rgba(0,0,0,0.35)] sm:p-5" delay={0.06} y={30}>
+          <div className="grid gap-4 lg:grid-cols-[15rem_minmax(0,1fr)]">
+            <div className="rounded-[1.25rem] border border-white/8 bg-white/5 p-4">
+              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-primary">
+                Room types
+              </p>
+              <div className="mt-4 space-y-3">
+                {[
+                  ["Private", "Invite your own lobby"],
+                  ["Open", "Join the room list"],
+                  ["Results", "Review rank and balance"],
+                ].map(([label, detail]) => (
+                  <div
+                    className="rounded-[0.95rem] border border-white/8 bg-black/35 px-3 py-3"
+                    key={label}
+                  >
+                    <p className="text-sm font-black text-foreground">{label}</p>
+                    <p className="mt-1 text-[12px] leading-6 text-muted">{detail}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-4 rounded-[0.95rem] border border-primary/18 bg-primary/10 px-3 py-3">
+                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-primary">
+                  Match spread
+                </p>
+                <p className="mt-2 text-sm leading-6 text-foreground">
+                  {battleDurationCount} battle lengths and open rooms up to {openRoomMaxPlayers} players.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid gap-4">
+              <div className="overflow-hidden rounded-[1.25rem] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.045),rgba(255,255,255,0.018))]">
+                <div className="flex items-center justify-between border-b border-white/8 px-4 py-3">
+                  <p className="text-[10px] font-black uppercase tracking-[0.22em] text-muted">
+                    Open room list
+                  </p>
+                  <span className="text-[10px] font-black uppercase tracking-[0.18em] text-primary">
+                    Queue live
+                  </span>
+                </div>
+                <div className="divide-y divide-white/8">
+                  {[
+                    ["London open", "15 min • 4/10 joined", "Join room"],
+                    ["New York setup", "30 min • 3/6 joined", "View code"],
+                    ["Risk sprint", "10 min • 2/4 joined", "Join room"],
+                  ].map(([title, meta, action]) => (
+                    <div className="flex items-center justify-between gap-4 px-4 py-3.5" key={title}>
+                      <div>
+                        <p className="text-sm font-semibold text-foreground">{title}</p>
+                        <p className="mt-1 text-[12px] uppercase tracking-[0.16em] text-muted">
+                          {meta}
+                        </p>
+                      </div>
+                      <span className="rounded-full border border-primary/18 bg-primary/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-primary">
+                        {action}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="overflow-hidden rounded-[1.25rem] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.045),rgba(255,255,255,0.018))]">
+                <div className="flex items-center justify-between border-b border-white/8 px-4 py-3">
+                  <p className="text-[10px] font-black uppercase tracking-[0.22em] text-muted">
+                    Recent results
+                  </p>
+                  <span className="text-[10px] font-black uppercase tracking-[0.18em] text-primary">
+                    Final board
+                  </span>
+                </div>
+                <div className="divide-y divide-white/8">
+                  {[
+                    ["1", "You", "$101,420", "Finished"],
+                    ["2", "Rico", "$100,980", "Finished"],
+                    ["3", "Aira", "$99,640", "Drawdown"],
+                  ].map(([rank, name, balance, status]) => (
+                    <div className="grid grid-cols-[2.2rem_minmax(0,1fr)_auto] items-center gap-3 px-4 py-3.5" key={name}>
+                      <div className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-black/35 text-sm font-black text-primary">
+                        {rank}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-foreground">{name}</p>
+                        <p className="mt-1 text-[11px] uppercase tracking-[0.16em] text-muted">
+                          {status}
+                        </p>
+                      </div>
+                      <span className="text-sm font-black text-foreground">{balance}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </Reveal>
+      </div>
+    </section>
+  );
+}
+
+export function MarketingSupportModesSection({
+  copy,
+  lessonCount,
+  moduleCount,
+  quizCount,
+}: {
+  copy: HomeCopy;
+  lessonCount: number;
+  moduleCount: number;
+  quizCount: number;
+}) {
+  const supportMeta = [
+    `${moduleCount} modules`,
+    `${quizCount} quiz packs`,
+    "Replay and review",
+    `${lessonCount} lesson steps`,
+  ];
+
   return (
     <section className="px-6 py-24">
-      <div className="shell-width">
-        <div className="rounded-[var(--radius-xl)] border border-outline-variant/20 bg-surface-low px-8 py-12 text-center sm:px-12 sm:py-16">
-          <Badge>Ready to start</Badge>
-          <h2 className="mt-6 font-heading text-[2.5rem] font-black tracking-tight sm:text-[3.6rem] sm:leading-[0.96]">
-            Build understanding first.
+      <div className="shell-width space-y-12">
+        <Reveal className="max-w-[46rem] space-y-4" y={24}>
+          <Badge>{copy.supportModes.eyebrow}</Badge>
+          <h2 className="font-heading text-[2.35rem] font-black tracking-tight text-foreground sm:text-[3.35rem] sm:leading-[0.95]">
+            {copy.supportModes.title}
           </h2>
-          <p className="mx-auto mt-4 max-w-2xl text-lg leading-8 text-muted">
-            localtradings.com gives you a clear route into lessons, quizzes, and
-            backtesting without pretending the product is something it is not.
+          <p className="max-w-[40rem] text-base leading-8 text-muted sm:text-lg">
+            {copy.supportModes.description}
           </p>
-          <div className="mt-10 flex flex-col justify-center gap-4 sm:flex-row">
-            <Link className="btn-primary px-8 py-4 text-base" href="/sign-up">
-              Create Free Account
-            </Link>
-            <Link className="btn-secondary px-8 py-4 text-base" href="/learn">
-              Browse Learn
-            </Link>
-          </div>
+        </Reveal>
+
+        <div className="grid gap-5 lg:grid-cols-4">
+          {copy.supportModes.items.map((item, index) => (
+            <Reveal
+              className="rounded-[1.45rem] border border-outline-variant/18 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.015))] px-5 py-6"
+              delay={index * 0.05}
+              key={item.title}
+            >
+              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-primary">
+                {supportMeta[index]}
+              </p>
+              <h3 className="mt-4 font-heading text-[1.55rem] font-black tracking-tight text-foreground">
+                {item.title}
+              </h3>
+              <p className="mt-3 text-sm leading-7 text-muted">{item.description}</p>
+            </Reveal>
+          ))}
         </div>
+      </div>
+    </section>
+  );
+}
+
+export function MarketingHomeCtaSection({ copy }: { copy: HomeCopy }) {
+  return (
+    <section className="px-6 pb-10 pt-2 sm:pb-16">
+      <div className="shell-width">
+        <Reveal className="overflow-hidden rounded-[2rem] border border-outline-variant/18 bg-[radial-gradient(circle_at_top_left,rgba(34,197,94,0.22),transparent_36%),linear-gradient(180deg,rgba(9,12,10,0.98),rgba(6,6,6,1))] px-7 py-12 shadow-[0_28px_96px_rgba(0,0,0,0.34)] sm:px-10 sm:py-14" y={20}>
+          <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+            <div className="max-w-[42rem] space-y-4">
+              <Badge>{copy.cta.eyebrow}</Badge>
+              <h2 className="font-heading text-[2.45rem] font-black tracking-tight text-foreground sm:text-[3.6rem] sm:leading-[0.94]">
+                {copy.cta.title}
+              </h2>
+              <p className="text-base leading-8 text-muted sm:text-lg">
+                {copy.cta.description}
+              </p>
+            </div>
+            <div className="flex flex-col gap-3 sm:flex-row lg:flex-col">
+              <Link className="btn-primary px-8 py-4 text-base" href={copy.cta.primaryCta.href}>
+                {copy.cta.primaryCta.label}
+              </Link>
+              <Link className="btn-secondary px-8 py-4 text-base" href={copy.cta.secondaryCta.href}>
+                {copy.cta.secondaryCta.label}
+              </Link>
+            </div>
+          </div>
+        </Reveal>
       </div>
     </section>
   );

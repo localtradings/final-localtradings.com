@@ -1,17 +1,130 @@
 export const homeCopy = {
   hero: {
-    eyebrow: "Learning-first trading education",
-    title: "Learn trading before risking real money.",
+    eyebrow: "Trading practice platform",
+    title: "Battle other traders on replayed markets.",
     description:
-      "localtradings.com keeps the path simple: structured lessons, topic-based quizzes, and backtesting practice built for clarity instead of hype.",
-    primaryCta: { href: "/learn", label: "Start Learning" },
-    secondaryCta: { href: "/backtesting", label: "Try Backtesting" },
+      "Create private rooms, join open battles, practice solo in backtesting, sharpen with quizzes, and keep your progress moving inside one trading workspace.",
+    primaryCta: { href: "/sign-up", label: "Start A Battle" },
+    secondaryCta: { href: "/backtesting", label: "Explore Backtesting" },
+    quickModes: [
+      { label: "Battle", detail: "Compete in timed replay matches" },
+      { label: "Backtesting", detail: "Practice solo before queueing" },
+      { label: "Learn", detail: "Build trading context and process" },
+      { label: "Quiz", detail: "Check what you actually know" },
+      { label: "Progress", detail: "Track modules, scores, and sessions" },
+    ],
   },
-  platformHighlights: [
-    "Structured learning modules",
-    "Interactive quizzes with feedback",
-    "Backtesting before live risk",
+  featureGrid: [
+    {
+      eyebrow: "Main mode",
+      title: "Battle",
+      description:
+        "Trade the same replayed market as everyone else, manage risk under the same rules, and fight for the top balance before the timer ends.",
+      href: "/sign-up",
+      ctaLabel: "Open Battle",
+      points: ["Private codes", "Open rooms", "Live leaderboard"],
+    },
+    {
+      eyebrow: "Solo mode",
+      title: "Backtesting",
+      description:
+        "Replay candles, plan entries, set stops and targets, and review sessions before you take your ideas into battle.",
+      href: "/backtesting",
+      ctaLabel: "Try Backtesting",
+      points: ["Replay controls", "Trade planner", "Saved sessions"],
+    },
+    {
+      eyebrow: "Study mode",
+      title: "Learn",
+      description:
+        "Use focused modules and short lessons to build structure, not noise, before you start making trading decisions.",
+      href: "/learn",
+      ctaLabel: "Browse Learn",
+      points: ["Modules", "Lesson library", "Bookmarks"],
+    },
+    {
+      eyebrow: "Check mode",
+      title: "Quiz",
+      description:
+        "Run topic-based quiz checks so you know whether you understand the concepts before you trust them inside a trade.",
+      href: "/sign-up",
+      ctaLabel: "Take A Quiz",
+      points: ["Setup", "Take", "Results"],
+    },
+    {
+      eyebrow: "Workspace",
+      title: "Progress",
+      description:
+        "See active modules, quiz status, backtesting balance, and your next move from one dashboard instead of scattering the flow.",
+      href: "/sign-up",
+      ctaLabel: "View Workspace",
+      points: ["Dashboard", "Status", "Next actions"],
+    },
   ],
+  battleSpotlight: {
+    eyebrow: "Battle spotlight",
+    title: "Timed replay battles with real room flow.",
+    description:
+      "Battle is the centerpiece: lobby up, ready before the countdown ends, trade the replay under shared rules, and finish with a results board that shows who managed the session best.",
+    roomModes: [
+      {
+        title: "Private rooms",
+        description:
+          "Create a room, share the code, and run a controlled match with your own group.",
+      },
+      {
+        title: "Open rooms",
+        description:
+          "Join listed rooms when you want a faster queue and more opponents in the same replay.",
+      },
+      {
+        title: "Results and penalties",
+        description:
+          "Battles track rank, balance, closed trades, and enforce consequences for no-trade, forfeit, and early exit behavior.",
+      },
+    ],
+    rules: [
+      "Shared replay, shared timer, shared risk rules",
+      "Live room state with lobby, match, and results flow",
+      "Competitive ranking driven by trade execution and final balance",
+    ],
+  },
+  supportModes: {
+    eyebrow: "Support modes",
+    title: "Everything around battle still matters.",
+    description:
+      "Battle is the hook, but the rest of the platform makes it stick: learn the concepts, check yourself with quizzes, practice solo in backtesting, and return to battle better prepared.",
+    items: [
+      {
+        title: "Learn",
+        description:
+          "Use the lesson library to build structure in market basics, candlesticks, risk, planning, and psychology.",
+      },
+      {
+        title: "Quiz",
+        description:
+          "Run quick checks after studying so you know whether the idea is clear enough to apply under pressure.",
+      },
+      {
+        title: "Backtesting",
+        description:
+          "Test your process alone before you bring it into a competitive battle room.",
+      },
+      {
+        title: "Dashboard",
+        description:
+          "Keep your active module, recent scores, and trading workspace status visible in one place.",
+      },
+    ],
+  },
+  cta: {
+    eyebrow: "Ready to queue",
+    title: "Train, practice, and compete in one place.",
+    description:
+      "Start with battle if you want the pressure. Use the rest of the platform when you want better preparation, cleaner review, and a stronger process.",
+    primaryCta: { href: "/sign-up", label: "Create Free Account" },
+    secondaryCta: { href: "/learn", label: "See All Features" },
+  },
   pillars: [
     {
       title: "Learn",
