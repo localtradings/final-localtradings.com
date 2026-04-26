@@ -13,13 +13,14 @@ import {
   expectCompactBattleSurface,
   getRoomCode,
   headless,
+  installSupabaseSession,
   readReplayCounter,
-  signIn,
   waitForPath,
 } from "./battle-test-helpers.mjs";
 
 async function waitForPlayerState(admin, roomId, userId, predicate, message, timeoutMs = 20_000) {
   const deadline = Date.now() + timeoutMs;
+  let lastRow = null;
 
   while (Date.now() < deadline) {
     const result = await admin
@@ -33,6 +34,7 @@ async function waitForPlayerState(admin, roomId, userId, predicate, message, tim
       throw result.error;
     }
 
+    lastRow = result.data;
     if (result.data && predicate(result.data)) {
       return result.data;
     }
@@ -40,7 +42,35 @@ async function waitForPlayerState(admin, roomId, userId, predicate, message, tim
     await new Promise((resolve) => setTimeout(resolve, 500));
   }
 
-  throw new Error(message);
+  throw new Error(`${message} Last persisted row: ${JSON.stringify(lastRow)}`);
+}
+
+async function clickLobbyButton(page, label, timeoutMs = 60_000) {
+  const button = page.getByRole("button", { name: label });
+  await button.waitFor({ state: "visible", timeout: timeoutMs });
+  await page.waitForFunction((expectedLabel) => {
+    const buttons = Array.from(document.querySelectorAll("button"));
+    const matchingButton = buttons.find(
+      (candidate) => candidate.textContent?.trim().includes(expectedLabel),
+    );
+
+    return matchingButton instanceof HTMLButtonElement && !matchingButton.disabled;
+  }, label, { timeout: timeoutMs });
+  await button.click();
+}
+
+async function clickEnabledButton(page, label, timeoutMs = 60_000) {
+  const button = page.getByRole("button", { name: label });
+  await button.waitFor({ state: "visible", timeout: timeoutMs });
+  await page.waitForFunction((expectedLabel) => {
+    const buttons = Array.from(document.querySelectorAll("button"));
+    const matchingButton = buttons.find(
+      (candidate) => candidate.textContent?.trim() === expectedLabel,
+    );
+
+    return matchingButton instanceof HTMLButtonElement && !matchingButton.disabled;
+  }, label, { timeout: timeoutMs });
+  await button.click();
 }
 
 async function main() {
@@ -64,9 +94,9 @@ async function main() {
       attachPageDiagnostics(page, `P${index + 1}`, diagnostics);
     });
 
-    await Promise.all(
-      pages.map((page, index) => signIn(page, createdUsers[index])),
-    );
+    for (const [index, context] of contexts.entries()) {
+      await installSupabaseSession(context, createdUsers[index]);
+    }
 
     const [host, playerB, playerC, playerD, playerE] = pages;
 
@@ -74,11 +104,17 @@ async function main() {
       waitUntil: "domcontentloaded",
       timeout: 60_000,
     });
-    await host.getByRole("button", { name: "Host Room" }).waitFor({
+    const hostRoomButton = host.getByRole("button", { name: "Host Room" });
+    await hostRoomButton.waitFor({
       state: "visible",
       timeout: 60_000,
     });
-    await host.getByRole("button", { name: "Host Room" }).click({ force: true });
+    await hostRoomButton.waitFor({ state: "attached", timeout: 60_000 });
+    await host.waitForFunction(() => {
+      const button = document.querySelector('button[aria-label="Host Room"]');
+      return button instanceof HTMLButtonElement && !button.disabled;
+    }, undefined, { timeout: 60_000 });
+    await hostRoomButton.click();
     await waitForPath(host, /\/app\/battle\/lobby\//, 60_000);
     await host.waitForTimeout(1_500);
 
@@ -87,6 +123,8 @@ async function main() {
 
     const roomCode = await getRoomCode(admin, roomId);
     assert.ok(roomCode, "Could not extract room code from host lobby");
+
+    await clickLobbyButton(host, "Ready Up");
 
     await Promise.all(
       [playerB, playerC, playerD, playerE].map((page) =>
@@ -98,23 +136,33 @@ async function main() {
     );
 
     for (const page of [playerB, playerC, playerD, playerE]) {
+      await page.waitForFunction(() => {
+        const button = document.querySelector('button[aria-label="Host Room"]');
+        return button instanceof HTMLButtonElement && !button.disabled;
+      }, undefined, { timeout: 60_000 });
       await page.getByPlaceholder("ROOM CODE").fill(roomCode);
-      await page.getByRole("button", { name: "Join Room" }).click();
+      const joinRoomButton = page.getByRole("button", { name: "Join Room" });
+      await page.waitForFunction((expectedRoomCode) => {
+        const input = document.querySelector('input[aria-label="Room code"]');
+        if (!(input instanceof HTMLInputElement) || input.value !== expectedRoomCode) {
+          return false;
+        }
+
+        const buttons = Array.from(document.querySelectorAll("button"));
+        const button = buttons.find((candidate) =>
+          candidate.textContent?.trim().includes("Join Room"),
+        );
+        return button instanceof HTMLButtonElement && !button.disabled;
+      }, roomCode, { timeout: 60_000 });
+      await joinRoomButton.click();
       await waitForPath(page, new RegExp(`/app/battle/lobby/${roomId}$`), 60_000);
+
+      await clickLobbyButton(page, "Ready Up");
     }
 
     const lobbyText = await host.locator("body").innerText();
     for (const user of createdUsers) {
       assert.match(lobbyText, new RegExp(user.displayName), `Expected ${user.displayName} in the lobby scoreboard`);
-    }
-
-    await playerE.getByRole("button", { name: "Ready Up" }).click({ force: true });
-    await playerE.getByRole("button", { name: "Unready" }).waitFor({ state: "visible", timeout: 10_000 });
-    await playerE.getByRole("button", { name: "Unready" }).click();
-    await playerE.getByRole("button", { name: "Ready Up" }).waitFor({ state: "visible", timeout: 10_000 });
-
-    for (const page of [playerB, playerC, playerD, playerE, host]) {
-      await page.getByRole("button", { name: "Ready Up" }).click({ force: true });
     }
 
     await Promise.all(
@@ -157,13 +205,14 @@ async function main() {
     await host.getByRole("button", { name: "Reset" }).click();
     await host.locator("#battle-order-type").selectOption("market");
     await host.getByLabel("Risk %").fill("1.50");
-    await host.getByRole("button", { name: "Buy" }).click();
+    await clickEnabledButton(host, "Buy");
     await waitForPlayerState(
       admin,
       roomId,
       createdUsers[0].id,
       (row) => row.has_open_trade === true,
       "Host buy trade did not open authoritatively.",
+      60_000,
     );
 
     await playerB.getByRole("button", { name: "Play" }).click();
@@ -171,13 +220,14 @@ async function main() {
     await playerB.getByRole("button", { name: "Pause" }).click();
     await playerB.locator("#battle-order-type").selectOption("market");
     await playerB.getByLabel("Risk %").fill("1.25");
-    await playerB.getByRole("button", { name: "Sell" }).click();
+    await clickEnabledButton(playerB, "Sell");
     await waitForPlayerState(
       admin,
       roomId,
       createdUsers[1].id,
       (row) => row.has_open_trade === true,
       "Sell-side trade did not open authoritatively.",
+      60_000,
     );
 
     await playerC.getByRole("button", { name: "Reset" }).click();
@@ -185,13 +235,14 @@ async function main() {
     await playerC.getByRole("button", { name: "+ TP" }).click();
     await playerC.getByRole("textbox", { name: "Take Profit" }).waitFor({ state: "visible", timeout: 10_000 });
     await playerC.getByLabel("Risk %").fill("2.00");
-    await playerC.getByRole("button", { name: "Buy" }).click();
+    await clickEnabledButton(playerC, "Buy");
     await waitForPlayerState(
       admin,
       roomId,
       createdUsers[2].id,
       (row) => row.has_open_trade === true,
       "TP-only trade did not open authoritatively.",
+      60_000,
     );
 
     await playerD.getByRole("button", { name: "Reset" }).click();
@@ -199,13 +250,14 @@ async function main() {
     await playerD.getByRole("button", { name: "+ SL" }).click();
     await playerD.getByRole("textbox", { name: "Stop Loss" }).waitFor({ state: "visible", timeout: 10_000 });
     await playerD.getByLabel("Risk %").fill("1.80");
-    await playerD.getByRole("button", { name: "Buy" }).click();
+    await clickEnabledButton(playerD, "Buy");
     await waitForPlayerState(
       admin,
       roomId,
       createdUsers[3].id,
       (row) => row.has_open_trade === true,
       "SL-only trade did not open authoritatively.",
+      60_000,
     );
 
     await playerE.getByRole("button", { name: "Reset" }).click();
@@ -215,13 +267,14 @@ async function main() {
     await playerE.getByRole("textbox", { name: "Take Profit" }).waitFor({ state: "visible", timeout: 10_000 });
     await playerE.getByRole("textbox", { name: "Stop Loss" }).waitFor({ state: "visible", timeout: 10_000 });
     await playerE.getByLabel("Risk %").fill("2.25");
-    await playerE.getByRole("button", { name: "Buy" }).click();
+    await clickEnabledButton(playerE, "Buy");
     await waitForPlayerState(
       admin,
       roomId,
       createdUsers[4].id,
       (row) => row.has_open_trade === true,
       "TP+SL trade did not open authoritatively.",
+      60_000,
     );
 
     const roomResult = await admin

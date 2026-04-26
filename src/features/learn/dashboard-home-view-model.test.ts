@@ -5,6 +5,13 @@ import type { DashboardHomeData } from "@/server/dashboard/queries";
 
 const baseDashboard: DashboardHomeData = {
   displayName: "Lance",
+  accountSummary: {
+    displayName: "Lance",
+    email: "lance@example.com",
+    fullName: "Lance Trader",
+    focusArea: "Risk management",
+    isPro: false,
+  },
   learningSummary: {
     completedLessons: 4,
     totalLessons: 16,
@@ -36,6 +43,7 @@ const baseDashboard: DashboardHomeData = {
       questions: [],
     },
     latestQuizTitle: "Market Basics Check",
+    latestScorePercent: 80,
     ctaHref: "/app/quiz/market-basics-check/setup",
     ctaLabel: "Take next quiz",
   },
@@ -48,6 +56,17 @@ const baseDashboard: DashboardHomeData = {
     latestSession: null,
     ctaHref: "/app/backtesting",
     ctaLabel: "Open workspace",
+  },
+  battleSummary: {
+    isWorkerConfigured: true,
+    isPro: false,
+    activePenaltyEndsAt: null,
+    openRoomCount: 2,
+    recentBattleCount: 1,
+    winCount: 0,
+    latestResult: null,
+    ctaHref: "/app/battle",
+    ctaLabel: "Open battle hub",
   },
   recommendedModules: [
     {

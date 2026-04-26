@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
 
+import { createBrowserClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
 
 export const baseUrl = (process.env.E2E_BASE_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? "http://127.0.0.1:3000").replace(/\/$/, "");
 export const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+export const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
 export const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
 export const battleSecret = process.env.BATTLE_SHARED_SECRET ?? "uHa2TkCpd3ukITf8SfeA488zPMJssQ2dp5G6w8frZtQ=";
 export const battleWorkerUrl = (process.env.CLOUDFLARE_BATTLE_WORKER_URL ?? "").replace(/\/$/, "");
@@ -171,6 +173,56 @@ export async function signIn(page, user) {
     () => window.location.pathname === "/app" || window.location.pathname.startsWith("/app/"),
     undefined,
     { timeout: 60_000 },
+  );
+}
+
+export async function installSupabaseSession(context, user) {
+  requireEnv("NEXT_PUBLIC_SUPABASE_URL", supabaseUrl);
+  requireEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY", supabaseAnonKey);
+
+  const cookies = [];
+  const upsertCookie = (cookie) => {
+    const index = cookies.findIndex((entry) => entry.name === cookie.name);
+    if (index === -1) {
+      cookies.push(cookie);
+      return;
+    }
+
+    cookies[index] = cookie;
+  };
+
+  const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey, {
+    cookies: {
+      getAll() {
+        return cookies;
+      },
+      setAll(cookiesToSet) {
+        cookiesToSet.forEach((cookie) => upsertCookie(cookie));
+      },
+    },
+  });
+
+  const { error } = await supabase.auth.signInWithPassword({
+    email: user.email,
+    password: user.password,
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  assert.ok(cookies.length > 0, `Supabase did not produce auth cookies for ${user.email}`);
+
+  const appUrl = new URL(baseUrl);
+  await context.addCookies(
+    cookies.map((cookie) => ({
+      name: cookie.name,
+      value: cookie.value,
+      url: baseUrl,
+      secure: appUrl.protocol === "https:",
+      httpOnly: false,
+      sameSite: "Lax",
+    })),
   );
 }
 

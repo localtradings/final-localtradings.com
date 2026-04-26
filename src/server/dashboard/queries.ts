@@ -10,10 +10,12 @@ import {
 } from "@/features/learn/progress-state";
 import { getLessonsForModule } from "@/lib/content";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getBattleHomeData } from "@/server/battle/queries";
 import { DEFAULT_BACKTEST_ACCOUNT, getBacktestAccount } from "@/server/backtesting/account-queries";
 import { getBacktestSessions } from "@/server/backtesting/queries";
 import { getLearnProgressState } from "@/server/learn/queries";
 import { getCurrentProfile } from "@/server/profile/queries";
+import type { BattleResultRecord } from "@/features/battle/types";
 import type { BacktestSessionRecord } from "@/features/backtesting/types";
 import type { LessonFrontmatter, ModuleSummary, QuizDefinition } from "@/types/content";
 
@@ -35,6 +37,7 @@ type DashboardQuizSummary = {
   averageScorePercent: number | null;
   recommendedQuiz: QuizDefinition;
   latestQuizTitle: string | null;
+  latestScorePercent: number | null;
   ctaHref: string;
   ctaLabel: string;
 };
@@ -68,11 +71,33 @@ type DashboardBacktestingSummary = {
   ctaLabel: string;
 };
 
+type DashboardAccountSummary = {
+  displayName: string | null;
+  email: string | null;
+  fullName: string | null;
+  focusArea: string | null;
+  isPro: boolean;
+};
+
+type DashboardBattleSummary = {
+  isWorkerConfigured: boolean;
+  isPro: boolean;
+  activePenaltyEndsAt: string | null;
+  openRoomCount: number;
+  recentBattleCount: number;
+  winCount: number;
+  latestResult: BattleResultRecord | null;
+  ctaHref: string;
+  ctaLabel: string;
+};
+
 export type DashboardHomeData = {
   displayName: string | null;
+  accountSummary: DashboardAccountSummary;
   learningSummary: DashboardLearningSummary;
   quizSummary: DashboardQuizSummary;
   backtestingSummary: DashboardBacktestingSummary;
+  battleSummary: DashboardBattleSummary;
   recommendedModules: ModuleSummary[];
 };
 
@@ -198,12 +223,17 @@ function buildQuizSummary(
     attempts.length > 0
       ? quizCatalog.find((quiz) => quiz.slug === attempts[0]?.quiz_slug)?.title ?? null
       : null;
+  const latestScorePercent =
+    attempts.length > 0 && attempts[0] && attempts[0].total_questions > 0
+      ? Math.round((attempts[0].score / attempts[0].total_questions) * 100)
+      : null;
 
   return {
     attemptCount,
     averageScorePercent,
     recommendedQuiz,
     latestQuizTitle,
+    latestScorePercent,
     ctaHref: `/app/quiz/${recommendedQuiz.slug}/setup`,
     ctaLabel: attemptCount > 0 ? "Take next quiz" : "Start first quiz",
   };
@@ -229,6 +259,38 @@ function buildBacktestingSummary(
     latestSession: sessions[0] ?? null,
     ctaHref: "/app/backtesting",
     ctaLabel: sessions.length > 0 ? "Open workspace" : "Start backtesting",
+  };
+}
+
+function buildAccountSummary(
+  profile: Awaited<ReturnType<typeof getCurrentProfile>>,
+): DashboardAccountSummary {
+  return {
+    displayName: profile?.displayName.trim() || null,
+    email: profile?.email.trim() || null,
+    fullName: profile?.fullName.trim() || null,
+    focusArea: profile?.focusArea?.trim() || null,
+    isPro: Boolean(profile?.isPro),
+  };
+}
+
+function buildBattleSummary(
+  userId: string,
+  battleData: Awaited<ReturnType<typeof getBattleHomeData>>,
+): DashboardBattleSummary {
+  const latestResult = battleData.recentResults[0] ?? null;
+  const winCount = battleData.recentResults.filter((result) => result.winnerUserId === userId).length;
+
+  return {
+    isWorkerConfigured: battleData.isWorkerConfigured,
+    isPro: battleData.isPro,
+    activePenaltyEndsAt: battleData.activePenalty?.endsAt ?? null,
+    openRoomCount: battleData.openRooms.length,
+    recentBattleCount: battleData.recentResults.length,
+    winCount,
+    latestResult,
+    ctaHref: "/app/battle",
+    ctaLabel: battleData.recentResults.length > 0 ? "Open battle hub" : "Start battling",
   };
 }
 
@@ -277,7 +339,7 @@ function getRecommendedModules(
 }
 
 export async function getDashboardHomeData(userId: string): Promise<DashboardHomeData> {
-  const [profile, learnModules, progressState, quizAttempts, account, sessions] =
+  const [profile, learnModules, progressState, quizAttempts, account, sessions, battleData] =
     await Promise.all([
       getCurrentProfile(userId),
       getDashboardLearnCatalog(),
@@ -285,6 +347,7 @@ export async function getDashboardHomeData(userId: string): Promise<DashboardHom
       getQuizAttempts(userId),
       getBacktestAccount(userId),
       getBacktestSessions(userId),
+      getBattleHomeData(userId),
     ]);
 
   const learningSummary = buildLearningSummary(learnModules, progressState);
@@ -306,9 +369,11 @@ export async function getDashboardHomeData(userId: string): Promise<DashboardHom
   return {
     displayName:
       profile?.displayName.trim() || profile?.fullName.trim() || null,
+    accountSummary: buildAccountSummary(profile),
     learningSummary,
     quizSummary: buildQuizSummary(quizAttempts, recommendedQuiz),
     backtestingSummary: buildBacktestingSummary(account, sessions),
+    battleSummary: buildBattleSummary(userId, battleData),
     recommendedModules: getRecommendedModules(
       learnModules,
       progressState,

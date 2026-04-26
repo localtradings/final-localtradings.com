@@ -60,6 +60,9 @@ function createRoom(): WorkerBattleRoomState {
       "viewer-1": createPlayerMatchState(0),
     },
     finalizedAt: null,
+    resultsPersistedAt: null,
+    lastResultPersistAttemptAt: null,
+    lastResultPersistError: null,
   };
 }
 
