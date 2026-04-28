@@ -156,9 +156,9 @@ export function LessonPageClient({
 
               <Link
                 className="btn-secondary min-h-9 w-full px-3.5 py-2 text-xs sm:min-h-10 sm:w-auto sm:px-4 sm:text-sm"
-                href="/app/quiz"
+                href={lesson.quizSlug ? `/app/quiz/${lesson.quizSlug}/setup` : "/app/quiz"}
               >
-                Take quiz
+                {lesson.quizSlug ? "Take linked quiz" : "Take quiz"}
               </Link>
               <Link
                 className="btn-secondary min-h-9 w-full px-3.5 py-2 text-xs sm:min-h-10 sm:w-auto sm:px-4 sm:text-sm"

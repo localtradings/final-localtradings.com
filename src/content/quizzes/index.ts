@@ -67,12 +67,12 @@ export const quizCatalog: QuizDefinition[] = [
         id: "tb-5",
         prompt: "Which product pillars define localtradings.com?",
         explanation:
-          "The product pillars are Learn, Quiz, and Backtesting.",
+          "The product connects Learn, Quiz, Backtesting, and Battle into one practice path.",
         answerId: "c",
         options: [
           { id: "a", label: "Brokerage, News, Community" },
           { id: "b", label: "Signals, Alerts, Wallet" },
-          { id: "c", label: "Learn, Quiz, Backtesting" },
+          { id: "c", label: "Learn, Quiz, Backtesting, Battle" },
           { id: "d", label: "Community, Settings, Notifications" },
         ],
       },

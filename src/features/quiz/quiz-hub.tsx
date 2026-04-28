@@ -1,127 +1,145 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
+import { ArrowUpRight, BookOpen, ClipboardCheck, Timer, Trophy } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
-import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { quizCatalog } from "@/content/quizzes";
+
+function QuizMetric({
+  icon,
+  label,
+  value,
+}: {
+  icon: ReactNode;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="border-b border-white/10 px-4 py-3 sm:border-b-0 sm:border-r sm:last:border-r-0">
+      <div className="flex items-center gap-2 text-white/52">
+        {icon}
+        <p className="text-[10px] font-semibold uppercase tracking-[0.18em]">{label}</p>
+      </div>
+      <p className="mt-2 text-[1.45rem] font-semibold tracking-normal text-white">{value}</p>
+    </div>
+  );
+}
 
 export function QuizHub() {
   const featuredQuiz = quizCatalog[0];
+  const totalQuestions = quizCatalog.reduce((total, quiz) => total + quiz.questions.length, 0);
+  const totalMinutes = quizCatalog.reduce((total, quiz) => total + quiz.estimatedMinutes, 0);
 
   return (
-    <div className="space-y-8">
-      <section className="card-surface relative overflow-hidden rounded-[var(--radius-lg)] p-6 sm:p-8 lg:p-10">
-        <div className="absolute inset-y-0 right-0 hidden w-1/3 bg-[linear-gradient(180deg,rgba(147,197,253,0.08),transparent)] lg:block" />
-        <div className="relative grid gap-8 lg:grid-cols-[1.1fr,0.9fr] lg:items-end">
-          <div className="space-y-4">
-            <Badge>Quiz Hub</Badge>
-            <div className="space-y-3">
-              <h1 className="font-heading text-[2.4rem] font-extrabold tracking-tight sm:text-[3.4rem] sm:leading-[0.98]">
-                {featuredQuiz.title}
-              </h1>
-              <p className="max-w-3xl text-base leading-8 text-muted">
-                {featuredQuiz.summary}
-              </p>
+    <div className="space-y-4 pb-6">
+      <section className="overflow-hidden rounded-[1.15rem] border border-white/10 bg-[linear-gradient(180deg,rgba(13,17,22,0.98),rgba(8,10,14,0.98))]">
+        <div className="grid gap-0 xl:grid-cols-[minmax(0,1fr)_19rem]">
+          <div className="px-4 py-5 sm:px-5">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex min-h-8 items-center rounded-full border border-amber-300/20 bg-amber-300/10 px-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-100">
+                Quiz hub
+              </span>
+              <span className="inline-flex min-h-8 items-center rounded-full border border-sky-300/20 bg-sky-300/10 px-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-sky-100">
+                Learn linked
+              </span>
             </div>
-            <div className="flex flex-wrap gap-3">
-              <span className="glass-strip rounded-full px-4 py-2 text-sm text-muted">{featuredQuiz.category}</span>
-              <span className="glass-strip rounded-full px-4 py-2 text-sm text-muted">{featuredQuiz.estimatedMinutes} min</span>
-              <span className="glass-strip rounded-full px-4 py-2 text-sm text-muted">{featuredQuiz.recommendedQuestionCount} questions</span>
-            </div>
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <Link className="btn-primary" href={`/app/quiz/${featuredQuiz.slug}/setup`}>
-                Start Quiz
+            <h1 className="mt-4 max-w-[15ch] text-[2.15rem] font-semibold tracking-normal text-white sm:text-[3rem] sm:leading-[0.92]">
+              Check the lessons before you trade them.
+            </h1>
+            <p className="mt-3 max-w-[48rem] text-[13px] leading-6 text-white/64 sm:text-[14px]">
+              Every quiz maps back to Learn topics. Use setup, take, and results routes to expose weak
+              context before you move into backtesting or Battle.
+            </p>
+            <div className="mt-5 flex flex-wrap gap-3">
+              <Link className="btn-primary min-h-10 px-4 py-2.5 text-xs" href={`/app/quiz/${featuredQuiz.slug}/setup`}>
+                Start recommended quiz
               </Link>
-              <Link className="btn-secondary" href="/app/learn">
-                View Topics
+              <Link className="btn-secondary min-h-10 px-4 py-2.5 text-xs" href="/app/learn">
+                Open Learn context
               </Link>
             </div>
           </div>
-          <div className="rounded-[var(--radius-lg)] border border-outline/15 bg-surface-low/70 p-5">
-            <p className="eyebrow">Quiz flow</p>
-            <div className="mt-4 h-40 rounded-[var(--radius-md)] border border-outline/10 bg-[linear-gradient(180deg,rgba(147,197,253,0.08),transparent)] p-3">
-              <div className="flex h-full items-end gap-2">
-                {[52, 46, 64, 72, 58, 88, 96, 84, 112, 104, 126].map((height, index) => (
-                  <span
-                    className="flex-1 rounded-t-full bg-[linear-gradient(180deg,var(--primary),var(--primary-dim))] opacity-85"
-                    key={`${height}-${index}`}
-                    style={{ height }}
-                  />
-                ))}
-              </div>
-            </div>
-            <div className="mt-4 grid gap-3 text-sm text-muted">
-              {["Setup", "Take", "Results"].map((item, index) => (
-                <div className="rounded-[var(--radius-md)] border border-outline/15 bg-surface-high/50 px-4 py-3" key={item}>
-                  0{index + 1} · {item}
-                </div>
-              ))}
-            </div>
+
+          <div className="border-t border-white/10 bg-black/18 xl:border-l xl:border-t-0">
+            <QuizMetric
+              icon={<ClipboardCheck className="h-4 w-4" strokeWidth={1.9} />}
+              label="Quiz packs"
+              value={`${quizCatalog.length}`}
+            />
+            <QuizMetric
+              icon={<BookOpen className="h-4 w-4" strokeWidth={1.9} />}
+              label="Questions"
+              value={`${totalQuestions}`}
+            />
+            <QuizMetric
+              icon={<Timer className="h-4 w-4" strokeWidth={1.9} />}
+              label="Total time"
+              value={`${totalMinutes}m`}
+            />
           </div>
         </div>
       </section>
 
-      <section className="space-y-6">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+      <section className="overflow-hidden rounded-[1.15rem] border border-white/10 bg-[linear-gradient(180deg,rgba(15,19,25,0.98),rgba(10,13,18,0.98))]">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-4 py-4 sm:px-5">
           <div>
-            <p className="eyebrow">All Quiz Packs</p>
-            <h2 className="mt-3 font-heading text-[2rem] font-extrabold tracking-tight">
-              Separate routes keep the flow readable
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/46">
+              Available checks
+            </p>
+            <h2 className="mt-1 text-[1.08rem] font-semibold tracking-normal text-white">
+              Pick a topic, take the quiz, then review results.
             </h2>
           </div>
-          <div className="flex flex-wrap items-center gap-3 rounded-[var(--radius-lg)] border border-outline/15 bg-surface-low/60 px-4 py-3 text-sm text-muted">
-            <span>Level: All</span>
-            <span>Topic: All</span>
-            <span>Format: All</span>
-            <span className="ml-auto text-xs font-semibold uppercase tracking-[0.2em] text-primary">
-              Reset
-            </span>
-          </div>
+          <Link
+            className="inline-flex min-h-10 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-white transition hover:bg-white/9"
+            href="/app/learn"
+          >
+            Study topics
+            <ArrowUpRight className="h-4 w-4" strokeWidth={1.8} />
+          </Link>
         </div>
-        <div className="grid gap-6 lg:grid-cols-2">
+
+        <div className="divide-y divide-white/8">
           {quizCatalog.map((quiz) => (
-            <Card className="flex h-full flex-col justify-between gap-6 p-7" key={quiz.slug}>
-              <div className="space-y-4">
-                <div className="flex flex-wrap gap-3">
-                  <Badge>{quiz.difficulty}</Badge>
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted">
-                    {quiz.questions.length} questions
-                  </span>
-                </div>
-                <div className="space-y-3">
-                  <CardTitle>{quiz.title}</CardTitle>
-                  <CardDescription>{quiz.summary}</CardDescription>
-                </div>
+            <Link
+              className="grid gap-3 px-4 py-4 transition hover:bg-white/[0.035] sm:grid-cols-[minmax(0,1fr)_10rem_7rem_auto] sm:items-center sm:px-5"
+              href={`/app/quiz/${quiz.slug}/setup`}
+              key={quiz.slug}
+            >
+              <div className="min-w-0">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/46">
+                  {quiz.category} / {quiz.difficulty}
+                </p>
+                <h3 className="mt-1 text-[1rem] font-semibold tracking-normal text-white">
+                  {quiz.title}
+                </h3>
+                <p className="mt-1 max-w-[42rem] text-[12px] leading-5 text-white/58">
+                  {quiz.summary}
+                </p>
               </div>
-              <div className="flex items-center justify-between gap-4 border-t border-outline/10 pt-5">
-                <div className="flex flex-wrap gap-2 text-[11px] text-muted">
-                  <span className="rounded-full border border-outline/15 px-3 py-1">
-                    {quiz.category}
-                  </span>
-                  <span className="rounded-full border border-outline/15 px-3 py-1">
-                    {quiz.estimatedMinutes} min
-                  </span>
-                </div>
-                <Link className="font-semibold text-primary" href={`/app/quiz/${quiz.slug}/setup`}>
-                  Start
-                </Link>
-              </div>
-            </Card>
+              <span className="text-[12px] text-white/66">{quiz.questions.length} questions</span>
+              <span className="text-[12px] text-white/66">{quiz.estimatedMinutes} min</span>
+              <span className="inline-flex items-center gap-2 text-[12px] font-semibold text-amber-100">
+                Start
+                <Trophy className="h-4 w-4" strokeWidth={1.8} />
+              </span>
+            </Link>
           ))}
         </div>
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-3">
+      <section className="grid gap-3 lg:grid-cols-3">
         {[
-          { title: "Go to Learn", href: "/app/learn" },
-          { title: "Try Backtesting", href: "/app/backtesting" },
-          { title: "Ask for Help", href: "/app/help" },
+          { title: "Study context", detail: "Read the lesson before checking recall.", href: "/app/learn" },
+          { title: "Practice execution", detail: "Apply the idea in the backtesting workspace.", href: "/app/backtesting" },
+          { title: "Battle pressure", detail: "Compete only after the concept is clear.", href: "/app/battle" },
         ].map((item) => (
           <Link
-            className="card-surface rounded-[var(--radius-lg)] px-5 py-5 text-sm font-semibold text-foreground transition hover:-translate-y-0.5 hover:border-primary/30"
+            className="rounded-[1rem] border border-white/10 bg-white/[0.025] px-4 py-4 transition hover:bg-white/[0.045]"
             href={item.href}
             key={item.href}
           >
-            {item.title}
+            <p className="text-[14px] font-semibold tracking-normal text-white">{item.title}</p>
+            <p className="mt-1 text-[12px] leading-5 text-white/58">{item.detail}</p>
           </Link>
         ))}
       </section>

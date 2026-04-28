@@ -29,15 +29,17 @@
 
 .theme-home {
   --surface: #020202;
-  --surface-low: #040604;
-  --surface-high: #08100a;
-  --surface-highest: #0e1710;
-  --outline: #4b6353;
-  --outline-variant: #27362c;
-  --primary: #22c55e;
-  --primary-dim: #15803d;
-  --secondary-container: #112319;
-  --muted: #9bb3a4;
+  --surface-low: #05080a;
+  --surface-high: #0a1112;
+  --surface-highest: #10191a;
+  --outline: #5b6f72;
+  --outline-variant: #25383a;
+  --primary: #5cff9b;
+  --primary-dim: #13a86a;
+  --secondary: #8ed7ff;
+  --secondary-container: #102a32;
+  --tertiary: #ffe08a;
+  --muted: #b8c8c3;
 }
 
 .theme-product {

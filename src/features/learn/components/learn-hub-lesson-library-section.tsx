@@ -82,8 +82,9 @@ export function LearnHubLessonLibrarySection({
         </div>
       ) : (
         <div>
-          {paginatedLessons.map((entry) => (
+          {paginatedLessons.map((entry, index) => (
             <LessonRow
+              eagerImage={index === 0}
               entry={entry}
               isBookmarked={isLessonBookmarked(bookmarkState, entry.moduleSlug, entry.slug)}
               key={`lesson:${entry.moduleSlug}:${entry.slug}`}

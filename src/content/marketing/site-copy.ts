@@ -1,11 +1,11 @@
 export const homeCopy = {
   hero: {
-    eyebrow: "Trading practice platform",
-    title: "Battle other traders on replayed markets.",
+    eyebrow: "Trading practice workspace",
+    title: "localtradings.com",
     description:
-      "Create private rooms, join open battles, practice solo in backtesting, sharpen with quizzes, and keep your progress moving inside one trading workspace.",
-    primaryCta: { href: "/sign-up", label: "Start A Battle" },
-    secondaryCta: { href: "/backtesting", label: "Explore Backtesting" },
+      "Learn the context, check it with quizzes, practice it in backtesting, then battle other traders on the same replayed market.",
+    primaryCta: { href: "/sign-up", label: "Start Free" },
+    secondaryCta: { href: "/learn", label: "Browse Learn" },
     quickModes: [
       { label: "Battle", detail: "Compete in timed replay matches" },
       { label: "Backtesting", detail: "Practice solo before queueing" },
@@ -19,7 +19,7 @@ export const homeCopy = {
       eyebrow: "Main mode",
       title: "Battle",
       description:
-        "Trade the same replayed market as everyone else, manage risk under the same rules, and fight for the top balance before the timer ends.",
+        "Create private rooms or join open rooms where every player trades the same replay, timer, risk limits, and final results board.",
       href: "/sign-up",
       ctaLabel: "Open Battle",
       points: ["Private codes", "Open rooms", "Live leaderboard"],
@@ -28,7 +28,7 @@ export const homeCopy = {
       eyebrow: "Solo mode",
       title: "Backtesting",
       description:
-        "Replay candles, plan entries, set stops and targets, and review sessions before you take your ideas into battle.",
+        "Replay candles, plan entries, set stops and targets, and review your solo practice before bringing an idea into battle.",
       href: "/backtesting",
       ctaLabel: "Try Backtesting",
       points: ["Replay controls", "Trade planner", "Saved sessions"],
@@ -37,7 +37,7 @@ export const homeCopy = {
       eyebrow: "Study mode",
       title: "Learn",
       description:
-        "Use focused modules and short lessons to build structure, not noise, before you start making trading decisions.",
+        "Study foundations, candlesticks, market structure, risk, planning, indicators, and psychology with lesson context tied to quizzes.",
       href: "/learn",
       ctaLabel: "Browse Learn",
       points: ["Modules", "Lesson library", "Bookmarks"],
@@ -46,7 +46,7 @@ export const homeCopy = {
       eyebrow: "Check mode",
       title: "Quiz",
       description:
-        "Run topic-based quiz checks so you know whether you understand the concepts before you trust them inside a trade.",
+        "Run topic checks after learning so weak ideas are exposed before they become trade decisions.",
       href: "/sign-up",
       ctaLabel: "Take A Quiz",
       points: ["Setup", "Take", "Results"],
@@ -55,7 +55,7 @@ export const homeCopy = {
       eyebrow: "Workspace",
       title: "Progress",
       description:
-        "See active modules, quiz status, backtesting balance, and your next move from one dashboard instead of scattering the flow.",
+        "See the current module, quiz history, battle access, and practice status from the signed-in workspace.",
       href: "/sign-up",
       ctaLabel: "View Workspace",
       points: ["Dashboard", "Status", "Next actions"],
@@ -118,10 +118,10 @@ export const homeCopy = {
     ],
   },
   cta: {
-    eyebrow: "Ready to queue",
-    title: "Train, practice, and compete in one place.",
+    eyebrow: "Ready workspace",
+    title: "Study first. Practice next. Battle when it is clear.",
     description:
-      "Start with battle if you want the pressure. Use the rest of the platform when you want better preparation, cleaner review, and a stronger process.",
+      "The product is built around a simple path: understand the concept, check the concept, rehearse the trade, and compete under shared rules.",
     primaryCta: { href: "/sign-up", label: "Create Free Account" },
     secondaryCta: { href: "/learn", label: "See All Features" },
   },

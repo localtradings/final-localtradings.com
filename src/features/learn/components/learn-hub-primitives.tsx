@@ -257,11 +257,13 @@ export function ModuleSelector({
 }
 
 export function LessonRow({
+  eagerImage = false,
   isBookmarked,
   entry,
   onBookmarkToggle,
   progressLabel,
 }: {
+  eagerImage?: boolean;
   isBookmarked: boolean;
   entry: LearnLessonEntry;
   onBookmarkToggle: () => void;
@@ -276,6 +278,7 @@ export function LessonRow({
         <div className="relative aspect-[5/4] overflow-hidden rounded-[0.9rem] border border-outline-variant/70 bg-surface-highest sm:aspect-[4/3]">
           <HubCardImage
             alt={entry.title}
+            eager={eagerImage}
             imageSrc={entry.imageSrc}
             seed={`${entry.moduleSlug}-${entry.slug}`}
             sizes="(min-width: 1024px) 9rem, 36vw"
