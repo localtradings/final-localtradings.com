@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Reveal } from "@/components/ui/reveal";
+import { SymbolIcon, type SymbolIconName } from "@/components/ui/symbol-icon";
 import { learnCopy } from "@/content/marketing/site-copy";
 import { moduleCatalog } from "@/content/modules";
 
@@ -34,7 +35,7 @@ const learnBenefits = [
       "Each topic connects to quizzes or practice so the learning flow leads somewhere useful.",
     icon: "construction",
   },
-];
+] satisfies Array<{ title: string; description: string; icon: SymbolIconName }>;
 
 export function MarketingLearnPage() {
   return (
@@ -78,14 +79,12 @@ export function MarketingLearnPage() {
                   "Simple trading terms",
                   "Chart practice preview",
                   "Beginner-friendly structure",
-                ].map((item) => (
-                  <li className="flex items-center gap-3 text-muted" key={item}>
-                    <span className="material-symbols-outlined text-lg text-primary [font-variation-settings:'FILL'_1,'wght'_400,'GRAD'_0,'opsz'_24]">
-                      check_circle
-                    </span>
-                    {item}
-                  </li>
-                ))}
+	                ].map((item) => (
+	                  <li className="flex items-center gap-3 text-muted" key={item}>
+	                    <SymbolIcon name="check_circle" className="text-lg text-primary" />
+	                    {item}
+	                  </li>
+	                ))}
               </ul>
             </div>
           </Reveal>
@@ -100,8 +99,8 @@ export function MarketingLearnPage() {
             </h2>
           </Reveal>
           <div className="mt-12 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-            {[
-              {
+	            {([
+	              {
                 title: "Lessons",
                 description:
                   "Bite-sized, jargon-controlled modules designed for quick consumption.",
@@ -125,17 +124,15 @@ export function MarketingLearnPage() {
                   "Preview how study flows into chart review and basic decision-making practice.",
                 icon: "monitoring",
               },
-            ].map((item) => (
-              <Card
-                className="rounded-[var(--radius-lg)] border-outline-variant/10 bg-surface-high p-8 text-center transition hover:bg-surface-highest md:text-left"
-                key={item.title}
-              >
-                <span className="material-symbols-outlined mb-4 text-3xl text-primary">
-                  {item.icon}
-                </span>
-                <h3 className="font-heading text-lg font-bold">{item.title}</h3>
-                <p className="mt-2 text-sm leading-7 text-muted">{item.description}</p>
-              </Card>
+		            ] as const).map((item) => (
+	              <Card
+	                className="rounded-[var(--radius-lg)] border-outline-variant/10 bg-surface-high p-8 text-center transition hover:bg-surface-highest md:text-left"
+	                key={item.title}
+	              >
+	                <SymbolIcon name={item.icon} className="mb-4 text-3xl text-primary" />
+	                <h3 className="font-heading text-lg font-bold">{item.title}</h3>
+	                <p className="mt-2 text-sm leading-7 text-muted">{item.description}</p>
+	              </Card>
             ))}
           </div>
         </div>
@@ -165,10 +162,10 @@ export function MarketingLearnPage() {
                 <Link
                   className="mt-8 inline-flex items-center gap-2 text-xs font-bold text-primary/75 transition hover:text-primary"
                   href="/sign-up"
-                >
-                  Unlock
-                  <span className="material-symbols-outlined text-xs">lock</span>
-                </Link>
+	                >
+	                  Unlock
+	                  <SymbolIcon name="lock" className="text-xs" />
+	                </Link>
               </Card>
             ))}
           </div>
@@ -201,12 +198,10 @@ export function MarketingLearnPage() {
                 </div>
 
                 <div className="relative overflow-hidden rounded-[var(--radius-lg)] border border-outline-variant/10 bg-surface-lowest p-8">
-                  <div className="absolute inset-0 flex flex-col items-center justify-center rounded-[var(--radius-lg)] bg-surface-lowest/80 px-4 text-center backdrop-blur-[2px]">
-                    <span className="material-symbols-outlined mb-3 text-4xl text-primary">
-                      lock
-                    </span>
-                    <p className="mb-4 text-lg font-bold text-foreground">
-                      Module quiz is locked
+	                  <div className="absolute inset-0 flex flex-col items-center justify-center rounded-[var(--radius-lg)] bg-surface-lowest/80 px-4 text-center backdrop-blur-[2px]">
+	                    <SymbolIcon name="lock" className="mb-3 text-4xl text-primary" />
+	                    <p className="mb-4 text-lg font-bold text-foreground">
+	                      Module quiz is locked
                     </p>
                     <p className="mb-6 text-sm text-muted">
                       Create an account to answer quizzes and track your
@@ -263,12 +258,10 @@ export function MarketingLearnPage() {
           </h2>
           <div className="mt-16 grid grid-cols-1 gap-8 md:grid-cols-3">
             {learnBenefits.map((item) => (
-              <div className="p-6" key={item.title}>
-                <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-xl bg-primary/10">
-                  <span className="material-symbols-outlined text-3xl text-primary">
-                    {item.icon}
-                  </span>
-                </div>
+	              <div className="p-6" key={item.title}>
+	                <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-xl bg-primary/10">
+	                  <SymbolIcon name={item.icon} className="text-3xl text-primary" />
+	                </div>
                 <h3 className="text-xl font-bold">{item.title}</h3>
                 <p className="mt-3 text-sm leading-7 text-muted">
                   {item.description}
@@ -292,12 +285,10 @@ export function MarketingLearnPage() {
                 <div
                   className="flex items-center gap-3 border-b border-outline-variant/10 py-3"
                   key={item}
-                >
-                  <span className="material-symbols-outlined text-sm text-muted/40">
-                    lock
-                  </span>
-                  <span className="font-medium text-foreground">{item}</span>
-                </div>
+	                >
+	                  <SymbolIcon name="lock" className="text-sm text-muted/40" />
+	                  <span className="font-medium text-foreground">{item}</span>
+	                </div>
               ))}
             </div>
           </div>

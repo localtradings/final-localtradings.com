@@ -1,4 +1,5 @@
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
+import { SymbolIcon, type SymbolIconName } from "@/components/ui/symbol-icon";
 import { publicHelpCopy } from "@/content/marketing/site-copy";
 import { FeedbackForm } from "@/features/help/feedback-form";
 
@@ -26,7 +27,7 @@ export function MarketingHelpPage() {
                 key={item.title}
               >
                 <span className="inline-flex h-12 w-12 items-center justify-center rounded-[var(--radius-lg)] bg-primary/12 text-primary">
-                  <span className="material-symbols-outlined">{item.icon}</span>
+                  <SymbolIcon name={item.icon as SymbolIconName} />
                 </span>
                 <CardTitle className="mt-5">{item.title}</CardTitle>
                 <CardDescription className="mt-3">

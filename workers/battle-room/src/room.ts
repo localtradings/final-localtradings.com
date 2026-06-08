@@ -45,6 +45,7 @@ import type {
 type Env = {
   APP_BASE_URL: string;
   BATTLE_SHARED_SECRET: string;
+  DISABLE_APP_CALLBACKS?: string;
 };
 
 const STARTING_BALANCE = 100_000;
@@ -56,6 +57,10 @@ const PARTICIPATION_GRACE_MS = 60 * 1_000;
 const MAX_REPLAY_CHECKPOINT_DELTA = 48;
 const RESULT_PERSIST_RETRY_MS = 10_000;
 const TOKEN_VERSION = "v1";
+
+function appCallbacksDisabled(env: Env) {
+  return env.DISABLE_APP_CALLBACKS?.trim().toLowerCase() === "true";
+}
 
 function getDrawdownBalanceThreshold(room: Pick<WorkerBattleRoomState, "maxDrawdownPercent">) {
   if (
@@ -574,6 +579,10 @@ export class BattleRoomDO {
     userId: string,
     reason: "left_early" | "forfeit" | "no_trade",
   ) {
+    if (appCallbacksDisabled(this.env)) {
+      return null;
+    }
+
     const response = await fetch(`${this.env.APP_BASE_URL}/api/battle/internal/issue-penalty`, {
       method: "POST",
       headers: {
@@ -595,6 +604,10 @@ export class BattleRoomDO {
   }
 
   private async persistRoomSnapshot(room: WorkerBattleRoomState) {
+    if (appCallbacksDisabled(this.env)) {
+      return;
+    }
+
     await fetch(`${this.env.APP_BASE_URL}/api/battle/internal/persist-room`, {
       method: "POST",
       headers: {
@@ -738,6 +751,10 @@ export class BattleRoomDO {
   }
 
   private async fetchSeedData(): Promise<WorkerBattleSeedData> {
+    if (appCallbacksDisabled(this.env)) {
+      throw new Error("app_callbacks_disabled");
+    }
+
     const response = await fetch(`${this.env.APP_BASE_URL}/api/battle/internal/seed-room`, {
       method: "POST",
       headers: {
@@ -792,6 +809,10 @@ export class BattleRoomDO {
     timeframe: NonNullable<WorkerBattleRoomState["timeframe"]>;
     afterTime: number;
   }) {
+    if (appCallbacksDisabled(this.env)) {
+      throw new Error("app_callbacks_disabled");
+    }
+
     const response = await fetch(`${this.env.APP_BASE_URL}/api/battle/internal/refill-room`, {
       method: "POST",
       headers: {
@@ -940,6 +961,10 @@ export class BattleRoomDO {
   }
 
   private async postFinalizedResult(room: WorkerBattleRoomState) {
+    if (appCallbacksDisabled(this.env)) {
+      return;
+    }
+
     const response = await fetch(`${this.env.APP_BASE_URL}/api/battle/internal/finalize-room`, {
       method: "POST",
       headers: {

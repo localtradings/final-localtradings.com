@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { SymbolIcon } from "@/components/ui/symbol-icon";
 import { publicNav } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
 
@@ -62,7 +63,7 @@ export function PublicHeader() {
 
           <details className="relative z-10 md:hidden">
             <summary className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-white/[0.14] bg-white/[0.06] text-white transition hover:bg-white/[0.1]" style={{ color: "#ffffff" }}>
-              <span className="material-symbols-outlined">menu</span>
+              <SymbolIcon name="menu" className="text-xl" />
             </summary>
             <div className="liquid-glass-bar absolute right-0 mt-3 flex min-w-60 flex-col gap-2 rounded-[1.2rem] p-4">
               {publicNav.map((item) => (

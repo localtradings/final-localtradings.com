@@ -1,0 +1,14 @@
+.env
+.env.*
+!.env.example
+
+.next
+node_modules
+**/node_modules
+
+.wrangler
+**/.wrangler
+**/.wrangler-verify
+
+coverage
+*.log

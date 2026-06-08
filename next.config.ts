@@ -41,7 +41,10 @@ function getSocketOrigin(value?: string) {
 }
 
 const appOrigin = getAppOrigin();
-const isProduction = process.env.VERCEL_ENV === "production";
+const isProduction =
+  process.env.NODE_ENV === "production" &&
+  process.env.VERCEL === "1" &&
+  process.env.VERCEL_ENV === "production";
 const supabaseOrigin = getOrigin(process.env.NEXT_PUBLIC_SUPABASE_URL);
 const supabaseSocketOrigin = getSocketOrigin(process.env.NEXT_PUBLIC_SUPABASE_URL);
 const battleWorkerOrigin = getOrigin(process.env.CLOUDFLARE_BATTLE_WORKER_URL);

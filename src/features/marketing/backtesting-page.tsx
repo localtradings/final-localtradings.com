@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { Card } from "@/components/ui/card";
 import { Reveal } from "@/components/ui/reveal";
+import { SymbolIcon, type SymbolIconName } from "@/components/ui/symbol-icon";
 import { backtestingCopy } from "@/content/marketing/site-copy";
 
 const featureTiles = [
@@ -14,7 +15,7 @@ const featureTiles = [
   { icon: "fact_check", label: "Result Tracking" },
   { icon: "settings_ethernet", label: "Replay Controls" },
   { icon: "description", label: "Thesis + Review Notes" },
-];
+] satisfies Array<{ icon: SymbolIconName; label: string }>;
 
 const setupStats: Array<{ label: string; value: string; tone?: string }> = [
   { label: "Entry", value: "1.08542" },
@@ -39,19 +40,17 @@ export function MarketingBacktestingPage() {
             </p>
 
             <div className="mt-12 flex flex-wrap gap-4">
-              {[
+              {([
                 { icon: "history", label: "Replay candles" },
                 { icon: "swap_vert", label: "Long and short" },
                 { icon: "straighten", label: "Entry / SL / TP" },
                 { icon: "analytics", label: "Result tracking" },
-              ].map((item) => (
+              ] as const).map((item) => (
                 <div
                   className="inline-flex items-center gap-3 rounded-[var(--radius-lg)] border border-outline-variant/10 bg-surface-low px-4 py-3"
                   key={item.label}
                 >
-                  <span className="material-symbols-outlined text-primary">
-                    {item.icon}
-                  </span>
+                  <SymbolIcon name={item.icon} className="text-primary" />
                   <span className="text-sm font-semibold text-foreground">
                     {item.label}
                   </span>
@@ -65,7 +64,7 @@ export function MarketingBacktestingPage() {
                 href="/sign-up"
               >
                 Start Replaying Now
-                <span className="material-symbols-outlined">arrow_forward</span>
+                <SymbolIcon name="arrow_forward" />
               </Link>
             </div>
           </Reveal>
@@ -135,9 +134,10 @@ export function MarketingBacktestingPage() {
                 className="rounded-[var(--radius-lg)] border-b-2 border-b-transparent bg-surface-high p-8 transition hover:border-b-primary"
                 key={item.title}
               >
-                <span className="material-symbols-outlined mb-6 text-4xl text-primary">
-                  {item.icon}
-                </span>
+                <SymbolIcon
+                  name={item.icon as SymbolIconName}
+                  className="mb-6 text-4xl text-primary"
+                />
                 <h3 className="font-heading text-xl font-bold">{item.title}</h3>
                 <p className="mt-4 text-sm leading-7 text-muted">
                   {item.description}
@@ -160,9 +160,7 @@ export function MarketingBacktestingPage() {
               className="rounded-[var(--radius-lg)] bg-surface-low p-6 transition hover:bg-surface-high"
               key={item.label}
             >
-              <span className="material-symbols-outlined mb-3 text-primary">
-                {item.icon}
-              </span>
+              <SymbolIcon name={item.icon} className="mb-3 text-primary" />
               <p className="text-sm font-bold text-foreground">{item.label}</p>
             </Card>
           ))}
@@ -229,9 +227,7 @@ export function MarketingBacktestingPage() {
             <div className="relative flex items-center justify-center bg-surface-highest/40 p-12 text-center lg:w-1/3">
               <div className="absolute inset-0 bg-[#0A0907]/60" />
               <div className="relative z-10">
-                <span className="material-symbols-outlined mb-6 text-6xl text-primary">
-                  lock
-                </span>
+                <SymbolIcon name="lock" className="mb-6 text-6xl text-primary" />
                 <h4 className="font-heading text-2xl font-bold">Ready to test?</h4>
                 <p className="mb-8 mt-4 text-sm leading-7 text-muted">
                   Sign in to place and review trades on supported historical
@@ -261,9 +257,7 @@ export function MarketingBacktestingPage() {
           {backtestingCopy.reasons.map((item) => (
             <div className="flex flex-col items-center p-6 text-center" key={item.title}>
               <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-                <span className="material-symbols-outlined text-primary">
-                  {item.icon}
-                </span>
+                <SymbolIcon name={item.icon as SymbolIconName} className="text-primary" />
               </div>
               <h3 className="font-heading text-lg font-bold">{item.title}</h3>
               <p className="mt-4 text-sm leading-7 text-muted">

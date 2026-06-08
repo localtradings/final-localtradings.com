@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
 import { Reveal } from "@/components/ui/reveal";
+import { SymbolIcon } from "@/components/ui/symbol-icon";
 import type { homeCopy } from "@/content/marketing/site-copy";
 
 type HomeCopy = typeof homeCopy;
@@ -56,9 +57,9 @@ export function MarketingHeroSection({ copy }: { copy: HomeCopy }) {
     <section className="relative overflow-hidden px-6 pb-8 pt-8 sm:pt-10">
       <div
         aria-hidden="true"
-        className="absolute inset-0 bg-[url('/new%20Hero%20title%20artwork.png')] bg-cover bg-[center_top] opacity-78"
+        className="absolute inset-0 bg-[url('/localtradings-hero-battle-workspace.png')] bg-cover bg-[62%_center] opacity-95 sm:bg-center"
       />
-      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(0,0,0,0.92)_0%,rgba(0,0,0,0.72)_43%,rgba(0,0,0,0.34)_72%,rgba(0,0,0,0.72)_100%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_72%_48%,rgba(31,255,166,0.12),transparent_31%),linear-gradient(90deg,rgba(0,0,0,0.96)_0%,rgba(0,0,0,0.86)_42%,rgba(0,0,0,0.38)_78%,rgba(0,0,0,0.68)_100%)]" />
       <div className="absolute inset-x-0 bottom-0 h-44 bg-[linear-gradient(180deg,transparent,#000)]" />
 
       <div className="shell-width relative z-10 flex min-h-[34rem] flex-col justify-between gap-8 sm:min-h-[36rem] lg:min-h-[38rem]">
@@ -181,7 +182,7 @@ export function MarketingFeatureGridSection({
                     href={item.href}
                   >
                     {item.ctaLabel}
-                    <span className="material-symbols-outlined text-base">arrow_forward</span>
+                    <SymbolIcon name="arrow_forward" className="text-base" />
                   </Link>
                 </div>
               </Reveal>

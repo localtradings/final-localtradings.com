@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { Analytics } from "@vercel/analytics/next";
 
+import { VercelAnalytics } from "@/components/analytics/vercel-analytics";
 import { env } from "@/lib/env";
 
 import "./globals.css";
@@ -24,11 +24,6 @@ export const metadata: Metadata = {
     "Battle other traders on replayed markets, practice solo in backtesting, sharpen with quizzes, and track your progress in one trading workspace.",
 };
 
-const shouldRenderAnalytics =
-  process.env.VERCEL === "1" ||
-  process.env.VERCEL === "true" ||
-  Boolean(process.env.VERCEL_ENV);
-
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -42,7 +37,7 @@ export default function RootLayout({
     >
       <body className="min-h-full bg-background text-foreground font-sans">
         {children}
-        {shouldRenderAnalytics ? <Analytics /> : null}
+        <VercelAnalytics />
       </body>
     </html>
   );

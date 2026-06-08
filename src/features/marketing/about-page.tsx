@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { Card } from "@/components/ui/card";
 import { Reveal } from "@/components/ui/reveal";
+import { SymbolIcon, type SymbolIconName } from "@/components/ui/symbol-icon";
 import { aboutCopy } from "@/content/marketing/site-copy";
 
 const audienceCards = [
@@ -29,7 +30,13 @@ const audienceCards = [
     tone: "text-tertiary",
     border: "hover:border-tertiary/30",
   },
-];
+] satisfies Array<{
+  title: string;
+  description: string;
+  icon: SymbolIconName;
+  tone: string;
+  border: string;
+}>;
 
 const valueTiles = [
   { label: "Clarity", icon: "search" },
@@ -38,7 +45,7 @@ const valueTiles = [
   { label: "Simplicity", icon: "filter_list" },
   { label: "Growth", icon: "trending_up" },
   { label: "Respect", icon: "handshake" },
-];
+] satisfies Array<{ label: string; icon: SymbolIconName }>;
 
 const companyCards = [
   {
@@ -57,7 +64,13 @@ const companyCards = [
     tone: "text-secondary",
     panel: "bg-secondary/10",
   },
-];
+] satisfies Array<{
+  title: string;
+  description: string;
+  icon: SymbolIconName;
+  tone: string;
+  panel: string;
+}>;
 
 export function MarketingAboutPage() {
   return (
@@ -74,16 +87,12 @@ export function MarketingAboutPage() {
           </p>
           <div className="flex flex-wrap items-center gap-4">
             <span className="inline-flex items-center gap-2 font-semibold text-secondary">
-              <span className="material-symbols-outlined [font-variation-settings:'FILL'_1,'wght'_400,'GRAD'_0,'opsz'_24]">
-                verified
-              </span>
+              <SymbolIcon name="verified" />
               Education First
             </span>
             <span className="h-1.5 w-1.5 rounded-full bg-outline-variant" />
             <span className="inline-flex items-center gap-2 font-semibold text-secondary">
-              <span className="material-symbols-outlined [font-variation-settings:'FILL'_1,'wght'_400,'GRAD'_0,'opsz'_24]">
-                query_stats
-              </span>
+              <SymbolIcon name="query_stats" />
               Pure Strategy
             </span>
           </div>
@@ -93,18 +102,14 @@ export function MarketingAboutPage() {
           <div className="absolute -inset-4 rounded-xl bg-primary/10 blur-3xl transition-all duration-500 group-hover:bg-primary/20" />
           <div className="relative grid grid-cols-2 gap-4">
             <Card className="space-y-4 bg-surface-high p-6 transition duration-300 hover:-translate-y-2">
-              <span className="material-symbols-outlined text-4xl text-primary">
-                school
-              </span>
+              <SymbolIcon name="school" className="text-4xl text-primary" />
               <h3 className="font-heading text-lg font-bold">Learn</h3>
               <div className="h-2 w-full overflow-hidden rounded-full bg-surface-highest">
                 <div className="h-full w-2/3 bg-primary" />
               </div>
             </Card>
             <Card className="mt-8 space-y-4 bg-surface-highest p-6 transition duration-300 hover:-translate-y-2">
-              <span className="material-symbols-outlined text-4xl text-secondary">
-                query_stats
-              </span>
+              <SymbolIcon name="query_stats" className="text-4xl text-secondary" />
               <h3 className="font-heading text-lg font-bold">Backtesting</h3>
               <div className="flex h-8 items-end gap-1">
                 <div className="h-1/2 w-full bg-secondary/40" />
@@ -113,9 +118,7 @@ export function MarketingAboutPage() {
               </div>
             </Card>
             <Card className="col-span-2 flex items-center gap-6 bg-surface-low p-6 transition duration-300 hover:-translate-y-2">
-              <span className="material-symbols-outlined text-4xl text-tertiary">
-                quiz
-              </span>
+              <SymbolIcon name="quiz" className="text-4xl text-tertiary" />
               <div>
                 <h3 className="font-heading text-lg font-bold">Quiz</h3>
                 <p className="text-sm text-muted">
@@ -189,9 +192,10 @@ export function MarketingAboutPage() {
             },
           ].map((item) => (
             <Card className={`${item.panel} space-y-4 p-8 transition hover:bg-surface-highest`} key={item.title}>
-              <span className={`material-symbols-outlined text-3xl ${item.tone}`}>
-                {item.icon}
-              </span>
+              <SymbolIcon
+                name={item.icon as SymbolIconName}
+                className={`text-3xl ${item.tone}`}
+              />
               <h3 className="font-heading text-xl font-bold">{item.title}</h3>
               <p className="text-sm leading-7 text-muted">{item.description}</p>
             </Card>
@@ -202,7 +206,7 @@ export function MarketingAboutPage() {
       <section className="shell-width grid gap-12 px-6 py-8 md:grid-cols-2">
         <Card className="relative overflow-hidden bg-surface-low p-12">
           <div className="absolute right-0 top-0 p-4 opacity-10">
-            <span className="material-symbols-outlined text-9xl">lightbulb</span>
+            <SymbolIcon name="lightbulb" className="text-9xl" />
           </div>
           <h3 className="text-xs font-black uppercase tracking-[0.22em] text-primary">
             The Mission
@@ -214,7 +218,7 @@ export function MarketingAboutPage() {
 
         <Card className="relative overflow-hidden bg-surface-high p-12">
           <div className="absolute right-0 top-0 p-4 opacity-10">
-            <span className="material-symbols-outlined text-9xl">visibility</span>
+            <SymbolIcon name="visibility" className="text-9xl" />
           </div>
           <h3 className="text-xs font-black uppercase tracking-[0.22em] text-secondary">
             The Vision
@@ -236,9 +240,7 @@ export function MarketingAboutPage() {
               key={item.title}
             >
               <h3 className="mb-4 flex items-center gap-3 font-heading text-2xl font-bold">
-                <span className={`material-symbols-outlined ${item.tone}`}>
-                  {item.icon}
-                </span>
+                <SymbolIcon name={item.icon} className={item.tone} />
                 {item.title}
               </h3>
               <p className="leading-7 text-muted">{item.description}</p>
@@ -257,9 +259,7 @@ export function MarketingAboutPage() {
               className="space-y-2 bg-surface-high p-6 text-center transition hover:bg-surface-bright"
               key={item.label}
             >
-              <span className="material-symbols-outlined text-primary">
-                {item.icon}
-              </span>
+              <SymbolIcon name={item.icon} className="text-primary" />
               <p className="font-bold">{item.label}</p>
             </Card>
           ))}
@@ -301,9 +301,7 @@ export function MarketingAboutPage() {
           {companyCards.map((item) => (
             <Card className="flex gap-6 bg-surface-low p-8" key={item.title}>
               <div className={`flex h-16 w-16 shrink-0 items-center justify-center rounded ${item.panel}`}>
-                <span className={`material-symbols-outlined ${item.tone}`}>
-                  {item.icon}
-                </span>
+                <SymbolIcon name={item.icon} className={item.tone} />
               </div>
               <div>
                 <h3 className="mb-2 text-xl font-bold">{item.title}</h3>

@@ -6,7 +6,7 @@
     },
     {
       "path": "/api/internal/replay-windows/maintain",
-      "schedule": "*/15 * * * *"
+      "schedule": "0 1 * * *"
     }
   ]
 }

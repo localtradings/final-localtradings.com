@@ -105,6 +105,7 @@ export function PasswordRevealButton({
 }) {
   return (
     <button
+      aria-label={visible ? "Hide password" : "Show password"}
       className="inline-flex h-7 w-7 items-center justify-center rounded-full text-white/56 transition hover:bg-white/6 hover:text-white"
       onClick={onClick}
       type="button"
